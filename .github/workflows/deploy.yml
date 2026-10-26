@@ -1,0 +1,52 @@
+name: Deploy site — Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", ".github/workflows/deploy.yml"]
+  workflow_run:                      # dispara após o ETL commitar dados novos
+    workflows: ["ETL Câmara — custo por deputado"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main            # após workflow_run, garante o commit mais novo (com os JSONs)
+
+      - name: Dados presentes?
+        run: |
+          test -f site/public/data/custo_deputado_2026.json || {
+            echo "::error::site/public/data/*.json ausente — rode o workflow 'ETL Câmara' primeiro"; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - run: npm ci || npm install
+        working-directory: site
+
+      - run: npm run build
+        working-directory: site
+
+      - name: Publicar no Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site/dist --project-name=nossodinheiro --branch=main

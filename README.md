@@ -27,9 +27,17 @@ make etl ANO=2026    # ou FONTE=bulk para o CSV anual (muito mais rápido p/ ano
 make site            # build do Astro em site/dist
 ```
 
-## Deploy (Cloudflare Pages)
-Conectar o repo no dashboard → build command `cd site && npm install && npm run build`,
-output `site/dist`. Apontar o domínio `.org` registrado na Cloudflare Registrar.
+## Deploy (GitHub Actions → Cloudflare Pages)
+Tudo roda no Actions: `etl.yml` (semanal, ou a cada push em `etl/`) commita os JSONs e
+dispara `deploy.yml`, que builda o Astro e publica com `wrangler pages deploy`.
+
+Setup único:
+1. Cloudflare → Workers & Pages → Create → Pages → **Upload assets** (Direct Upload), nome do projeto `nossodinheiro`.
+2. Cloudflare → My Profile → API Tokens → Create → template **"Edit Cloudflare Workers"** (inclui Pages) → copie o token.
+3. GitHub → Settings → Secrets and variables → Actions: `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` (Account ID fica na home do dashboard, lado direito).
+4. GitHub → Settings → Actions → General → Workflow permissions: **Read and write**.
+5. Actions → "ETL Câmara" → Run workflow. Ao terminar, o deploy roda sozinho.
+6. Pages → projeto `nossodinheiro` → Custom domains → `nossodinheiro.org`.
 
 Metodologia: `docs/metodologia/painel-1-custo-deputados.md`.
 
