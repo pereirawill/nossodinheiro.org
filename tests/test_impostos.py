@@ -13,12 +13,12 @@ def test_brl_formatos_misturados():
 
 def test_sem_duplicidade_e_agregacao():
     csv = "\n".join([CABECALHO,
-        "2001;Janeiro;SP;100;1,000;;;500;50;",             # ano antigo: COFINS agregado preenchido, detalhadas vazias
+        "2001;Janeiro;SP;100;1,000,000;;;500;50;",         # ano antigo: COFINS agregado (milhar com vírgulas), detalhadas vazias
         "2026;Janeiro;SP;200;;10,5;300;700,25;60;40",      # ano novo: agregado vazio, detalhadas preenchidas
         "2026;Fevereiro;RJ;20;;1;30;70;6;4",
     ])
     linhas = carregar(csv)
-    assert linhas[0]["valores"]["COFINS"] == 1000.0 and linhas[0]["valores"]["COFINS - DEMAIS"] == 0.0
+    assert linhas[0]["valores"]["COFINS"] == 1_000_000.0 and linhas[0]["valores"]["COFINS - DEMAIS"] == 0.0
     assert linhas[1]["valores"]["COFINS"] == 0.0 and linhas[1]["valores"]["COFINS - DEMAIS"] == 300.0
     d = agregar(linhas)
     assert d["ultimo_mes"] == {"ano": 2026, "mes": 2}
