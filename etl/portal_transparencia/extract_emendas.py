@@ -72,6 +72,8 @@ class Client:
                 log.warning("429 em %s — pausando 120s (tentativa %d)", r.url, attempt)
                 time.sleep(120)
                 continue
+            if r.status_code == 403:
+                r.raise_for_status()  # restrito: não adianta repetir
             if r.status_code >= 500:
                 log.warning("HTTP %s em %s — %.0fs", r.status_code, r.url, delay)
                 time.sleep(delay); delay = min(delay * 2, 60)
@@ -105,11 +107,16 @@ def cmd_inspect(c: Client, ano: int) -> None:
         print("exemplo:", json.dumps(rows[0], ensure_ascii=False, indent=2))
         cod = rows[0].get("codigoEmenda")
         if cod:
-            docs = c.get("/emendas/documentos", {"codigoEmenda": cod, "pagina": 1})
-            print(f"/emendas/documentos codigoEmenda={cod}: {len(docs)} itens")
-            if docs:
-                print("campos:", sorted(docs[0].keys()))
-                print("exemplo:", json.dumps(docs[0], ensure_ascii=False, indent=2))
+            try:
+                docs = c.get("/emendas/documentos", {"codigoEmenda": cod, "pagina": 1})
+                print(f"/emendas/documentos codigoEmenda={cod}: {len(docs)} itens")
+                if docs:
+                    print("campos:", sorted(docs[0].keys()))
+                    print("exemplo:", json.dumps(docs[0], ensure_ascii=False, indent=2))
+            except httpx.HTTPStatusError as e:
+                print(f"/emendas/documentos → HTTP {e.response.status_code}: endpoint restrito para esta chave "
+                      f"(26/10/2026). Destino por município/favorecido via CSV 'Emendas parlamentares' do "
+                      f"download-de-dados ou TransfereGov.")
 
 
 def cmd_emendas(c: Client, ano: int) -> None:
