@@ -56,7 +56,7 @@ const path = Astro.url.pathname;
       .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
       .disclaimer { display: flex; gap: 10px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); margin: 16px 0; }
       .disclaimer b { color: var(--ink); }
-      table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+      table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
       th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); font-weight: 600; }
       th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
       tr:last-child td { border-bottom: 0; }
@@ -70,9 +70,10 @@ const path = Astro.url.pathname;
       .termo:hover i, .termo:focus i { background: var(--ink); color: var(--card); border-color: var(--ink); }
       .termo::after { content: attr(data-dica); position: absolute; left: 0; top: calc(100% + 6px); z-index: 10; width: max-content; max-width: min(320px, 85vw);
                       background: var(--ink); color: var(--card); font: 400 13px/1.45 "Public Sans", system-ui, sans-serif; white-space: normal; text-align: left;
+                      text-transform: none; letter-spacing: 0;
                       padding: 10px 12px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.18); opacity: 0; pointer-events: none; transition: opacity .12s; }
       .termo:hover::after, .termo:focus::after { opacity: 1; }
-      .termo.dir::after { left: auto; right: 0; }
+      .termo.dir::after, .num .termo::after, .stat:last-child .termo::after, .legend span:last-child .termo::after { left: auto; right: 0; }
       th .termo, .stat .termo { border-bottom-color: transparent; }
       /* Glossário recolhível */
       .glossario { margin-top: 36px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 18px; }
