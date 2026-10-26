@@ -25,7 +25,7 @@ const max = Math.max(1, ...rows.map((r) => r.custo_mensal_medio));
 const W = 920, labelW = 260, plotW = W - labelW - 110, rowH = 30;
 const x = (v: number) => (v / max) * plotW;
 ---
-<Base title="Quanto custa um ministro do STF? — Nosso Dinheiro">
+<Base title="Quanto custa um ministro do STF? — Nosso Dinheiro" accent="var(--s5)">
   <h1>Quanto custa um ministro do STF?</h1>
   <p class="lede">
     <Termo t="remuneracao_bruta">Remuneração</Termo> de cada ministro e <Termo t="gabinete_stf">folha do seu gabinete</Termo>

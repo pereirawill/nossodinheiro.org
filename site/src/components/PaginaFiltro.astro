@@ -29,7 +29,7 @@ const mediaGeral = todos.reduce((s: number, r: any) => s + r.custo_total_estimad
 const proj = meta.anual_e_projecao ? " (projeção)" : "";
 const ordenadas = [...rows].sort((a: any, b: any) => b.custo_total_estimado - a.custo_total_estimado);
 ---
-<Base title={`${titulo} — Nosso Dinheiro`}>
+<Base title={`${titulo} — Nosso Dinheiro`} accent={sen ? "var(--s3)" : "var(--s1)"}>
   <h1>{titulo}</h1>
   <p class="lede">{descricao}
     {sen

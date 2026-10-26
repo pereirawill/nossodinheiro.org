@@ -1,5 +1,5 @@
 ---
-const { title, description = "O dinheiro público do Brasil, explicado com dados oficiais." } = Astro.props;
+const { title, description = "O dinheiro público do Brasil, explicado com dados oficiais.", accent = "var(--s1)" } = Astro.props;
 const nav = [
   ["/", "Deputados"], ["/senadores/", "Senadores"], ["/stf/", "STF"], ["/emendas/", "Emendas"], ["/poderes/", "Poderes"],
   ["/metodologia/", "Metodologia"], ["/sobre/", "Sobre"],
@@ -29,35 +29,45 @@ const path = Astro.url.pathname;
       }
       * { box-sizing: border-box; }
       html { background: var(--bg); }
-      body { margin: 0; color: var(--ink); font: 15px/1.55 "Public Sans", system-ui, sans-serif; }
+      body { margin: 0; color: var(--ink); font: 16px/1.6 "Public Sans", system-ui, sans-serif; -webkit-text-size-adjust: 100%; }
       a { color: var(--s1); }
       header { background: var(--card); border-bottom: 1px solid var(--line); }
       .brand { max-width: 1040px; margin: 0 auto; padding: 14px 16px 10px; display: flex; align-items: center; justify-content: space-between; }
       .brand .logo { font-weight: 800; font-size: 20px; letter-spacing: -.01em; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 8px; }
       .brand .logo svg { width: 22px; height: 22px; }
       .brand .cta { font-size: 13px; color: var(--ink-2); }
+      @media (max-width: 720px) { .brand .cta { display: none; } .brand { padding: 12px 16px 6px; } }
       nav.panels { max-width: 1040px; margin: 0 auto; padding: 0 16px 10px; display: flex; gap: 4px; overflow-x: auto; }
       nav.panels a { white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink-2); text-decoration: none; padding: 6px 10px; border-radius: 999px; }
-      nav.panels a[aria-current] { background: var(--bg); color: var(--ink); }
+      nav.panels a[aria-current] { background: var(--ink); color: var(--card); }
       .stripe { height: 4px; background: linear-gradient(90deg, var(--s1) 0 20%, var(--s2) 20% 40%, var(--s3) 40% 60%, var(--s4) 60% 80%, var(--s5) 80%); }
       main { max-width: 1040px; margin: 0 auto; padding: 28px 16px 64px; }
-      h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.02; letter-spacing: -.005em; margin: 0 0 6px; }
-      h2 { font-size: 17px; font-weight: 700; margin: 36px 0 12px; }
+      h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.0; letter-spacing: -.005em; margin: 0 0 8px; }
+      h2 { font-size: 19px; font-weight: 800; margin: 40px 0 14px; padding-left: 12px; border-left: 4px solid var(--accent); line-height: 1.2; }
       .lede { color: var(--ink-2); max-width: 70ch; margin: 0 0 20px; }
       .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
       .hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin: 20px 0 8px; }
+      .stat { border-top: 4px solid var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 24px -18px rgba(0,0,0,.25); }
+      .stat b { color: var(--accent); }
+      .stat.big { background: color-mix(in srgb, var(--accent) 7%, var(--card)); }
       .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 14px; }
       .stat b { display: block; font-family: var(--display); font-weight: 800; font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: .95; letter-spacing: -.01em; }
       .stat.big b { font-size: clamp(3rem, 9vw, 6rem); }
       .stat > span { display: block; margin-top: 8px; font-size: 13px; color: var(--ink-2); }
-      @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } .stat.big { grid-column: 1 / -1; } }
-      .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+      @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; gap: 10px; } .stat.big { grid-column: 1 / -1; } .stat { padding: 14px 14px 12px; } .stat b { font-size: clamp(1.9rem, 9vw, 2.6rem); } .stat.big b { font-size: clamp(2.6rem, 14vw, 4rem); } }
+      @media (max-width: 420px) { .hero { grid-template-columns: 1fr; } }
+      .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 24px -18px rgba(0,0,0,.25); }
+      /* Celular: gráficos SVG largos rolam dentro do cartão em vez de encolher o texto */
+      @media (max-width: 720px) { .card { overflow-x: auto; padding: 14px; } .card > svg[role="img"] { min-width: 680px; } }
       .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin: 0 0 12px; }
       .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
-      .disclaimer { display: flex; gap: 10px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); margin: 16px 0; }
+      .disclaimer { display: flex; gap: 10px; align-items: flex-start; background: color-mix(in srgb, var(--accent) 7%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line)); border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--ink-2); margin: 16px 0; }
+      .disclaimer > span { color: var(--accent); font-weight: 700; }
       .disclaimer b { color: var(--ink); }
       table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
-      th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); font-weight: 600; }
+      /* Celular: tabela rola na horizontal em vez de espremer as colunas */
+      @media (max-width: 720px) { table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; } }
+      th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); font-weight: 700; background: color-mix(in srgb, var(--accent) 5%, var(--card)); }
       th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
       tr:last-child td { border-bottom: 0; }
       td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; }
@@ -82,7 +92,7 @@ const path = Astro.url.pathname;
       th .termo, .stat .termo { border-bottom-color: transparent; }
       /* Glossário recolhível */
       .glossario { margin-top: 36px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 18px; }
-      .glossario summary { cursor: pointer; font-weight: 700; font-size: 15px; }
+      .glossario summary { cursor: pointer; font-weight: 700; font-size: 15px; color: var(--accent); }
       .glossario dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 14px 0 6px; font-size: 14px; }
       .glossario dt { font-weight: 700; } .glossario dd { margin: 0; color: var(--ink-2); }
       @media (max-width: 720px) { .glossario dl { grid-template-columns: 1fr; gap: 2px; } .glossario dd { margin-bottom: 10px; } }
@@ -104,7 +114,7 @@ const path = Astro.url.pathname;
       </nav>
       <div class="stripe"></div>
     </header>
-    <main><slot /></main>
+    <main style={`--accent:${accent}`}><slot /></main>
     <footer><div>Fontes: Câmara dos Deputados · Senado Federal · STF · Portal da Transparência (CGU) · SIOP · código MIT · dados e textos CC BY 4.0 · metodologia aberta no GitHub</div></footer>
     <script is:inline>
       // Ordenação de tabelas por clique no cabeçalho. Melhoria progressiva: sem JS a tabela fica na ordem
