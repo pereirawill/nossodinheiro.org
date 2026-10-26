@@ -4,6 +4,7 @@ import Chart from "../../components/CustoDeputadoChart.astro";
 import Tabela from "../../components/TabelaDeputados.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import BeneficiosBox from "../../components/BeneficiosBox.astro";
 import rows from "../../../public/data/custo_senador_2026.json";
 import meta from "../../../public/data/meta_senado_2026.json";
 
@@ -57,6 +58,7 @@ const series = [
     estimamos. Compare só subsídio + cota. {moradia} senadores recebem auxílio-moradia e {imovel} ocupam
     <Termo t="imovel_funcional">imóvel funcional</Termo>; nenhum dos dois entra no total.</div>
   </div>
+  <BeneficiosBox casa="senadores" />
 
   <h2>Os 20 que mais custaram</h2>
   <div class="card">

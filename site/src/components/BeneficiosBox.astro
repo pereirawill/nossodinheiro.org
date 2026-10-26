@@ -1,0 +1,56 @@
+---
+/** Caixa recolhível "o que X tem direito a receber". Props: casa ("deputados" | "senadores" | "stf"), aberto? */
+import { DEPUTADOS, SENADORES, STF, LIDO } from "../lib/beneficios";
+import type { Beneficio } from "../lib/beneficios";
+const { casa, aberto = false } = Astro.props as { casa: "deputados" | "senadores" | "stf"; aberto?: boolean };
+const cfg = {
+  deputados: { titulo: "O que um deputado federal tem direito a receber", itens: DEPUTADOS },
+  senadores: { titulo: "O que um senador tem direito a receber", itens: SENADORES },
+  stf: { titulo: "O que um ministro do STF recebe, conforme o contracheque", itens: STF },
+}[casa] as { titulo: string; itens: Beneficio[] };
+const lido = LIDO.split("-").reverse().join("/");
+const usoRotulo = { sim: "publicado por pessoa", parcial: "em parte", nao: "não publicado por pessoa" };
+const custoRotulo = { sim: "entra (gasto real)", teto: "entra pelo teto", nao: "não entra" };
+---
+<details class="glossario beneficios" open={aberto}>
+  <summary>{cfg.titulo} <span class="dica">benefícios, valores, regras e fontes</span></summary>
+  <p class="intro">Benefício é regra, não transação: não há API. Cada linha vem da norma ou da página oficial citada, lida em {lido}.
+    "No custo" diz se a linha entra na conta deste painel. Dentro da mesma casa o valor é igual para todos; o que varia é o uso
+    (apartamento funcional ou auxílio-moradia, cota por estado). Comparação entre as três casas e ex-presidentes: <a href="/beneficios/">benefícios</a>.</p>
+  <table>
+    <thead><tr><th>Benefício</th><th>Valor ou regra</th><th>Uso por pessoa</th><th>No custo</th><th>Fonte</th></tr></thead>
+    <tbody>
+      {cfg.itens.map((b) => (
+        <tr>
+          <td><strong>{b.item}</strong></td>
+          <td>{b.valor}</td>
+          <td><span class={`tag ${b.uso}`}>{usoRotulo[b.uso]}</span>{b.usoNota ? <small>{b.usoNota}</small> : null}</td>
+          <td><span class={`tag c-${b.noCusto ?? "nao"}`}>{custoRotulo[b.noCusto ?? "nao"]}</span></td>
+          <td class="fonte">{b.url ? <a href={b.url} rel="noopener">{b.fonte}</a> : b.fonte}<small>lido em {b.lido.split("-").reverse().join("/")}</small></td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</details>
+<style>
+  details.beneficios { margin: 16px 0 0; }
+  details.beneficios summary .dica { font-weight: 400; color: var(--ink-2); font-size: 13px; margin-left: 6px; }
+  details.beneficios .intro { font-size: 13px; color: var(--ink-2); margin: 10px 0 12px; }
+  details.beneficios td { vertical-align: top; font-size: 13.5px; }
+  details.beneficios th:nth-child(1), details.beneficios td:nth-child(1) { width: 13%; }
+  details.beneficios th:nth-child(2), details.beneficios td:nth-child(2) { width: 44%; }
+  details.beneficios th:nth-child(3), details.beneficios td:nth-child(3) { width: 17%; }
+  details.beneficios th:nth-child(4), details.beneficios td:nth-child(4) { width: 10%; }
+  details.beneficios td.fonte { width: 16%; font-size: 12px; }
+  details.beneficios td.fonte a { color: var(--ink-2); }
+  details.beneficios small { display: block; color: var(--ink-2); font-size: 11.5px; margin-top: 3px; }
+  .tag { display: inline-block; white-space: nowrap; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); }
+  .tag.sim, .tag.c-sim { border-color: var(--s2); color: var(--s2); }
+  .tag.parcial, .tag.c-teto { border-color: var(--s4); color: var(--s4); }
+  @media (max-width: 720px) {
+    details.beneficios table, details.beneficios thead, details.beneficios tbody, details.beneficios tr, details.beneficios td { display: block; width: auto !important; }
+    details.beneficios thead { display: none; }
+    details.beneficios tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+    details.beneficios td { border: 0; padding: 3px 12px; }
+  }
+</style>

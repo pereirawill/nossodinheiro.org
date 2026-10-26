@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import BeneficiosBox from "../../components/BeneficiosBox.astro";
 import rows from "../../../public/data/custo_ministro_stf_2026.json";
 import meta from "../../../public/data/meta_stf_2026.json";
 
@@ -52,6 +53,7 @@ const x = (v: number) => (v / max) * plotW;
     pessoas lotadas no gabinete. O presidente do Tribunal aparece com o Gabinete da Presidência, menor que um gabinete de ministro.
     Não entram: prédio, segurança, viagens, aposentados. <a href="/metodologia/">Metodologia</a>.</div>
   </div>
+  <BeneficiosBox casa="stf" />
 
   <h2>Por ministro, por mês</h2>
   <div class="card">

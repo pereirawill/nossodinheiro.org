@@ -69,7 +69,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   do GitHub, qualquer UA) → sem agendamento; atualização mensal manual: `make stf ANO=2026` + commit. `etl-stf.yml` só dispatch.
 - Site: `/stf/`. Metodologia: `docs/metodologia/painel-stf.md`. Próximo: STJ/TST/TSE/CNJ no mesmo molde.
 
-## Página Benefícios (site)
+## Benefícios (site)
+- `BeneficiosBox.astro` recolhível em cada painel (abaixo do aviso); `/beneficios/` compara as três casas + ex-presidentes (fora do menu).
 - `site/src/lib/beneficios.ts`: lista fixa por casa (deputados, senadores, STF) + ex-presidentes, cada linha com valor/
   regra, uso por pessoa, "no custo", fonte, URL e data. Sem API. Metodologia: `docs/metodologia/painel-beneficios.md`.
 - Ex-presidentes: Lei 7.474/1986 (8 servidores + 2 carros, sem salário); dataset da Presidência

@@ -4,6 +4,7 @@ import Chart from "../components/CustoDeputadoChart.astro";
 import Tabela from "../components/TabelaDeputados.astro";
 import Termo from "../components/Termo.astro";
 import Glossario from "../components/Glossario.astro";
+import BeneficiosBox from "../components/BeneficiosBox.astro";
 import rows from "../../public/data/custo_deputado_2026.json";
 import meta from "../../public/data/meta_2026.json";
 
@@ -46,6 +47,7 @@ const dataFmt = fmt.format(quando).replace(",", " às") + " (Brasília)";
     <div><b>Sem nota, ranking de "bom ou ruim" nem opinião.</b> Subsídio e verba de gabinete são iguais para todos;
     quem sobe no ranking é quem usou mais cota. Deputados de estados distantes têm teto maior por causa das passagens.</div>
   </div>
+  <BeneficiosBox casa="deputados" />
 
   <h2>Os 20 que mais custaram</h2>
   <div class="card">
