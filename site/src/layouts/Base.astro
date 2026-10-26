@@ -1,7 +1,7 @@
 ---
 const { title, description = "O dinheiro público do Brasil, explicado com dados oficiais.", accent = "var(--s1)" } = Astro.props;
 const nav = [
-  ["/", "Deputados"], ["/senadores/", "Senadores"], ["/presidencia/", "Presidência"], ["/stf/", "STF"], ["/emendas/", "Emendas"], ["/poderes/", "Poderes"], ["/impostos/", "Impostos"], ["/rankings/", "Rankings"],
+  ["/", "Deputados"], ["/senadores/", "Senadores"], ["/presidencia/", "Presidência"], ["/stf/", "STF"], ["/emendas/", "Emendas"], ["/poderes/", "Poderes"], ["/municipios/", "Municípios"], ["/impostos/", "Impostos"], ["/rankings/", "Rankings"],
   ["/metodologia/", "Metodologia"], ["/sobre/", "Sobre"],
 ];
 const path = Astro.url.pathname;
@@ -116,39 +116,6 @@ const path = Astro.url.pathname;
     </header>
     <main style={`--accent:${accent}`}><slot /></main>
     <footer><div>Fontes: Câmara dos Deputados · Senado Federal · STF · Portal da Transparência (CGU) · SIOP · código MIT · dados e textos CC BY 4.0 · metodologia aberta no GitHub</div></footer>
-    <script is:inline>
-      // Ordenação de tabelas por clique no cabeçalho. Melhoria progressiva: sem JS a tabela fica na ordem
-      // padrão (maior custo primeiro). Não carrega nada externo. Números pt-BR ("R$ 1.234,56", "12%") e texto.
-      (function () {
-        var num = function (t) {
-          var m = t.replace(/\s/g, "").replace(/[R$%]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
-          return /^-?\d+(\.\d+)?$/.test(m) ? parseFloat(m) : null;
-        };
-        var cell = function (tr, i) { var td = tr.children[i]; return td ? td.textContent.trim() : ""; };
-        document.querySelectorAll("table").forEach(function (table) {
-          var thead = table.tHead, tbody = table.tBodies[0];
-          if (!thead || !tbody || tbody.rows.length < 2) return;
-          Array.prototype.forEach.call(thead.rows[0].cells, function (th, i) {
-            if (th.textContent.trim() === "#") return;
-            th.classList.add("ord"); th.tabIndex = 0; th.title = "Clique para ordenar";
-            var go = function () {
-              var asc = th.getAttribute("aria-sort") !== "ascending";
-              Array.prototype.forEach.call(thead.rows[0].cells, function (o) { o.removeAttribute("aria-sort"); });
-              th.setAttribute("aria-sort", asc ? "ascending" : "descending");
-              var rows = Array.prototype.slice.call(tbody.rows);
-              var numeric = rows.every(function (r) { var v = cell(r, i); return v === "" || v === "—" || num(v) !== null; });
-              rows.sort(function (x, y) {
-                var a = cell(x, i), b = cell(y, i);
-                if (numeric) { var na = num(a), nb = num(b); na = na === null ? -Infinity : na; nb = nb === null ? -Infinity : nb; return asc ? na - nb : nb - na; }
-                return asc ? a.localeCompare(b, "pt-BR") : b.localeCompare(a, "pt-BR");
-              });
-              rows.forEach(function (r) { tbody.appendChild(r); });
-            };
-            th.addEventListener("click", go);
-            th.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
-          });
-        });
-      })();
-    </script>
+    <script src="/sort.js" defer></script>
   </body>
 </html>

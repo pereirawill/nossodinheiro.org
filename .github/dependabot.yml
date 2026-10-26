@@ -1,0 +1,13 @@
+# Atualizações de dependências agrupadas, uma PR por ecossistema por mês (poucas dependências; nada crítico).
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "monthly" }
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule: { interval: "monthly" }
+  - package-ecosystem: "npm"
+    directory: "/site"
+    schedule: { interval: "monthly" }
+    groups: { astro: { patterns: ["*"] } }
