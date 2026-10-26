@@ -7,7 +7,8 @@ const orgaos = (mods[`../../public/data/poderes_orgaos_${ANO}.json`] as any[] | 
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
-  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} mi` : brl0(v);
+  v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri`
+  : v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} mi` : brl0(v);
 const cores: Record<string, string> = { Legislativo: "var(--s1)", "Judiciário": "var(--s3)", Executivo: "var(--s2)",
   "Funções essenciais": "var(--s5)", "Dívida/Transferências": "var(--line)" };
 const tres = poderes?.filter((p) => ["Legislativo", "Judiciário", "Executivo"].includes(p.poder)) ?? [];
