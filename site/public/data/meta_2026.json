@@ -2,7 +2,7 @@
   "ano": 2026,
   "fonte_ceap": "bulk",
   "gerado_em": "2026-10-26",
-  "gerado_em_utc": "2026-10-26T20:00+00:00",
+  "gerado_em_utc": "2026-10-26T20:12+00:00",
   "meses_considerados": 10,
   "deputados": 513,
   "deputados_na_legislatura": 648,
@@ -17,9 +17,9 @@
   },
   "totais": [
     135635351.01,
-    1249298288.97
+    1250507773.68
   ],
-  "custo_mensal_medio_por_deputado": 243527.93,
-  "custo_anual_projetado_total": 1499399844.86,
+  "custo_mensal_medio_por_deputado": 243763.7,
+  "custo_anual_projetado_total": 1500609329.57,
   "anual_e_projecao": true
 }
