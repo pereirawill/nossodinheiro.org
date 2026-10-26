@@ -35,19 +35,19 @@ DESPESAS_ORGAO = [  # schema de extract_poderes (SIOP): órgão × UO × GND, va
     {"cod_superior": "01000", "orgao_superior": "Camara dos Deputados", "cod_orgao": "01101", "orgao": "Câmara dos Deputados",
      "gnd": "1", "gnd_nome": "Pessoal e Encargos Sociais", "programa": "0034", "programa_nome": "Programa de Gestão e Manutenção do Poder Legislativo",
      "acao": "20TP", "acao_nome": "Ativos Civis da União", "empenhado": 5.8e9, "liquidado": 5.7e9, "pago": 5.6e9, "dotacao": 6.5e9,
-     "ano": 2025, "poder": "Legislativo", "categoria": "Manter a máquina", "subcategoria": "Pessoal ativo e encargos"},
+     "ano": 2025, "poder": "Legislativo", "categoria": "Manter a máquina", "subcategoria": "Pessoal ativo e encargos", "funcao": "01", "funcao_nome": "Legislativa"},
     {"cod_superior": "01000", "orgao_superior": "Camara dos Deputados", "cod_orgao": "01101", "orgao": "Câmara dos Deputados",
      "gnd": "3", "gnd_nome": "Outras Despesas Correntes", "programa": "0034", "programa_nome": "Programa de Gestão e Manutenção do Poder Legislativo",
      "acao": "20TP", "acao_nome": "Ativos Civis da União", "empenhado": 1.5e9, "liquidado": 1.4e9, "pago": 1.3e9, "dotacao": 1.9e9,
-     "ano": 2025, "poder": "Legislativo", "categoria": "Manter a máquina", "subcategoria": "Custeio"},
+     "ano": 2025, "poder": "Legislativo", "categoria": "Manter a máquina", "subcategoria": "Custeio", "funcao": "01", "funcao_nome": "Legislativa"},
     {"cod_superior": "10000", "orgao_superior": "Supremo Tribunal Federal", "cod_orgao": "10101", "orgao": "Supremo Tribunal Federal",
      "gnd": "1", "gnd_nome": "Pessoal e Encargos Sociais", "programa": "0033", "programa_nome": "Programa de Gestão e Manutenção do Poder Judiciário",
      "acao": "0181", "acao_nome": "Aposentadorias e Pensões Civis da União", "empenhado": 9e8, "liquidado": 8.5e8, "pago": 8e8, "dotacao": 9.1e8,
-     "ano": 2025, "poder": "Judiciário", "categoria": "Manter a máquina", "subcategoria": "Aposentados e pensionistas"},
+     "ano": 2025, "poder": "Judiciário", "categoria": "Manter a máquina", "subcategoria": "Aposentados e pensionistas", "funcao": "02", "funcao_nome": "Judiciária"},
     {"cod_superior": "75000", "orgao_superior": "Dívida Pública Federal", "cod_orgao": "75101", "orgao": "Recursos sob Supervisão do MF",
      "gnd": "6", "gnd_nome": "Amortização da Dívida", "programa": "0906", "programa_nome": "Operações Especiais: Serviço da Dívida",
      "acao": "0455", "acao_nome": "Amortização", "empenhado": 2e12, "liquidado": 2e12, "pago": 2e12, "dotacao": 2.5e12,
-     "ano": 2025, "poder": "Dívida/Transferências", "categoria": "Dívida/Transferências", "subcategoria": "Amortização da Dívida"},
+     "ano": 2025, "poder": "Dívida/Transferências", "categoria": "Dívida/Transferências", "subcategoria": "Amortização da Dívida", "funcao": "28", "funcao_nome": "Encargos Especiais"},
 ]
 
 
@@ -95,6 +95,8 @@ def test_transform_poderes(tmp_path, monkeypatch):
     assert len(orgaos) == 3                             # UO somada sobre os GNDs
     gnd = json.loads(Path("data/public/poderes_gnd_2025.json").read_text(encoding="utf-8"))
     assert {(g["poder"], g["gnd"]) for g in gnd} >= {("Legislativo", "1"), ("Legislativo", "3"), ("Dívida/Transferências", "6")}
+    fun = {f["funcao"]: f for f in json.loads(Path("data/public/poderes_funcao_2025.json").read_text(encoding="utf-8"))}
+    assert fun["01"]["pago"] == 6.9e9 and fun["28"]["pago_divida_transferencias"] == 2e12 and fun["01"]["pago_divida_transferencias"] == 0
     cat = json.loads(Path("data/public/poderes_categoria_2025.json").read_text(encoding="utf-8"))
     leg = {c["subcategoria"]: c["pago"] for c in cat if c["poder"] == "Legislativo" and c["categoria"] == "Manter a máquina"}
     assert leg == {"Pessoal ativo e encargos": 5.6e9, "Custeio": 1.3e9}
