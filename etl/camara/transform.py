@@ -32,21 +32,31 @@ RAW, PQ, PUB = Path("data/raw"), Path("data/parquet"), Path("data/public")
 
 SQL_DEPUTADOS = """
 CREATE OR REPLACE TABLE deputados AS
-SELECT id::INTEGER AS id_deputado, nome, siglaPartido AS partido, siglaUf AS uf,
-       idLegislatura::INTEGER AS legislatura, urlFoto AS url_foto, email
-FROM read_json_auto('{raw}', format='newline_delimited');
+SELECT TRY_CAST(id AS INTEGER) AS id_deputado, nome::VARCHAR AS nome, siglaPartido::VARCHAR AS partido,
+       siglaUf::VARCHAR AS uf, TRY_CAST(idLegislatura AS INTEGER) AS legislatura,
+       urlFoto::VARCHAR AS url_foto, email::VARCHAR AS email
+FROM read_json('{raw}', format='newline_delimited', columns={{
+    'id':'VARCHAR','nome':'VARCHAR','siglaPartido':'VARCHAR','siglaUf':'VARCHAR',
+    'idLegislatura':'VARCHAR','urlFoto':'VARCHAR','email':'VARCHAR'}}, ignore_errors=true);
 """
 
 # A API devolve valores já numéricos; o CSV anual usa string (às vezes com vírgula).
 SQL_CEAP_API = """
 CREATE OR REPLACE TABLE ceap AS
-SELECT idDeputado::INTEGER AS id_deputado, ano::INTEGER AS ano, mes::INTEGER AS mes,
-       tipoDespesa AS tipo_despesa, nomeFornecedor AS fornecedor,
-       cnpjCpfFornecedor AS cnpj_cpf_fornecedor,
-       TRY_CAST(dataDocumento AS DATE) AS data_documento,
-       valorDocumento::DOUBLE AS valor_documento, valorGlosa::DOUBLE AS valor_glosa,
-       valorLiquido::DOUBLE AS valor_liquido, urlDocumento AS url_documento
-FROM read_json_auto('{raw}', format='newline_delimited');
+SELECT TRY_CAST(idDeputado AS INTEGER) AS id_deputado, TRY_CAST(ano AS INTEGER) AS ano,
+       TRY_CAST(mes AS INTEGER) AS mes,
+       tipoDespesa::VARCHAR AS tipo_despesa, nomeFornecedor::VARCHAR AS fornecedor,
+       cnpjCpfFornecedor::VARCHAR AS cnpj_cpf_fornecedor,
+       TRY_CAST(left(dataDocumento::VARCHAR, 10) AS DATE) AS data_documento,
+       TRY_CAST(valorDocumento AS DOUBLE) AS valor_documento,
+       TRY_CAST(valorGlosa AS DOUBLE)     AS valor_glosa,
+       TRY_CAST(valorLiquido AS DOUBLE)   AS valor_liquido,
+       urlDocumento::VARCHAR AS url_documento
+FROM read_json('{raw}', format='newline_delimited', columns={{
+    'idDeputado':'VARCHAR','ano':'VARCHAR','mes':'VARCHAR','tipoDespesa':'VARCHAR',
+    'nomeFornecedor':'VARCHAR','cnpjCpfFornecedor':'VARCHAR','dataDocumento':'VARCHAR',
+    'valorDocumento':'VARCHAR','valorGlosa':'VARCHAR','valorLiquido':'VARCHAR','urlDocumento':'VARCHAR'}},
+    ignore_errors=true);
 """
 
 SQL_CEAP_BULK = """

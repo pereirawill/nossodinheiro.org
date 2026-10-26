@@ -48,6 +48,11 @@ jobs:
             python -m etl.camara.extract despesas --ano "$ANO"
           fi
 
+      - name: Diagnóstico do raw
+        run: |
+          ls -la data/raw/
+          for f in data/raw/*.jsonl.gz; do echo "== $f: $(zcat $f | wc -l) linhas"; zcat $f | head -c 600; echo; done
+
       - name: Transformar + gráfico
         run: |
           python -m etl.camara.transform --ano "$ANO" --fonte "$FONTE"
