@@ -1,5 +1,5 @@
 ANO ?= 2026
-FONTE ?= api
+FONTE ?= bulk
 
 etl: ## extrai + transforma + gráfico
 	python -m etl.camara.extract deputados

@@ -20,6 +20,10 @@ e o que é **teto/estimativa**.
 | Verba de gabinete (teto) | camara.leg.br/transparencia/gastos-parlamentares (lido em 26/10/2026) | oficial | valor fixo mensal |
 | Auxílio-moradia | idem | oficial | valor fixo mensal |
 
+**Fonte padrão da CEAP: CSV anual** (`Ano-YYYY.csv.zip`). Em 26/10/2026 o endpoint
+`/deputados/{id}/despesas` da API respondia 200 com lista vazia para qualquer filtro; o CSV
+é a mesma base publicada pela Câmara. A API fica como alternativa (`--fonte api`).
+
 A API é consumida sem autenticação; os dados são coletados pelo ETL em `etl/camara/`
 e versionados em `data/public/` (JSON agregado). O raw e o Parquet ficam fora do git
 e são publicados como artefato do GitHub Actions.

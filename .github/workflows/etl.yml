@@ -12,8 +12,8 @@ on:
         description: "Ano de referência"
         default: "2026"
       fonte:
-        description: "api (incremental) ou bulk (CSV anual)"
-        default: "api"
+        description: "bulk (CSV anual, padrão) ou api (endpoint /despesas — instável)"
+        default: "bulk"
 
 permissions:
   contents: write
@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 60
     env:
       ANO: ${{ github.event.inputs.ano || '2026' }}
-      FONTE: ${{ github.event.inputs.fonte || 'api' }}
+      FONTE: ${{ github.event.inputs.fonte || 'bulk' }}
     steps:
       - uses: actions/checkout@v4
 

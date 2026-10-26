@@ -167,6 +167,7 @@ def cmd_ceap_bulk(c: Client, ano: int) -> None:
     with zf.open(name) as fh:
         text = io.TextIOWrapper(fh, encoding="utf-8-sig", newline="")
         reader = csv.DictReader(text, delimiter=";")
+        log.info("CSV %s colunas: %s", name, reader.fieldnames)
 
         def gen() -> Iterator[dict]:
             for row in reader:
