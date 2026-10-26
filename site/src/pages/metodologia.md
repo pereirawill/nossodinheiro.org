@@ -84,6 +84,14 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Só fornecedores pessoa jurídica são listados; CPF de pessoa física é mascarado.
 - Completo: `docs/metodologia/painel-presidencia.md`.
 
+## Estados — quanto custa cada governo estadual
+
+- **O que é:** despesa paga por cada estado e pelo DF em 2025 por função (Assembleia + TCE, Tribunal de Justiça, MP e
+  Defensoria, administração, segurança, saúde, educação, previdência, encargos), total e por habitante, com ranking.
+- **Fonte:** SICONFI/Tesouro Nacional (DCA, anexo I-E), a mesma do painel de municípios.
+- **Atenção:** o salário dos governadores é lei de cada estado; só entra com a lei como fonte (levantamento em andamento).
+- Completo: `docs/metodologia/painel-municipios.md` (seção de estados).
+
 ## Municípios — quanto custa a Câmara Municipal da sua cidade
 
 - **O que é:** despesa paga por cada prefeitura na função Legislativa (a Câmara inteira: vereadores, servidores, prédio),

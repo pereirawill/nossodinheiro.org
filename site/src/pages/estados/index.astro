@@ -1,0 +1,94 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import estados from "../../../public/data/estados_2025.json";
+import meta from "../../../public/data/municipios_meta_2025.json";
+
+type E = (typeof estados)[number];
+const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const pct = (v: number | null | undefined) => v == null ? "—" : `${(v * 100).toFixed(1).replace(".", ",")}%`;
+const num = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR");
+const quando = new Date(meta.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const rows = [...estados] as E[];
+const tot = (k: keyof E) => rows.reduce((s, e) => s + ((e[k] as number) || 0), 0);
+const pop = tot("populacao");
+const porHab = (k: keyof E) => rows.map((e) => ({ uf: e.uf, nome: e.nome, v: (e[k] as number) || 0, hab: e.populacao ? ((e[k] as number) || 0) / e.populacao : 0 })).sort((a, b) => b.hab - a.hab);
+const legis = porHab("pago_legislativa"), judic = porHab("pago_judiciaria"), total = porHab("pago_total");
+const FUNCS: [keyof E, string, string][] = [
+  ["pago_legislativa", "Assembleia + TCE", "var(--s1)"], ["pago_judiciaria", "Tribunal de Justiça", "var(--s3)"], ["pago_essencial_justica", "MP + Defensoria", "var(--s5)"],
+  ["pago_administracao", "Administração", "var(--neutro)"], ["pago_seguranca", "Segurança", "var(--s4)"], ["pago_saude", "Saúde", "var(--s2)"],
+  ["pago_educacao", "Educação", "#59a14f"], ["pago_previdencia", "Previdência", "#9c755f"], ["pago_encargos", "Encargos (dívida)", "#bab0ac"],
+];
+const W = 920;
+---
+<Base title="Quanto custa cada estado? — Nosso Dinheiro" accent="var(--s3)">
+  <h1>Quanto custa cada governo estadual?</h1>
+  <p class="lede">
+    O que os 26 estados e o Distrito Federal pagaram em {meta.ano}, por função: Assembleia Legislativa e Tribunal de Contas,
+    Tribunal de Justiça, Ministério Público e Defensoria, segurança, saúde, educação, previdência. Tudo por habitante, para comparar
+    estados de tamanhos diferentes. As Câmaras Municipais estão em <a href="/municipios/">Municípios</a>.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fonte: SICONFI/Tesouro Nacional, Declaração de Contas Anuais {meta.ano}, anexo I-E (despesa por função) · {rows.length} entes</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{compact(tot("pago_total"))}</b><span>pagos pelos governos estaduais e DF em {meta.ano} · {brl0(tot("pago_total") / pop)} por habitante</span></div>
+    <div class="stat"><b>{compact(tot("pago_legislativa"))}</b><span>Assembleias Legislativas e Tribunais de Contas · {brl0(tot("pago_legislativa") / pop)} por habitante</span></div>
+    <div class="stat"><b>{compact(tot("pago_judiciaria"))}</b><span>Tribunais de Justiça · {brl0(tot("pago_judiciaria") / pop)} por habitante</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Despesa paga por função, como cada estado declara ao Tesouro.</b> "Legislativa" junta Assembleia e Tribunal de Contas;
+    "Judiciária" é o Tribunal de Justiça; "Essencial à Justiça" é Ministério Público e Defensoria. Previdência (aposentados do estado)
+    e encargos (dívida) pesam diferente em cada estado e explicam boa parte das diferenças no total. Salário dos governadores: ver no fim.</div>
+  </div>
+
+  <h2>Assembleia + Tribunal de Contas, por habitante</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${legis.length * 22 + 10}`} width="100%" role="img" aria-label="Despesa legislativa estadual por habitante">
+      {legis.map((x, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
+        <text x="40" y="15" text-anchor="end" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{x.uf}</text>
+        <rect x="48" y="3" width={Math.max(1, (x.hab / legis[0].hab) * 640)} height="16" fill="var(--s1)" rx="2" />
+        <text x={48 + (x.hab / legis[0].hab) * 640 + 6} y="15" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl0(x.hab)} · {compact(x.v)}</text>
+      </g>))}
+    </svg>
+  </div>
+
+  <h2>Tribunal de Justiça, por habitante</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${judic.length * 22 + 10}`} width="100%" role="img" aria-label="Despesa judiciária estadual por habitante">
+      {judic.map((x, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
+        <text x="40" y="15" text-anchor="end" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{x.uf}</text>
+        <rect x="48" y="3" width={Math.max(1, (x.hab / judic[0].hab) * 640)} height="16" fill="var(--s3)" rx="2" />
+        <text x={48 + (x.hab / judic[0].hab) * 640 + 6} y="15" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl0(x.hab)} · {compact(x.v)}</text>
+      </g>))}
+    </svg>
+  </div>
+
+  <h2>Todas as funções, por estado</h2>
+  <table>
+    <thead><tr><th>Estado</th><th class="num">População</th><th class="num">Total pago</th><th class="num">Por hab.</th>{FUNCS.map(([, r]) => <th class="num">{r}</th>)}</tr></thead>
+    <tbody>{rows.sort((a, b) => b.pago_total - a.pago_total).map((e) => (
+      <tr><td><a href={`/municipios/uf/${e.uf.toLowerCase()}/`}>{e.nome}</a></td><td class="num">{num(e.populacao)}</td><td class="num">{compact(e.pago_total)}</td><td class="num">{brl0(e.por_hab_total)}</td>
+        {FUNCS.map(([k]) => <td class="num">{compact((e[k] as number) || 0)}</td>)}</tr>
+    ))}</tbody>
+  </table>
+  <p class="src">Clique no estado para ver todas as cidades dele. Valores pagos no exercício; empenhado e demais funções na DCA completa (SICONFI).</p>
+
+  <h2>Salário dos governadores</h2>
+  <div class="card">
+    <p style="margin:0 0 8px">O subsídio de cada governador é fixado por <b>lei estadual</b> (CF, art. 28, §2º) e não pode passar do subsídio de
+    ministro do STF (R$ 46.366,19). São 27 leis diferentes, sem base nacional oficial. Pela regra deste site, só publicamos o valor com a
+    lei de cada estado como fonte, e esse levantamento está em andamento: a tabela entra aqui estado a estado, com número da lei e data.
+    Compilações de imprensa indicam valores de cerca de R$ 22 mil a R$ 46 mil, mas não as usamos como fonte.</p>
+    <p class="src">Enquanto isso, a despesa do Executivo de cada estado (que inclui o gabinete do governador) está na tabela acima.</p>
+  </div>
+
+  <Glossario termos={["funcao_legislativa", "despesa_paga", "pago", "per_capita"]} />
+</Base>
+<style>
+  td a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--line); }
+</style>

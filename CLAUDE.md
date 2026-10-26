@@ -83,7 +83,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   (função 01 Legislativa paga = custo da Câmara; por hab, por vereador, % orçamento, faixa de população), `estados_<ano>.json`
   (Legislativa, Judiciária, Essencial à Justiça, Administração, Segurança, Previdência, Saúde, Educação, Encargos),
   `municipios_meta_<ano>.json` (cobertura, medianas por faixa).
-- Site: `/municipios/`, `/municipios/uf/{uf}/`, `/municipios/{uf}/{slug}/` (≈5.5 mil páginas). Workflow `etl-municipios.yml`
+- Site: `/municipios/`, `/municipios/uf/{uf}/`, `/municipios/{uf}/{slug}/` (≈5.5 mil páginas); `/estados/` (funções por estado,
+  por habitante). Subsídio dos governadores: 27 leis estaduais, só com fonte primária — levantamento pendente (não usar compilações de imprensa). Workflow `etl-municipios.yml`
   (mai/ago/nov). Salário de vereador NÃO existe em base nacional (lei municipal, teto CF art. 29 VI). Metodologia: `painel-municipios.md`.
 
 ## Painel Impostos (NO AR, sem chave, mensal dia 25)
