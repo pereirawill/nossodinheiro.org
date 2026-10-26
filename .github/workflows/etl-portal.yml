@@ -40,15 +40,7 @@ jobs:
         if: env.ETAPA == 'inspect'
         run: |
           python -m etl.portal_transparencia.extract_emendas inspect --ano "$ANO"
-          python - <<'EOF'
-          import os, httpx, json
-          c = httpx.Client(base_url="https://api.portaldatransparencia.gov.br/api-de-dados",
-                           headers={"chave-api-dados": os.environ["PORTAL_TRANSPARENCIA_KEY"], "accept": "application/json"}, timeout=60)
-          r = c.get("/despesas/por-orgao", params={"ano": os.environ["ANO"], "pagina": 1})
-          print("/despesas/por-orgao HTTP", r.status_code, "itens:", len(r.json()) if r.status_code == 200 else r.text[:300])
-          if r.status_code == 200 and r.json():
-              print("campos:", sorted(r.json()[0].keys())); print(json.dumps(r.json()[0], ensure_ascii=False, indent=2))
-          EOF
+          python -m etl.portal_transparencia.extract_poderes --ano "$ANO" --inspect
 
       - name: Poderes (despesa por órgão)
         if: env.ETAPA == 'poderes'

@@ -68,11 +68,33 @@ def classificar(cod_superior: str) -> str:
     return "Executivo"
 
 
-def extrair_por_orgao(c: Client, ano: int) -> None:
+# Órgãos superiores da União (códigos SIAFI). A API exige um filtro além do ano,
+# então iteramos por orgaoSuperior. Lista cobre os 3 Poderes + MPU/DPU + encargos.
+ORGAOS_SUPERIORES = [
+    "01000", "02000", "03000",                                   # Legislativo
+    "10000", "11000", "12000", "13000", "14000", "15000", "16000", "17000",  # Judiciário
+    "20000", "22000", "24000", "25000", "26000", "28000", "30000", "32000", "33000", "35000",
+    "36000", "37000", "38000", "39000", "41000", "42000", "44000", "49000", "51000", "52000",
+    "53000", "54000", "55000", "56000", "57000", "58000", "59000", "60000", "61000", "62000",
+    "63000", "64000", "65000", "66000", "67000", "68000", "69000", "70000",  # Executivo
+    "29000", "34000",                                            # DPU, MPU
+    "71000", "73000", "74000", "75000", "90000",                 # dívida/transferências/reserva
+]
+
+
+def extrair_por_orgao(c: Client, ano: int, inspect: bool = False) -> None:
     def gen():
-        for row in c.paginate("/despesas/por-orgao", {"ano": ano}):
-            row["poder"] = classificar(row.get("codigoOrgaoSuperior", ""))
-            yield row
+        for cod in ORGAOS_SUPERIORES:
+            n = 0
+            for row in c.paginate("/despesas/por-orgao", {"ano": ano, "orgaoSuperior": cod}):
+                row["poder"] = classificar(row.get("codigoOrgaoSuperior") or cod)
+                n += 1
+                if inspect and n == 1:
+                    print("campos:", sorted(row.keys())); print(json.dumps(row, ensure_ascii=False, indent=2))
+                yield row
+            log.info("orgaoSuperior=%s: %d linhas", cod, n)
+            if inspect and n:
+                return
     write_jsonl(RAW / f"despesas_orgao_{ano}.jsonl.gz", gen())
 
 
@@ -99,9 +121,10 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ano", type=int, required=True)
     ap.add_argument("--gnd", action="store_true", help="também baixa os CSVs mensais de execução (GND)")
+    ap.add_argument("--inspect", action="store_true", help="só imprime os campos da 1ª linha")
     a = ap.parse_args(argv)
     key = os.environ.get("PORTAL_TRANSPARENCIA_KEY") or sys.exit("defina PORTAL_TRANSPARENCIA_KEY")
-    extrair_por_orgao(Client(key), a.ano)
+    extrair_por_orgao(Client(key), a.ano, inspect=a.inspect)
     if a.gnd:
         baixar_execucao(a.ano)
 

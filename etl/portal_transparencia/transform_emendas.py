@@ -37,7 +37,9 @@ BRL = "TRY_CAST(replace(replace({col}::VARCHAR, '.', ''), ',', '.') AS DOUBLE)"
 SQL_EMENDAS = f"""
 CREATE OR REPLACE TABLE emendas AS
 SELECT codigoEmenda::VARCHAR AS codigo, ano::INTEGER AS ano, tipoEmenda AS tipo,
-       autor AS autor_codigo, upper(strip_accents(nomeAutor::VARCHAR)) AS autor,
+       autor AS autor_codigo,
+       upper(strip_accents(trim(regexp_replace(nomeAutor::VARCHAR, '\\s*\\(.*$', '')))) AS autor,
+       nomeAutor::VARCHAR AS autor_original,
        numeroEmenda AS numero, localidadeDoGasto AS localidade,
        funcao, subfuncao,
        {BRL.format(col='valorEmpenhado')}      AS empenhado,
