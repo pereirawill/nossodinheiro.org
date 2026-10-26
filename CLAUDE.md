@@ -18,7 +18,7 @@ fontes oficiais ──► etl/ (Python 3.12, httpx, DuckDB) ──► data/raw/*
 site/ (Astro 5 estático, SVG gerado no build, zero JS) ──► wrangler pages deploy ──► Cloudflare Pages
 ```
 Workflows (`.github/workflows/`):
-- `etl.yml` — Câmara. Segunda 06:17 BRT e em push em `etl/**`. Commita JSONs, dispara deploy.
+- `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
 - `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
@@ -54,7 +54,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   nº de pessoal por gabinete). `transform.py` → `custo_senador_<ano>.json` + `meta_senado_<ano>.json`.
 - Fórmula: subsídio (mesmo dos deputados) + CEAPS real + gastos fora da cota (real). **Sem pessoal do gabinete**
   (Senado publica só a quantidade; custo está na folha de servidores — pendência) e sem auxílio-moradia (só
-  utilizou/não). 2026 (10 meses): 81 senadores, média R$ 90,8 mil/mês. Workflow `etl-senado.yml` (segunda 06:47 BRT).
+  utilizou/não). 2026 (10 meses): 81 senadores, média R$ 90,8 mil/mês. Workflow `etl-senado.yml` (diário 06:47 BRT).
 - Site: `/senadores/`, `/senadores/uf/{uf}/`, `/senadores/partido/{slug}/`; componentes parametrizados por `casa`.
   Metodologia: `docs/metodologia/painel-senadores.md`.
 
@@ -76,6 +76,15 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `transform.py` → `presidencia_cpgf_<ano>.json` (meses, por órgão, por tipo, favorecidos PJ top 25, nº portadores, totais).
   2026 jan–ago: R$ 10,47 mi, 98% sob sigilo. Página `/presidencia/` reaproveita `poderes_orgaos_2025` (órgão 20000).
 - Privacidade: CPF de favorecido PF mascarado no extrator; site não lista portadores nem favorecidos PF.
+
+## Painel Municípios e estados (sem chave; DCA anual)
+- `etl/municipios/extract.py`: `entes` (SICONFI, 5.597 entes com população), `vagas` (TSE consulta_vagas, cargo vereador),
+  `dca --ano` (API SICONFI, 1 chamada por ente, 4 workers, ~10 min, retomável). `transform.py` → `municipios_<ano>.json`
+  (função 01 Legislativa paga = custo da Câmara; por hab, por vereador, % orçamento, faixa de população), `estados_<ano>.json`
+  (Legislativa, Judiciária, Essencial à Justiça, Administração, Segurança, Previdência, Saúde, Educação, Encargos),
+  `municipios_meta_<ano>.json` (cobertura, medianas por faixa).
+- Site: `/municipios/`, `/municipios/uf/{uf}/`, `/municipios/{uf}/{slug}/` (≈5.5 mil páginas). Workflow `etl-municipios.yml`
+  (mai/ago/nov). Salário de vereador NÃO existe em base nacional (lei municipal, teto CF art. 29 VI). Metodologia: `painel-municipios.md`.
 
 ## Painel Impostos (NO AR, sem chave, mensal dia 25)
 - `etl/impostos/extract.py`: CSV `gov.br/receitafederal/dados/arrecadacao-estado.csv` (2000→, por mês × UF × tributo).

@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: [".github/workflows/etl.yml", "etl/**"]
   schedule:
-    - cron: "17 9 * * 1"        # segunda-feira 06:17 BRT
+    - cron: "17 9 * * *"        # todo dia 06:17 BRT (a Câmara atualiza a CEAP ao longo da semana)
   workflow_dispatch:
     inputs:
       ano:

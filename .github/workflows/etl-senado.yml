@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: [".github/workflows/etl-senado.yml", "etl/senado/**"]
   schedule:
-    - cron: "47 9 * * 1"        # segunda-feira 06:47 BRT (depois do ETL da Câmara)
+    - cron: "47 9 * * *"        # todo dia 06:47 BRT (depois do ETL da Câmara)
   workflow_dispatch:
     inputs:
       ano:
