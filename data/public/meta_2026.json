@@ -1,0 +1,19 @@
+{
+  "ano": 2026,
+  "fonte_ceap": "bulk",
+  "gerado_em": "2026-10-26",
+  "meses_considerados": 10,
+  "deputados": 648,
+  "premissas": {
+    "subsidio_mensal_vigente": 46366.19,
+    "subsidios_por_ano": 13.333333333333334,
+    "verba_gabinete_teto_mensal": 165806.07,
+    "verba_gabinete_verificada_em": "2026-10-26",
+    "auxilio_moradia_mensal": 4253.0,
+    "auxilio_moradia_no_total": false
+  },
+  "totais": [
+    141315254.47,
+    1548047386.63
+  ]
+}
