@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 from pathlib import Path
 
 import httpx
@@ -70,20 +71,49 @@ def classificar(cod_superior: str) -> str:
 QUERY = """
 PREFIX loa: <http://vocab.e.gov.br/2013/09/loa#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome
+SELECT ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome ?programa ?programa_nome ?acao ?acao_nome
        (SUM(?emp) AS ?empenhado) (SUM(?liq) AS ?liquidado) (SUM(?pag) AS ?pago) (SUM(?dot) AS ?dotacao)
 FROM <http://orcamento.dados.gov.br/{ano}/>
 WHERE {{
-  ?i a loa:ItemDespesa ; loa:temUnidadeOrcamentaria ?u ; loa:temGND ?g ;
+  ?i a loa:ItemDespesa ; loa:temUnidadeOrcamentaria ?u ; loa:temGND ?g ; loa:temPrograma ?p ; loa:temAcao ?a ;
      loa:valorEmpenhado ?emp ; loa:valorLiquidado ?liq ; loa:valorPago ?pag ; loa:valorLeiMaisCredito ?dot .
   ?u loa:codigo ?cod_orgao ; rdfs:label ?orgao ; loa:temOrgao ?o .
   ?o loa:codigo ?cod_superior ; rdfs:label ?orgao_superior .
   ?g loa:codigo ?gnd ; rdfs:label ?gnd_nome .
+  ?p loa:codigo ?programa ; rdfs:label ?programa_nome .
+  ?a loa:codigo ?acao ; rdfs:label ?acao_nome .
 }}
-GROUP BY ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome
-ORDER BY ?cod_superior ?cod_orgao ?gnd
+GROUP BY ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome ?programa ?programa_nome ?acao ?acao_nome
+ORDER BY ?cod_superior ?cod_orgao ?gnd ?programa ?acao
 """
 NUMERICOS = ("empenhado", "liquidado", "pago", "dotacao")
+
+# "Manter a máquina" = Programas de Gestão e Manutenção da LOA (um por Poder): pessoal ativo,
+# aposentados e pensionistas do órgão, custeio, prédios, TI. Tudo fora deles é programa
+# finalístico (política pública) ou operação especial (09xx: sentenças judiciais, encargos).
+PROGRAMAS_GESTAO = {"0031", "0032", "0033", "0034", "0035"}  # MPU, Executivo, Judiciário, Legislativo, estatais
+INATIVOS = re.compile(r"aposentad|pens[õo]es|inativos|benef[ií]cio especial", re.I)
+
+
+def categorizar(row: dict) -> tuple[str, str]:
+    """→ (categoria, subcategoria). Categoria compara Poderes; subcategoria detalha a máquina."""
+    if row["poder"] == "Dívida/Transferências":
+        return "Dívida/Transferências", row["gnd_nome"]
+    prog = str(row["programa"]).zfill(4)
+    if prog in PROGRAMAS_GESTAO:
+        gnd = str(row["gnd"])
+        if gnd == "1":
+            sub = "Aposentados e pensionistas" if INATIVOS.search(row.get("acao_nome", "")) else "Pessoal ativo e encargos"
+        elif gnd == "3":
+            sub = "Custeio"
+        elif gnd in ("4", "5"):
+            sub = "Investimento"
+        else:
+            sub = "Outros"
+        return "Manter a máquina", sub
+    if prog.startswith("09"):
+        return "Encargos especiais", row["programa_nome"]
+    return "Políticas públicas", row["programa_nome"]
 
 
 def consultar(ano: int) -> list[dict]:
@@ -98,6 +128,7 @@ def consultar(ano: int) -> list[dict]:
             row[k] = float(row.get(k, 0) or 0)
         row["ano"] = ano
         row["poder"] = classificar(row["cod_superior"])
+        row["categoria"], row["subcategoria"] = categorizar(row)
         rows.append(row)
     return rows
 

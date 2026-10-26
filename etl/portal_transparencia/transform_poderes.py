@@ -7,11 +7,13 @@ Entrada: data/raw/despesas_orgao_<ano>.jsonl.gz (extract_poderes: 1 linha por ó
 Saídas: data/public/poderes_<ano>.json         (por Poder)
         data/public/poderes_orgaos_<ano>.json  (por unidade orçamentária)
         data/public/poderes_gnd_<ano>.json     (por Poder × grupo de natureza da despesa)
+        data/public/poderes_categoria_<ano>.json (por Poder × "Manter a máquina" | "Políticas públicas" |
+                                                  "Encargos especiais" × subcategoria)
 
 Metodologia (resumo):
 - Valor = PAGO no ano (caixa). Dotação, empenhado e liquidado ficam como colunas.
-- "Custo de funcionar" (GND 1 Pessoal + GND 3 Outras despesas correntes + GND 4 Investimentos)
-  vs. dívida (GND 2 Juros + GND 6 Amortização) vs. inversões (GND 5) vem de poderes_gnd.
+- "Manter a máquina" = Programa de Gestão e Manutenção do Poder (classificação da própria LOA),
+  detalhado em pessoal ativo, aposentados/pensionistas, custeio e investimento (ver extract_poderes).
 - Per capita: população IBGE do ano (passar via --populacao; não inventar).
 - Judiciário ESTADUAL (TJs) não está aqui: é orçamento estadual (SICONFI, função 02). v2.
 """
@@ -31,9 +33,14 @@ RAW, PQ, PUB = Path("data/raw"), Path("data/parquet"), Path("data/public")
 SQL_ITENS = """
 CREATE OR REPLACE TABLE itens AS
 SELECT poder, cod_superior::VARCHAR AS cod_superior, orgao_superior, cod_orgao::VARCHAR AS cod_orgao, orgao,
-       gnd::VARCHAR AS gnd, gnd_nome, ano::INTEGER AS ano,
+       gnd::VARCHAR AS gnd, gnd_nome, programa::VARCHAR AS programa, categoria, subcategoria, ano::INTEGER AS ano,
        dotacao::DOUBLE AS dotacao, empenhado::DOUBLE AS empenhado, liquidado::DOUBLE AS liquidado, pago::DOUBLE AS pago
 FROM read_json_auto('{raw}', format='newline_delimited');
+"""
+SQL_CATEGORIAS = """
+CREATE OR REPLACE TABLE categorias AS
+SELECT poder, categoria, subcategoria, round(sum(pago),2) AS pago, round(sum(empenhado),2) AS empenhado
+FROM itens GROUP BY ALL ORDER BY poder, categoria, pago DESC;
 """
 SQL_ORGAOS = """
 CREATE OR REPLACE TABLE orgaos AS
@@ -63,9 +70,11 @@ def run(ano: int, populacao: int = 0) -> None:
     con.execute(SQL_ORGAOS)
     con.execute(SQL_PODERES.format(pop=populacao))
     con.execute(SQL_GND)
+    con.execute(SQL_CATEGORIAS)
     _dump(con, "poderes", PUB / f"poderes_{ano}.json")
     _dump(con, "orgaos", PUB / f"poderes_orgaos_{ano}.json")
     _dump(con, "gnd", PUB / f"poderes_gnd_{ano}.json")
+    _dump(con, "categorias", PUB / f"poderes_categoria_{ano}.json")
     con.execute(f"COPY orgaos TO '{PQ / f'poderes_orgaos_{ano}.parquet'}' (FORMAT PARQUET)")
 
     for p, pago in con.execute("SELECT poder, pago FROM poderes").fetchall():

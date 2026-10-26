@@ -42,6 +42,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   com `ideCadastro`) → −21%, explicado por lideranças (sem ideCadastro) e ex-deputados. A conferir.
 - Já calculado mas sem página: `ceap_categoria`, `ceap_fornecedor` (com url da NF), `fornecedor_rede`
   (CNPJ atendendo ≥5 deputados). Top categoria 2026: divulgação R$ 52,3 mi (37%).
+- Filtros por UF e partido são páginas estáticas (`/deputados/uf/{uf}/`, `/deputados/partido/{slug}/`,
+  `site/src/pages/deputados/`, componente `TabelaDeputados.astro` + `PaginaFiltro.astro`, slug em `site/src/lib/slug.ts`).
 - Pendências: teto CEAP por UF (Ato da Mesa 43/2009), gasto real de gabinete, confirmar 13º/férias,
   subsídio proporcional p/ quem assumiu no meio do ano, passagens SIGEPA não aparecem no CSV (verificar).
 
@@ -56,7 +58,10 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - 2025 pago: Executivo R$ 2,04 tri (sem dívida/transferências), Judiciário 63,9 bi, Legislativo 15,7 bi,
   Funções essenciais 10,6 bi, Dívida/Transferências 2,92 tri (71000–75000 + 90000). Previdência 986 bi.
 - Classificação em `classificar()`; metodologia em `docs/metodologia/painel-poderes.md`. SIOP já tem grafo 2026.
-- Fase 2: mostrar GND no site (pessoal + custeio + investimento = "custo de funcionar").
+- Página mostra **"Manter a máquina" × políticas públicas**: categoria = Programa de Gestão e Manutenção da LOA
+  (0031–0035) vs finalísticos vs 09xx encargos especiais; subcategoria por GND/ação (ativos, aposentados, custeio,
+  investimento) em `poderes_categoria_<ano>.json`. 2025: máquina Executivo 309 bi, Judiciário 62,3 bi, Legislativo
+  15,4 bi, MPU/DPU 9,9 bi. Metodologia §3b.
 
 ## Painel Emendas (página pronta; ver estado do run 2025 abaixo)
 - `/emendas?ano=` funciona; campos confirmados: codigoEmenda, ano, tipoEmenda, autor, nomeAutor, numeroEmenda,
@@ -71,7 +76,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   (RP6) têm autor único.
 
 ## Próximos passos combinados
-1. Conferir `emendas` 2025 no site; painel GND dos Poderes (fase 2).
+1. Senadores: painel "quanto custa um senador" (API legis.senado.leg.br/dadosabertos/senador/lista/atual + CEAPS CSV
+   `senado.gov.br/transparencia/LAI/verba/despesa_ceaps_<ano>.csv`; falta fonte do teto de gabinete do Senado).
 2. Página por deputado `/deputado/{id}` (foto, cota mês a mês, categorias, fornecedores, link da NF) — maior
    ganho de SEO e o link para os comentários do Instagram.
 3. Painel "No que gastaram" (categorias) e fornecedores em rede.

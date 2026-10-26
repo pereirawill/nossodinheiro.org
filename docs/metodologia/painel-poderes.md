@@ -38,6 +38,28 @@ o Executivo — corrigido nesta data.
 TCU entra no Legislativo porque é órgão auxiliar do controle externo (CF art. 71). MPU e DPU não são Poder
 (CF arts. 127 e 134), por isso ficam em grupo próprio.
 
+## 3b. "Manter a máquina" × políticas públicas (`poderes_categoria_<ano>.json`)
+
+A divisão usa a classificação programática da própria LOA, sem juízo nosso (`categorizar()` em
+`extract_poderes.py`):
+
+| Programa da LOA | Categoria |
+|---|---|
+| 0031 Gestão e Manutenção do MPU, 0032 do Poder Executivo, 0033 do Poder Judiciário, 0034 do Poder Legislativo, 0035 das estatais | **Manter a máquina** |
+| 09xx Operações especiais (0901 sentenças judiciais, 0909 outros encargos, 0999 reserva…) | Encargos especiais |
+| qualquer outro programa (finalístico: Previdência, SUS, Bolsa Família, Fundo Eleitoral…) | Políticas públicas |
+
+Dentro de "Manter a máquina", a subcategoria vem do GND e da ação: GND 1 com ação de aposentadoria,
+pensão, inativos ou benefício especial (ex.: 0181, 00UX, 214H, 0179, 00S6) = **Aposentados e pensionistas**;
+GND 1 restante (ex.: 20TP Ativos Civis, 2867 Ativos Militares, 09HB contribuição patronal) = **Pessoal
+ativo e encargos**; GND 3 = Custeio; GND 4 e 5 = Investimento.
+
+Ressalvas: (a) no Executivo, "pessoal" inclui militares (ativos ~R$ 32 bi; inativos e pensões ~R$ 58 bi em
+2025) e o pessoal da saúde do DF pago pela União (00WW); (b) aposentadorias de órgãos extintos correm no
+órgão 72000 Encargos Previdenciários da União, que está em Dívida/Transferências e não em nenhum Poder;
+(c) a Justiça Eleitoral tem ~13% em programa finalístico (Fundo Partidário/Fundo Eleitoral), que aparece
+como "Políticas públicas" do Judiciário. Per capita da máquina: população IBGE (§5).
+
 ## 4. Grupo de natureza da despesa (`poderes_gnd_<ano>.json`)
 
 Por Poder × GND: 1 Pessoal e encargos, 2 Juros, 3 Outras despesas correntes, 4 Investimentos,

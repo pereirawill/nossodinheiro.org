@@ -4,43 +4,117 @@ const ANO = 2025;
 const mods = import.meta.glob("../../public/data/poderes_*.json", { eager: true, import: "default" });
 const poderes = (mods[`../../public/data/poderes_${ANO}.json`] as any[] | undefined) ?? null;
 const orgaos = (mods[`../../public/data/poderes_orgaos_${ANO}.json`] as any[] | undefined) ?? [];
+const categorias = (mods[`../../public/data/poderes_categoria_${ANO}.json`] as any[] | undefined) ?? [];
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
   v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri`
   : v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} mi` : brl0(v);
+const pct = (a: number, b: number) => (b > 0 ? `${Math.round((a / b) * 100)}%` : "–");
+const POP = 212_600_000; // IBGE, estimativa 2024 arredondada (ver metodologia)
+
 const cores: Record<string, string> = { Legislativo: "var(--s1)", "Judiciário": "var(--s3)", Executivo: "var(--s2)",
-  "Funções essenciais": "var(--s5)", "Dívida/Transferências": "var(--line)" };
-const tres = poderes?.filter((p) => ["Legislativo", "Judiciário", "Executivo"].includes(p.poder)) ?? [];
+  "Funções essenciais": "var(--s5)", "Dívida/Transferências": "var(--neutro)" };
+const ORDEM = ["Executivo", "Judiciário", "Legislativo", "Funções essenciais"];
+
+// Por Poder: máquina (e seu detalhe), políticas públicas, encargos especiais.
+const soma = (f: (c: any) => boolean) => categorias.filter(f).reduce((s, c) => s + c.pago, 0);
+const SUBS = ["Pessoal ativo e encargos", "Aposentados e pensionistas", "Custeio", "Investimento", "Outros"];
+const coresSub = ["var(--s1)", "var(--s3)", "var(--s2)", "var(--s4)", "var(--neutro)"];
+const resumo = ORDEM.map((p) => {
+  const maquina = soma((c) => c.poder === p && c.categoria === "Manter a máquina");
+  const politicas = soma((c) => c.poder === p && c.categoria === "Políticas públicas");
+  const encargos = soma((c) => c.poder === p && c.categoria === "Encargos especiais");
+  const subs = SUBS.map((s) => soma((c) => c.poder === p && c.categoria === "Manter a máquina" && c.subcategoria === s));
+  return { poder: p, maquina, politicas, encargos, total: maquina + politicas + encargos, subs };
+}).filter((r) => r.total > 0);
+const maxMaquina = Math.max(1, ...resumo.map((r) => r.maquina));
+const tres = resumo.filter((r) => ["Executivo", "Judiciário", "Legislativo"].includes(r.poder));
+const previdencia = orgaos.filter((o) => o.cod_superior === "33000").reduce((s, o) => s + o.pago, 0);
+
 const maxP = Math.max(1, ...(poderes ?? []).map((p) => p.pago));
 const topOrgaos = [...orgaos].filter((o) => o.poder !== "Dívida/Transferências").sort((a, b) => b.pago - a.pago).slice(0, 25);
 const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
-const previdencia = orgaos.filter((o) => o.cod_superior === "33000").reduce((s, o) => s + o.pago, 0);
 ---
 <Base title="Quanto custa cada Poder? — Nosso Dinheiro">
-  <h1>Quanto custa cada Poder da União?</h1>
+  <h1>Quanto custa manter cada Poder da União?</h1>
   <p class="lede">
-    Despesa <strong>paga</strong> em {ANO} por Poder e por órgão: Legislativo (Câmara, Senado, TCU), Judiciário
-    (STF, STJ, Justiça Federal, Eleitoral, do Trabalho…) e Executivo (ministérios).
+    O que Legislativo, Judiciário e Executivo gastaram em {ANO} para <strong>manter a própria máquina</strong>
+    (salários, aposentados, prédios, custeio), separado do que o Executivo paga em <strong>políticas públicas</strong>
+    (Previdência, SUS, Bolsa Família).
   </p>
-  <p class="meta">fonte: SIOP (Ministério do Planejamento e Orçamento), dados abertos da execução orçamentária da União · valores pagos no ano</p>
+  <p class="meta">fonte: SIOP (Ministério do Planejamento e Orçamento), execução orçamentária da União · valores pagos no ano</p>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
-    <div><b>Isto é despesa paga, não "custo da máquina".</b> O Executivo paga Previdência{previdencia ? ` (${compact(previdencia)})` : ""}, SUS, Bolsa Família —
-    política pública, não custo de funcionar. Juros, amortização, refinanciamento e transferências constitucionais
-    a estados e municípios ficam em "Dívida/Transferências". A comparação honesta entre Poderes (pessoal + custeio +
-    investimento, por grupo de despesa) é a fase 2 deste painel.</div>
+    <div><b>A divisão é a da própria Lei Orçamentária, não nossa.</b> Cada Poder tem um "Programa de Gestão e Manutenção"
+    (pessoal ativo, aposentadorias e pensões do órgão, custeio, investimento). Tudo fora dele é programa finalístico
+    (política pública) ou encargo especial (sentenças judiciais, por exemplo). Juros, amortização e transferências a
+    estados e municípios ficam fora, em "Dívida/Transferências". <a href="/metodologia/">Metodologia</a>.</div>
   </div>
 
-  {poderes ? (
+  {poderes && resumo.length ? (
     <>
       <div class="hero">
-        {tres.map((p) => (
-          <div class="stat"><b>{compact(p.pago)}</b><span>{p.poder} · despesa paga · {p.orgaos} órgãos{p.pago_por_habitante ? ` · ${brl0(p.pago_por_habitante)}/habitante` : ""}</span></div>
+        {tres.map((r) => (
+          <div class="stat"><b>{compact(r.maquina)}</b>
+            <span><strong>{r.poder}</strong> · manter a máquina · {brl0(r.maquina / POP)}/habitante
+              {r.politicas > 1e9 ? ` · mais ${compact(r.politicas)} em políticas públicas` : ""}</span></div>
         ))}
       </div>
 
-      <h2>Por Poder</h2>
+      <h2>Do que é feita a máquina de cada Poder</h2>
+      <div class="card">
+        <div class="legend">{SUBS.map((s, i) => <span><i style={`background:${coresSub[i]}`}></i>{s}</span>)}</div>
+        <svg viewBox={`0 0 920 ${resumo.length * 40 + 10}`} width="100%" role="img" aria-label="Composição da despesa de manutenção por Poder">
+          {resumo.map((r, i) => {
+            let x = 220;
+            return (
+              <g transform={`translate(0 ${i * 40 + 5})`}>
+                <text x="212" y="19" text-anchor="end" font-size="13" fill="var(--ink)">{r.poder}</text>
+                {r.subs.map((v, j) => {
+                  const w = (v / maxMaquina) * 560; const x0 = x; x += w;
+                  return <rect x={x0} y="4" width={Math.max(0, w)} height="22" fill={coresSub[j]} />;
+                })}
+                <text x={x + 6} y="19" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(r.maquina)}</text>
+              </g>
+            );
+          })}
+        </svg>
+        <table style="margin-top:14px">
+          <thead><tr><th>Poder</th><th class="num">Pessoal ativo</th><th class="num">Aposentados e pensões</th><th class="num">Custeio</th><th class="num">Investimento</th><th class="num">Máquina</th><th class="num">% pessoal</th></tr></thead>
+          <tbody>
+            {resumo.map((r) => (
+              <tr><td>{r.poder}</td><td class="num">{compact(r.subs[0])}</td><td class="num">{compact(r.subs[1])}</td>
+                <td class="num">{compact(r.subs[2])}</td><td class="num">{compact(r.subs[3])}</td>
+                <td class="num"><strong>{compact(r.maquina)}</strong></td><td class="num">{pct(r.subs[0] + r.subs[1], r.maquina)}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="src">Pessoal ativo inclui encargos patronais; no Executivo inclui militares ativos, e "aposentados" inclui inativos e pensões militares.
+          Aposentadorias de órgãos extintos (Encargos Previdenciários da União, 72000) estão em Dívida/Transferências.</p>
+      </div>
+
+      <h2>Máquina × políticas públicas: a parte de cada um</h2>
+      <div class="card">
+        <div class="legend"><span><i style="background:var(--s1)"></i>Manter a máquina</span><span><i style="background:var(--s4)"></i>Políticas públicas</span><span><i style="background:var(--neutro)"></i>Encargos especiais</span></div>
+        <svg viewBox={`0 0 920 ${resumo.length * 40 + 10}`} width="100%" role="img" aria-label="Proporção entre manutenção e políticas públicas por Poder">
+          {resumo.map((r, i) => {
+            const partes = [[r.maquina, "var(--s1)"], [r.politicas, "var(--s4)"], [r.encargos, "var(--neutro)"]] as const;
+            let x = 220;
+            return (
+              <g transform={`translate(0 ${i * 40 + 5})`}>
+                <text x="212" y="19" text-anchor="end" font-size="13" fill="var(--ink)">{r.poder}</text>
+                {partes.map(([v, c]) => { const w = (v / r.total) * 560; const x0 = x; x += w;
+                  return <rect x={x0} y="4" width={Math.max(0, w)} height="22" fill={c} />; })}
+                <text x="786" y="19" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{pct(r.maquina, r.total)} máquina</text>
+              </g>
+            );
+          })}
+        </svg>
+        <p class="src">Total do Executivo inclui {compact(previdencia)} de Previdência Social. Base: despesa paga no ano, sem Dívida/Transferências.</p>
+      </div>
+
+      <h2>Despesa total paga, por Poder</h2>
       <div class="card">
         <svg viewBox={`0 0 920 ${poderes.length * 34 + 10}`} width="100%" role="img" aria-label="Despesa paga por Poder">
           {poderes.map((p, i) => (

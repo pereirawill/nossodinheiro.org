@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import Chart from "../components/CustoDeputadoChart.astro";
+import Tabela from "../components/TabelaDeputados.astro";
 import rows from "../../public/data/custo_deputado_2026.json";
 import meta from "../../public/data/meta_2026.json";
 
@@ -50,13 +51,5 @@ const dataFmt = fmt.format(quando).replace(",", " às") + " (Brasília)";
   </div>
 
   <h2>Todos os deputados</h2>
-  <table>
-    <thead><tr><th>#</th><th>Deputado(a)</th><th>Partido · UF</th><th class="num">Cota parlamentar</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
-    <tbody>
-      {rows.map((r, i) => (
-        <tr><td class="rank">{i + 1}</td><td>{r.nome}</td><td>{r.partido} · {r.uf}</td>
-            <td class="num">{brl0(r.ceap)}</td><td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
-      ))}
-    </tbody>
-  </table>
+  <Tabela rows={rows} todos={rows} proj={proj} />
 </Base>

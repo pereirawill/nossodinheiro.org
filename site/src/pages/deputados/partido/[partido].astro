@@ -1,0 +1,16 @@
+---
+import PaginaFiltro from "../../../components/PaginaFiltro.astro";
+import todos from "../../../../public/data/custo_deputado_2026.json";
+import meta from "../../../../public/data/meta_2026.json";
+
+import { slug } from "../../../lib/slug";
+export async function getStaticPaths() {
+  const rows = (await import("../../../../public/data/custo_deputado_2026.json")).default as any[];
+  return [...new Set(rows.map((r) => r.partido as string))].map((p) => ({ params: { partido: slug(p) }, props: { partido: p } }));
+}
+const { partido } = Astro.props;
+const rows = (todos as any[]).filter((r) => r.partido === partido);
+---
+<PaginaFiltro titulo={`Quanto custam os deputados federais do ${partido}?`}
+  descricao={`Os ${rows.length} deputados em exercício filiados ao ${partido}.`}
+  rows={rows} todos={todos} meta={meta} partidoAtivo={partido} />

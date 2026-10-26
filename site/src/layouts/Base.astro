@@ -19,13 +19,13 @@ const path = Astro.url.pathname;
     <style is:global>
       :root {
         --bg: #f2f4f2; --card: #ffffff; --ink: #14181d; --ink-2: #56606b; --line: #e3e8eb;
-        --s1: #1d5a8a; --s2: #1f9d55; --s3: #8e3a6e; --s4: #7f5500; --s5: #008caa;
+        --s1: #1d5a8a; --s2: #1f9d55; --s3: #8e3a6e; --s4: #7f5500; --s5: #008caa; --neutro: #8a96a3;
         --mono: "IBM Plex Mono", ui-monospace, monospace;
         --display: "Big Shoulders Display", "Public Sans", sans-serif;
       }
       @media (prefers-color-scheme: dark) {
         :root { --bg: #0f1215; --card: #171b20; --ink: #eef0f2; --ink-2: #a3acb6; --line: #2a3139;
-                --s1: #5aa0dc; --s2: #3fc27a; --s3: #c56aa3; --s4: #d9a23b; --s5: #39b8d6; }
+                --s1: #5aa0dc; --s2: #3fc27a; --s3: #c56aa3; --s4: #d9a23b; --s5: #39b8d6; --neutro: #7d8894; }
       }
       * { box-sizing: border-box; }
       html { background: var(--bg); }
