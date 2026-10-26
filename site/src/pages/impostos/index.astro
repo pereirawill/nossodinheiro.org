@@ -1,0 +1,140 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/impostos.json";
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} mi` : brl0(v);
+const pct = (a: number, b: number) => `${Math.round((a / b) * 100)}%`;
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const rot = d.rotulo_base as Record<string, string>;
+const ORDEM = ["consumo", "folha", "lucro_empresas", "renda_trabalho", "renda_capital", "simples_outros", "patrimonio"];
+const CORES: Record<string, string> = { consumo: "var(--s4)", folha: "var(--s1)", lucro_empresas: "var(--s2)", renda_trabalho: "var(--s3)", renda_capital: "var(--s5)", simples_outros: "var(--neutro)", patrimonio: "#999" };
+const DICA: Record<string, string> = {
+  consumo: "IPI, COFINS, PIS/PASEP, CIDE, importação: recolhidos pelas empresas, embutidos no preço de tudo que se compra.",
+  folha: "Contribuição previdenciária (INSS): parte descontada do trabalhador e parte paga pela empresa; a fonte não separa.",
+  lucro_empresas: "IRPJ e CSLL: incidem sobre o lucro das empresas.",
+  renda_trabalho: "IRPF, imposto retido no salário e contribuição dos servidores: sai direto do rendimento de quem trabalha.",
+  renda_capital: "Imposto retido sobre aplicações, remessas ao exterior e IOF.",
+  simples_outros: "Simples Nacional (micro e pequenas empresas), receitas de outros órgãos (royalties etc.), multas e programas de parcelamento.",
+  patrimonio: "ITR, o único imposto federal sobre patrimônio (a maior parte dos impostos sobre patrimônio é estadual e municipal).",
+};
+const atual = d.anual[d.anual.length - 1];
+const anterior = d.anual[d.anual.length - 2];
+const u = d.ultimo_mes;
+const basesAtual = ORDEM.map((b) => ({ b, v: (atual.bases as any)[b] ?? 0 })).filter((x) => x.v > 0);
+const porDia = atual.total / (new Date(u.ano, u.mes, 0).getTime() - new Date(u.ano, 0, 1).getTime()) * 86400000;
+const porHab = atual.total / d.populacao;
+const mensal = d.mensal.slice(-13);
+const maxMes = Math.max(1, ...mensal.map((m) => m.total));
+const serie = d.anual.filter((a) => a.meses === 12);
+const maxAno = Math.max(1, ...serie.map((a) => a.total));
+const ufs = d.por_uf;
+const maxUf = Math.max(1, ...ufs.map((x) => x.total));
+const W = 920;
+---
+<Base title="Quanto o brasileiro paga de imposto federal? — Nosso Dinheiro" accent="var(--s2)">
+  <h1>Quanto o Brasil paga de imposto federal?</h1>
+  <p class="lede">
+    Tudo que a Receita Federal arrecadou, mês a mês, separado por <Termo t="base_incidencia">base de incidência</Termo>:
+    consumo, folha, lucro das empresas, renda do trabalho, renda do capital. Só tributos federais; ICMS, IPVA, ISS e IPTU são
+    de estados e municípios e ficam para o próximo painel.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fonte: Receita Federal, "Arrecadação por estado" (dados abertos) · último mês publicado: {MESES[u.mes - 1]}/{u.ano}</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{compact(atual.total)}</b><span><Termo t="arrecadacao">arrecadação</Termo> federal em {atual.meses} meses de {u.ano} (jan–{MESES[u.mes - 1]})</span></div>
+    <div class="stat"><b>{compact(porDia)}</b><span>por dia, em média, em {u.ano}</span></div>
+    <div class="stat"><b>{brl0(porHab)}</b><span>por habitante em {atual.meses} meses ({brl0(porHab / atual.meses)} por mês)</span></div>
+  </div>
+  <div class="hero" style="margin-top:0">
+    <div class="stat"><b>{compact(anterior.total)}</b><span>arrecadação federal em {anterior.ano} (12 meses) · {brl0(anterior.total / d.populacao)} por habitante</span></div>
+    <div class="stat"><b>{pct(((atual.bases as any).renda_trabalho ?? 0) + ((atual.bases as any).folha ?? 0), atual.total)}</b><span>vem do trabalho: <Termo t="quem_paga">renda do trabalho + folha</Termo> (previdência)</span></div>
+    <div class="stat"><b>{pct((atual.bases as any).consumo ?? 0, atual.total)}</b><span>vem do consumo: embutido no preço do que se compra</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Quem recolhe não é quem paga.</b> A Receita publica por tributo, não por "trabalhador" ou "empresa". COFINS e PIS são recolhidos
+    pela empresa, mas entram no preço e saem do bolso do consumidor; a contribuição previdenciária tem parte do empregado e parte do
+    patrão na mesma linha. Por isso agrupamos por <Termo t="base_incidencia">base de incidência</Termo>, que é a classificação
+    econômica usual, e não dizemos "imposto dos trabalhadores" ou "das empresas". Os valores são os publicados pela Receita; pequenas
+    diferenças para o total divulgado na imprensa vêm de receitas não administradas pela RFB.</div>
+  </div>
+
+  <h2>De onde vem a arrecadação federal em {u.ano}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} 44`} width="100%" role="img" aria-label="Arrecadação por base de incidência">
+      {(() => { let x = 0; return basesAtual.map(({ b, v }) => { const w = (v / atual.total) * W; const x0 = x; x += w;
+        return <rect x={x0} y="4" width={Math.max(0, w - 1)} height="34" fill={CORES[b]} rx="3"><title>{rot[b]}: {compact(v)} ({pct(v, atual.total)})</title></rect>; }); })()}
+    </svg>
+    <table style="margin-top:12px">
+      <thead><tr><th>Base de incidência</th><th class="num">{u.ano} (jan–{MESES[u.mes - 1]})</th><th class="num">% do total</th><th class="num">{anterior.ano}</th><th>O que é</th></tr></thead>
+      <tbody>{ORDEM.map((b) => (
+        <tr><td><i class="sw" style={`background:${CORES[b]}`}></i>{rot[b]}</td><td class="num">{compact((atual.bases as any)[b] ?? 0)}</td><td class="num">{pct((atual.bases as any)[b] ?? 0, atual.total)}</td><td class="num">{compact((anterior.bases as any)[b] ?? 0)}</td><td class="desc">{DICA[b]}</td></tr>
+      ))}</tbody>
+    </table>
+  </div>
+
+  <h2>Mês a mês</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${mensal.length * 24 + 10}`} width="100%" role="img" aria-label="Arrecadação federal mensal">
+      {mensal.map((m, i) => (
+        <g transform={`translate(0 ${i * 24 + 5})`}>
+          <text x="70" y="15" text-anchor="end" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{MESES[m.mes - 1]}/{String(m.ano).slice(2)}</text>
+          {(() => { let x = 80; return ORDEM.map((b) => { const v = (m.bases as any)[b] ?? 0; const w = (v / maxMes) * 700; const x0 = x; x += w;
+            return <rect x={x0} y="3" width={Math.max(0, w)} height="16" fill={CORES[b]}><title>{rot[b]}: {compact(v)}</title></rect>; }); })()}
+          <text x={80 + (m.total / maxMes) * 700 + 6} y="15" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(m.total)}</text>
+        </g>
+      ))}
+    </svg>
+    <div class="legend" style="margin-top:10px">{ORDEM.map((b) => <span><i style={`background:${CORES[b]}`}></i>{rot[b]}</span>)}</div>
+    <p class="src">Janeiro concentra IRPJ/CSLL trimestrais e 13º; o ITR entra entre setembro e dezembro.</p>
+  </div>
+
+  <h2>Os tributos, um a um ({u.ano})</h2>
+  <table>
+    <thead><tr><th>#</th><th>Tributo</th><th>Base</th><th class="num">Arrecadado</th><th class="num">% do total</th></tr></thead>
+    <tbody>{d.tributos_ultimo_ano.map((t, i) => (
+      <tr><td class="rank">{i + 1}</td><td>{t.tributo}</td><td><i class="sw" style={`background:${CORES[t.base]}`}></i>{rot[t.base]}</td><td class="num">{brl0(t.valor)}</td><td class="num">{pct(t.valor, atual.total)}</td></tr>
+    ))}</tbody>
+  </table>
+
+  <h2>Ano a ano, desde 2000</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${serie.length * 20 + 10}`} width="100%" role="img" aria-label="Arrecadação federal anual por base">
+      {serie.map((a, i) => (
+        <g transform={`translate(0 ${i * 20 + 5})`}>
+          <text x="50" y="13" text-anchor="end" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{a.ano}</text>
+          {(() => { let x = 58; return ORDEM.map((b) => { const v = (a.bases as any)[b] ?? 0; const w = (v / maxAno) * 720; const x0 = x; x += w;
+            return <rect x={x0} y="3" width={Math.max(0, w)} height="13" fill={CORES[b]}><title>{a.ano} · {rot[b]}: {compact(v)}</title></rect>; }); })()}
+          <text x={58 + (a.total / maxAno) * 720 + 6} y="13" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(a.total)}</text>
+        </g>
+      ))}
+    </svg>
+    <p class="src">Valores nominais (sem corrigir pela inflação). Só anos com 12 meses publicados.</p>
+  </div>
+
+  <h2>Por estado onde o tributo foi recolhido ({u.ano})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${ufs.length * 20 + 10}`} width="100%" role="img" aria-label="Arrecadação federal por UF">
+      {ufs.map((x, i) => (
+        <g transform={`translate(0 ${i * 20 + 5})`}>
+          <text x="40" y="13" text-anchor="end" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{x.uf}</text>
+          <rect x="48" y="3" width={Math.max(1, (x.total / maxUf) * 720)} height="13" fill="var(--s2)" rx="2" />
+          <text x={48 + (x.total / maxUf) * 720 + 6} y="13" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(x.total)} · {pct(x.total, atual.total)}</text>
+        </g>
+      ))}
+    </svg>
+    <p class="src">É onde a empresa ou pessoa recolheu, não onde o imposto "nasceu": sedes de empresas e o DF (órgãos federais, royalties) concentram.</p>
+  </div>
+
+  <Glossario termos={["arrecadacao", "base_incidencia", "quem_paga", "per_capita"]} />
+</Base>
+<style>
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  td.desc { color: var(--ink-2); font-size: 12.5px; max-width: 34ch; white-space: normal; }
+</style>

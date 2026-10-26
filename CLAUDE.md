@@ -77,6 +77,13 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   2026 jan–ago: R$ 10,47 mi, 98% sob sigilo. Página `/presidencia/` reaproveita `poderes_orgaos_2025` (órgão 20000).
 - Privacidade: CPF de favorecido PF mascarado no extrator; site não lista portadores nem favorecidos PF.
 
+## Painel Impostos (NO AR, sem chave, mensal dia 25)
+- `etl/impostos/extract.py`: CSV `gov.br/receitafederal/dados/arrecadacao-estado.csv` (2000→, por mês × UF × tributo).
+  Parser `_brl()` lida com formatos misturados ('8762245,567' = decimal; '1,006,523,961' = milhar); famílias agregado ×
+  detalhado deduplicadas. Bases de incidência = convenção nossa (ver metodologia). Conferido: mar/2026 224,6 bi (RFB 229,25).
+- Saída `impostos.json`: anual (2000→), mensal (24 m), por UF, tributos do ano. Página `/impostos/`. Pendente: estados e
+  municípios via SICONFI para "quanto já foi arrecadado" oficial (Impostômetro da ACSP é privado — não usar).
+
 ## Painel Rankings (NO AR, sem chave, mensal)
 - `etl/rankings/extract.py` → `rankings.json`: Banco Mundial API (PIB, PIB pc, expectativa, Gini, educação %PIB,
   homicídios/UNODC), PNUD HDR 2025 CSV (IDH 2023, posição oficial), TI CPI 2025 xlsx (leitor xlsx próprio), nomes PT

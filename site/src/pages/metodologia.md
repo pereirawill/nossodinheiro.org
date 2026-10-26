@@ -84,6 +84,16 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Só fornecedores pessoa jurídica são listados; CPF de pessoa física é mascarado.
 - Completo: `docs/metodologia/painel-presidencia.md`.
 
+## Impostos — quanto o Brasil paga de imposto federal
+
+- **O que é:** arrecadação administrada pela Receita Federal, mês a mês desde 2000, agrupada por base de incidência
+  (consumo, folha, lucro, renda do trabalho, renda do capital, patrimônio, Simples e outros), por tributo e por estado.
+- **Fonte:** Receita Federal, dados abertos "Arrecadação por estado" (CSV). Só tributos federais; estaduais e municipais
+  (ICMS, IPVA, ISS, IPTU) são o próximo passo, via SICONFI.
+- **Atenção:** quem recolhe não é quem paga; o agrupamento por base é convenção nossa, declarada. Diferença de 2–4% para
+  o total divulgado na imprensa (receitas não administradas pela RFB). Série anual em valores nominais.
+- Completo: `docs/metodologia/painel-impostos.md`.
+
 ## Rankings — onde o Brasil está
 
 - **O que é:** posição do Brasil em índices internacionais, com os 10 primeiros e os vizinhos. 1º é sempre o melhor.
