@@ -1,0 +1,13 @@
+---
+/** Glossário recolhível no fim da página. Props: termos (ids do GLOSSARIO, na ordem desejada). */
+import { GLOSSARIO } from "../lib/glossario";
+const { termos } = Astro.props as { termos: string[] };
+const itens = termos.map((t) => { const g = GLOSSARIO[t]; if (!g) throw new Error(`Termo desconhecido: ${t}`); return g; });
+---
+<details class="glossario">
+  <summary>O que significam os termos desta página</summary>
+  <dl>
+    {itens.map((g) => (<><dt>{g.rotulo}</dt><dd>{g.texto}</dd></>))}
+  </dl>
+  <p class="src">Definições conforme a Lei 4.320/1964 e o Manual Técnico de Orçamento (SOF). Detalhes na <a href="/metodologia/">metodologia</a>.</p>
+</details>

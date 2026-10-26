@@ -2,6 +2,8 @@
 import Base from "../layouts/Base.astro";
 import Chart from "../components/CustoDeputadoChart.astro";
 import Tabela from "../components/TabelaDeputados.astro";
+import Termo from "../components/Termo.astro";
+import Glossario from "../components/Glossario.astro";
 import rows from "../../public/data/custo_deputado_2026.json";
 import meta from "../../public/data/meta_2026.json";
 
@@ -22,18 +24,19 @@ const dataFmt = fmt.format(quando).replace(",", " às") + " (Brasília)";
 <Base title="Quanto custa um deputado federal? — Nosso Dinheiro">
   <h1>Quanto custa um deputado federal?</h1>
   <p class="lede">
-    Subsídio, cota parlamentar (gasto real, líquido de glosas) e verba de gabinete (teto) dos
+    <Termo t="subsidio">Subsídio</Termo>, <Termo t="cota_parlamentar">cota parlamentar</Termo> (gasto real, líquido de <Termo t="glosa">glosas</Termo>) e
+    <Termo t="verba_gabinete">verba de gabinete</Termo> (<Termo t="teto">teto</Termo>) dos
     {n} deputados em exercício hoje, nos {meta.meses_considerados} primeiros meses de {meta.ano}.
   </p>
   <p class="meta">Dados atualizados em {dataFmt} · fonte: Câmara dos Deputados (CEAP {meta.ano}, {meta.meses_considerados} meses) · atualização automática toda segunda-feira</p>
 
   <div class="hero">
     <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio estimado de um deputado, <strong>por mês</strong></span></div>
-    <div class="stat"><b>{compact(anualMedio)}</b><span>custo de um deputado <strong>por ano</strong>{proj}</span></div>
-    <div class="stat"><b>{compact(anualTotal)}</b><span>os {n} deputados <strong>por ano</strong>{proj}</span></div>
+    <div class="stat"><b>{compact(anualMedio)}</b><span>custo de um deputado <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
+    <div class="stat"><b>{compact(anualTotal)}</b><span>os {n} deputados <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
   </div>
   <div class="hero" style="margin-top:0">
-    <div class="stat"><b>{compact(totalCeap)}</b><span>cota parlamentar gasta por {n} deputados em {meta.meses_considerados} meses</span></div>
+    <div class="stat"><b>{compact(totalCeap)}</b><span><Termo t="cota_parlamentar">cota parlamentar</Termo> gasta por {n} deputados em {meta.meses_considerados} meses</span></div>
     <div class="stat"><b>{compact(totalEst)}</b><span>custo total estimado em {meta.meses_considerados} meses de {meta.ano}</span></div>
     <div class="stat"><b>{compact(totalEst / meta.meses_considerados)}</b><span>custo da Câmara (só deputados) <strong>por mês</strong></span></div>
   </div>
@@ -52,4 +55,5 @@ const dataFmt = fmt.format(quando).replace(",", " às") + " (Brasília)";
 
   <h2>Todos os deputados</h2>
   <Tabela rows={rows} todos={rows} proj={proj} />
+  <Glossario termos={["subsidio", "cota_parlamentar", "glosa", "verba_gabinete", "teto", "auxilio_moradia", "projecao"]} />
 </Base>

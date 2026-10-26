@@ -11,6 +11,7 @@ DEPUTADOS = [
     {"id": 1002, "uri": "", "nome": "Deputada Exemplo B", "siglaPartido": "PXB", "uriPartido": "",
      "siglaUf": "DF", "idLegislatura": 57, "urlFoto": "", "email": None},
 ]
+SENADORES = [{"id": 5001, "nome": "Senador Exemplo", "nome_completo": "Senador Exemplo da Silva", "partido": "PXC", "uf": "GO", "url_foto": ""}]
 EMENDAS = [  # schema de GET /emendas?ano=  (valores em string pt-BR)
     {"codigoEmenda": "202512340001", "ano": 2025, "tipoEmenda": "Emenda Individual - Transferências com Finalidade Definida",
      "autor": "1234", "nomeAutor": "DEPUTADO EXEMPLO A", "numeroEmenda": "0001", "localidadeDoGasto": "PORTO ALEGRE - RS",
@@ -95,12 +96,13 @@ def test_transform_emendas_sem_parquet(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     _jsonl(Path("data/raw/deputados_leg57.jsonl.gz"), DEPUTADOS)
     _jsonl(Path("data/raw/emendas_2025.jsonl.gz"), EMENDAS)
+    _jsonl(Path("data/raw/senadores_atual.jsonl.gz"), SENADORES)
     from etl.portal_transparencia import transform_emendas
     transform_emendas.run(2025)
 
     autores = {r["autor"]: r for r in json.loads(Path("data/public/emendas_por_autor_2025.json").read_text(encoding="utf-8"))}
     a = autores["DEPUTADO EXEMPLO A"]
-    assert a["match_deputado"] is True and a["id_deputado"] == 1001 and a["uf"] == "RS"
+    assert a["match_deputado"] is True and a["id_deputado"] == 1001 and a["uf"] == "RS" and a["casa"] == "Câmara"
     assert a["empenhado"] == 1_000_000.0 and a["pago"] == 750_000.5
-    s = autores["SENADOR EXEMPLO"]                      # sufixo "(EX-PARLAMENTAR …)" cortado
-    assert s["match_deputado"] is False
+    s = autores["SENADOR EXEMPLO"]                      # sufixo "(EX-PARLAMENTAR …)" cortado; casa pela lista do Senado
+    assert s["match_deputado"] is True and s["casa"] == "Senado" and s["uf"] == "GO"

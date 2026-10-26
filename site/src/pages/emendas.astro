@@ -1,5 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
+import Termo from "../components/Termo.astro";
+import Glossario from "../components/Glossario.astro";
 const ANO = 2025;
 const mods = import.meta.glob("../../public/data/emendas_*.json", { eager: true, import: "default" });
 const porAutor = (mods[`../../public/data/emendas_por_autor_${ANO}.json`] as any[] | undefined) ?? null;
@@ -19,7 +21,7 @@ const porTipo = Object.values(rows.reduce((acc: Record<string, any>, r) => {
   acc[k].empenhado += r.empenhado; acc[k].pago += r.pago; acc[k].autores.add(r.autor); return acc;
 }, {})).sort((a: any, b: any) => b.empenhado - a.empenhado) as any[];
 const autoresAgg = Object.values(individuais.reduce((acc: Record<string, any>, r) => {
-  acc[r.autor] ??= { autor: r.autor, partido: r.partido, uf: r.uf, match: r.match_deputado, empenhado: 0, pago: 0, emendas: 0 };
+  acc[r.autor] ??= { autor: r.autor, partido: r.partido, uf: r.uf, casa: r.casa, match: r.match_deputado, empenhado: 0, pago: 0, emendas: 0 };
   acc[r.autor].empenhado += r.empenhado; acc[r.autor].pago += r.pago; acc[r.autor].emendas += r.emendas; return acc;
 }, {})).sort((a: any, b: any) => b.empenhado - a.empenhado) as any[];
 const top = autoresAgg.slice(0, 25);
@@ -28,57 +30,58 @@ const max = Math.max(1, ...top.map((a) => a.empenhado));
 <Base title="Emendas parlamentares — Nosso Dinheiro">
   <h1>Para onde vai o dinheiro das emendas?</h1>
   <p class="lede">
-    Quanto cada parlamentar conseguiu alocar em emendas em {ANO} (<strong>empenhado</strong>) e quanto de fato saiu do caixa
-    (<strong>pago</strong>) — por autor e por tipo de emenda.
+    Quanto cada deputado e senador conseguiu alocar em emendas em {ANO} (<Termo t="empenhado"><strong>empenhado</strong></Termo>) e quanto de fato saiu do caixa
+    (<Termo t="pago"><strong>pago</strong></Termo>) — por autor e por tipo de emenda.
   </p>
   <p class="meta">fonte: API de Dados do Portal da Transparência (CGU) · emendas individuais, de bancada e de comissão · valores do exercício {ANO}</p>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
     <div><b>Emenda não é custo do deputado.</b> É orçamento público que ele direciona. Por isso este painel é separado do
-    <a href="/">custo por deputado</a> e nunca é somado a ele. Só emendas <em>individuais</em> têm autor único; bancada e
-    comissão são coletivas.</div>
+    <a href="/">custo por deputado</a> e nunca é somado a ele. Só <Termo t="emenda_individual">emendas <em>individuais</em></Termo> têm autor único;
+    <Termo t="emenda_bancada">de bancada</Termo> e <Termo t="emenda_comissao">de comissão</Termo> são coletivas. Senadores também têm emenda individual, com cota maior — por isso lideram a lista.</div>
   </div>
 
   {porAutor ? (
     <>
       <div class="hero">
-        <div class="stat big"><b>{compact(totEmp)}</b><span>empenhado em emendas em {ANO}</span></div>
-        <div class="stat"><b>{compact(totPago)}</b><span>pago no exercício ({pct(totEmp ? totPago / totEmp : null)} do empenhado)</span></div>
-        <div class="stat"><b>{autoresAgg.length}</b><span>autores de emendas individuais</span></div>
+        <div class="stat big"><b>{compact(totEmp)}</b><span><Termo t="empenhado">empenhado</Termo> em emendas em {ANO}</span></div>
+        <div class="stat"><b>{compact(totPago)}</b><span><Termo t="pago">pago</Termo> no exercício ({pct(totEmp ? totPago / totEmp : null)} do empenhado)</span></div>
+        <div class="stat"><b>{autoresAgg.length}</b><span>autores de <Termo t="emenda_individual">emendas individuais</Termo> (deputados e senadores)</span></div>
       </div>
 
       <h2>Por tipo de emenda</h2>
       <table>
-        <thead><tr><th>Tipo</th><th class="num">Autores</th><th class="num">Empenhado</th><th class="num">Pago</th><th class="num">% pago</th></tr></thead>
+        <thead><tr><th>Tipo</th><th class="num">Autores</th><th class="num"><Termo t="empenhado" /></th><th class="num"><Termo t="pago" /></th><th class="num">% pago</th></tr></thead>
         <tbody>{porTipo.map((t) => (
-          <tr><td>{t.tipo}</td><td class="num">{t.autores.size}</td><td class="num">{brl0(t.empenhado)}</td><td class="num">{brl0(t.pago)}</td><td class="num">{pct(t.empenhado ? t.pago / t.empenhado : null)}</td></tr>
+          <tr><td>{/bancada/i.test(t.tipo) ? <Termo t="emenda_bancada">{t.tipo}</Termo> : /comiss/i.test(t.tipo) ? <Termo t="emenda_comissao">{t.tipo}</Termo> : /relator/i.test(t.tipo) ? <Termo t="emenda_relator">{t.tipo}</Termo> : /individual/i.test(t.tipo) ? <Termo t="emenda_individual">{t.tipo}</Termo> : t.tipo}</td><td class="num">{t.autores.size}</td><td class="num">{brl0(t.empenhado)}</td><td class="num">{brl0(t.pago)}</td><td class="num">{pct(t.empenhado ? t.pago / t.empenhado : null)}</td></tr>
         ))}</tbody>
       </table>
 
       <h2>Os 25 autores com mais emendas individuais empenhadas</h2>
       <div class="card">
-        <div class="legend"><span><i style="background:var(--s1)"></i>Pago</span><span><i style="background:var(--neutro)"></i>Empenhado e ainda não pago</span></div>
+        <div class="legend"><span><i style="background:var(--s1)"></i><Termo t="pago" /></span><span><i style="background:var(--neutro)"></i><Termo t="empenhado">Empenhado e ainda não pago</Termo></span></div>
         <svg viewBox={`0 0 920 ${top.length * 28 + 10}`} width="100%" role="img" aria-label="Emendas por autor">
           {top.map((a, i) => (
             <g transform={`translate(0 ${i * 28 + 5})`}>
-              <text x="292" y="17" text-anchor="end" font-size="12" fill="var(--ink)">{a.autor} <tspan fill="var(--ink-2)">{a.partido ? `(${a.partido}-${a.uf})` : ""}</tspan></text>
+              <text x="292" y="17" text-anchor="end" font-size="12" fill="var(--ink)">{a.autor} <tspan fill="var(--ink-2)">{a.partido ? `(${a.partido}-${a.uf}${a.casa === "Senado" ? ", sen." : ""})` : ""}</tspan></text>
               <rect x="300" y="4" width={Math.max(2, (a.empenhado / max) * 480)} height="18" rx="2" fill="var(--neutro)" />
               <rect x="300" y="4" width={Math.max(0, (a.pago / max) * 480)} height="18" rx="2" fill="var(--s1)" />
               <text x={306 + (a.empenhado / max) * 480} y="17" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(a.empenhado)}</text>
             </g>
           ))}
         </svg>
-        <p class="src">Partido/UF vêm do cruzamento com a lista de deputados em exercício; senadores e ex-deputados aparecem sem sigla.</p>
+        <p class="src">Partido/UF vêm do cruzamento por nome com as listas de deputados e senadores em exercício; "sen." = senador. Ex-parlamentares aparecem sem sigla.</p>
       </div>
 
       <h2>Todos os autores (individuais)</h2>
       <table>
-        <thead><tr><th>#</th><th>Autor</th><th>Partido · UF</th><th class="num">Emendas</th><th class="num">Empenhado</th><th class="num">Pago</th><th class="num">% pago</th></tr></thead>
+        <thead><tr><th>#</th><th>Autor</th><th>Casa</th><th>Partido · UF</th><th class="num">Emendas</th><th class="num"><Termo t="empenhado" /></th><th class="num"><Termo t="pago" /></th><th class="num">% pago</th></tr></thead>
         <tbody>{autoresAgg.map((a, i) => (
-          <tr><td class="rank">{i + 1}</td><td>{a.autor}</td><td>{a.partido ? `${a.partido} · ${a.uf}` : "—"}</td><td class="num">{a.emendas}</td>
+          <tr><td class="rank">{i + 1}</td><td>{a.autor}</td><td>{a.casa === "Senado" ? "Senado" : a.casa === "Câmara" ? "Câmara" : "—"}</td><td>{a.partido ? `${a.partido} · ${a.uf}` : "—"}</td><td class="num">{a.emendas}</td>
               <td class="num">{brl0(a.empenhado)}</td><td class="num">{brl0(a.pago)}</td><td class="num">{pct(a.empenhado ? a.pago / a.empenhado : null)}</td></tr>
         ))}</tbody>
       </table>
+      <Glossario termos={["emenda_individual", "emenda_bancada", "emenda_comissao", "emenda_relator", "empenhado", "liquidado", "pago", "restos_a_pagar", "alocou"]} />
     </>
   ) : (
     <div class="card">

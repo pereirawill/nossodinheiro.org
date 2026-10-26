@@ -3,6 +3,8 @@
 import Base from "../layouts/Base.astro";
 import Chart from "./CustoDeputadoChart.astro";
 import Tabela from "./TabelaDeputados.astro";
+import Termo from "./Termo.astro";
+import Glossario from "./Glossario.astro";
 const { titulo, descricao, rows, todos, meta, ufAtiva, partidoAtivo } = Astro.props;
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
@@ -18,7 +20,7 @@ const ordenadas = [...rows].sort((a: any, b: any) => b.custo_total_estimado - a.
 ---
 <Base title={`${titulo} — Nosso Dinheiro`}>
   <h1>{titulo}</h1>
-  <p class="lede">{descricao} Subsídio, cota parlamentar (gasto real) e verba de gabinete (teto) nos {meta.meses_considerados} primeiros meses de {meta.ano}.</p>
+  <p class="lede">{descricao} <Termo t="subsidio">Subsídio</Termo>, <Termo t="cota_parlamentar">cota parlamentar</Termo> (gasto real) e <Termo t="verba_gabinete">verba de gabinete</Termo> (<Termo t="teto">teto</Termo>) nos {meta.meses_considerados} primeiros meses de {meta.ano}.</p>
   <p class="meta">fonte: Câmara dos Deputados (CEAP {meta.ano}) · <a href="/">todos os {todos.length} deputados</a> · <a href="/metodologia/">metodologia</a></p>
 
   <div class="hero">
@@ -40,4 +42,5 @@ const ordenadas = [...rows].sort((a: any, b: any) => b.custo_total_estimado - a.
 
   <h2>Deputados</h2>
   <Tabela rows={ordenadas} todos={todos} proj={proj} ufAtiva={ufAtiva} partidoAtivo={partidoAtivo} />
+  <Glossario termos={["subsidio", "cota_parlamentar", "glosa", "verba_gabinete", "teto", "projecao"]} />
 </Base>

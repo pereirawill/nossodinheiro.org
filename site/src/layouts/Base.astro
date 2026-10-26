@@ -63,6 +63,23 @@ const path = Astro.url.pathname;
       td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; }
       td.rank { color: var(--ink-2); font-family: var(--mono); width: 2.5em; }
       .src { font-family: var(--mono); font-size: 12px; color: var(--ink-2); margin-top: 10px; }
+      /* Termo com dica ⓘ (sem JS): hover, foco por teclado e toque (tabindex) */
+      .termo { position: relative; border-bottom: 1px dotted var(--ink-2); cursor: help; outline: none; white-space: nowrap; }
+      .termo i { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; margin-left: 3px; border-radius: 50%;
+                 border: 1px solid var(--ink-2); color: var(--ink-2); font: 600 9px/1 var(--mono); font-style: normal; vertical-align: 2px; }
+      .termo:hover i, .termo:focus i { background: var(--ink); color: var(--card); border-color: var(--ink); }
+      .termo::after { content: attr(data-dica); position: absolute; left: 0; top: calc(100% + 6px); z-index: 10; width: max-content; max-width: min(320px, 85vw);
+                      background: var(--ink); color: var(--card); font: 400 13px/1.45 "Public Sans", system-ui, sans-serif; white-space: normal; text-align: left;
+                      padding: 10px 12px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.18); opacity: 0; pointer-events: none; transition: opacity .12s; }
+      .termo:hover::after, .termo:focus::after { opacity: 1; }
+      .termo.dir::after { left: auto; right: 0; }
+      th .termo, .stat .termo { border-bottom-color: transparent; }
+      /* Glossário recolhível */
+      .glossario { margin-top: 36px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 18px; }
+      .glossario summary { cursor: pointer; font-weight: 700; font-size: 15px; }
+      .glossario dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 14px 0 6px; font-size: 14px; }
+      .glossario dt { font-weight: 700; } .glossario dd { margin: 0; color: var(--ink-2); }
+      @media (max-width: 720px) { .glossario dl { grid-template-columns: 1fr; gap: 2px; } .glossario dd { margin-bottom: 10px; } }
       footer { border-top: 1px solid var(--line); background: var(--card); padding: 18px 16px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
       footer div { max-width: 1040px; margin: 0 auto; }
     </style>

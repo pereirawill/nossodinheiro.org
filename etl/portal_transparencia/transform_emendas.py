@@ -57,13 +57,14 @@ FROM read_json_auto('{{raw}}', format='newline_delimited');
 SQL_POR_AUTOR = """
 CREATE OR REPLACE TABLE por_autor AS
 WITH dep AS (
-  SELECT id_deputado, nome, partido, uf, upper(strip_accents(nome)) AS nome_norm
-  FROM deputados
+  SELECT casa, id_parlamentar, nome, partido, uf, upper(strip_accents(nome)) AS nome_norm
+  FROM parlamentares
 )
 SELECT e.autor, e.tipo,
-       any_value(d.id_deputado) AS id_deputado, any_value(d.partido) AS partido, any_value(d.uf) AS uf,
-       count(DISTINCT d.id_deputado) > 0 AS match_deputado,
-       count(DISTINCT d.id_deputado) > 1 AS homonimo,
+       any_value(d.id_parlamentar) AS id_deputado, any_value(d.partido) AS partido, any_value(d.uf) AS uf,
+       any_value(d.casa) AS casa,
+       count(DISTINCT d.id_parlamentar) > 0 AS match_deputado,
+       count(DISTINCT d.id_parlamentar) > 1 AS homonimo,
        count(*) AS emendas,
        round(sum(empenhado), 2) AS empenhado, round(sum(liquidado), 2) AS liquidado,
        round(sum(pago), 2) AS pago, round(sum(rp_pago), 2) AS rp_pago,
@@ -110,13 +111,15 @@ def run(ano: int) -> None:
     n, emp, pago, nomatch = con.execute(
         "SELECT count(*), round(sum(empenhado)/1e9,2), round(sum(pago)/1e9,2), "
         "count(*) FILTER (WHERE NOT match_deputado AND tipo ILIKE '%individual%') FROM por_autor").fetchone()
-    log.info("%d autores; empenhado R$ %.2f bi; pago R$ %.2f bi; %d autores individuais sem match com deputado (senadores/homônimos?)",
+    log.info("%d autores; empenhado R$ %.2f bi; pago R$ %.2f bi; %d autores individuais sem match com deputado/senador (ex-parlamentares/homônimos?)",
              n, emp, pago, nomatch)
 
 
 def _carregar_deputados(con: duckdb.DuckDBPyConnection) -> None:
-    """Tabela `deputados` para o join por nome. Usa o parquet do ETL da Câmara se existir;
-    senão, só a lista bruta da legislatura (`extract deputados`) — não precisa do CSV da CEAP."""
+    """Tabela `parlamentares` (casa, id_parlamentar, nome, partido, uf) para o join por nome.
+    Deputados: parquet do ETL da Câmara se existir, senão a lista bruta da legislatura (`extract deputados`,
+    sem CEAP). Senadores: `data/raw/senadores_atual.jsonl.gz` (`etl.senado.extract senadores`), se existir —
+    senadores também têm emenda individual e, com cota maior, lideram a lista."""
     pq = PQ / "deputados.parquet"
     raw = RAW / f"deputados_leg{C.LEGISLATURA_ATUAL}.jsonl.gz"
     if pq.exists():
@@ -125,6 +128,17 @@ def _carregar_deputados(con: duckdb.DuckDBPyConnection) -> None:
         con.execute(SQL_DEPUTADOS.format(raw=raw))
     else:
         raise SystemExit(f"faltam {pq} e {raw}: rode `python -m etl.camara.extract deputados` antes")
+    con.execute("CREATE OR REPLACE TABLE parlamentares AS "
+                "SELECT 'Câmara' AS casa, id_deputado AS id_parlamentar, nome, partido, uf FROM deputados")
+    sen = RAW / "senadores_atual.jsonl.gz"
+    if sen.exists():
+        con.execute(f"""INSERT INTO parlamentares
+            SELECT 'Senado', TRY_CAST(id AS INTEGER), nome::VARCHAR, partido::VARCHAR, uf::VARCHAR
+            FROM read_json('{sen}', format='newline_delimited', columns={{
+                'id':'VARCHAR','nome':'VARCHAR','nome_completo':'VARCHAR','partido':'VARCHAR','uf':'VARCHAR','url_foto':'VARCHAR'}},
+                ignore_errors=true)""")
+    else:
+        log.warning("%s ausente: senadores ficarão sem partido/UF nas emendas", sen)
 
 
 def _dump(con: duckdb.DuckDBPyConnection, table: str, out: Path) -> None:

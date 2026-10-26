@@ -1,0 +1,11 @@
+---
+/**
+ * Termo com dica ⓘ (CSS puro: hover, foco e toque). Uso: <Termo t="empenhado" /> ou <Termo t="pago">pagou</Termo>.
+ * O texto vem de src/lib/glossario.ts; o mesmo texto aparece no <Glossario> ao fim da página.
+ */
+import { GLOSSARIO } from "../lib/glossario";
+const { t } = Astro.props;
+const g = GLOSSARIO[t];
+if (!g) throw new Error(`Termo desconhecido no glossário: ${t}`);
+---
+<span class="termo" tabindex="0" role="note" aria-label={`${g.rotulo}: ${g.texto}`} data-dica={g.texto}><slot>{g.rotulo}</slot><i aria-hidden="true">i</i></span>

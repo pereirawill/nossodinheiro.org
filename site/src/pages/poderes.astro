@@ -1,5 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
+import Termo from "../components/Termo.astro";
+import Glossario from "../components/Glossario.astro";
 const ANO = 2025;
 const mods = import.meta.glob("../../public/data/poderes_*.json", { eager: true, import: "default" });
 const poderes = (mods[`../../public/data/poderes_${ANO}.json`] as any[] | undefined) ?? null;
@@ -39,9 +41,9 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
 <Base title="Quanto custa cada Poder? — Nosso Dinheiro">
   <h1>Quanto custa manter cada Poder da União?</h1>
   <p class="lede">
-    O que Legislativo, Judiciário e Executivo gastaram em {ANO} para <strong>manter a própria máquina</strong>
-    (salários, aposentados, prédios, custeio), separado do que o Executivo paga em <strong>políticas públicas</strong>
-    (Previdência, SUS, Bolsa Família).
+    O que Legislativo, Judiciário e Executivo gastaram em {ANO} para <Termo t="maquina"><strong>manter a própria máquina</strong></Termo>
+    (salários, aposentados, prédios, custeio), separado do que o Executivo paga em <Termo t="politicas_publicas"><strong>políticas públicas</strong></Termo>
+    (Previdência, SUS, Bolsa Família). Valores <Termo t="pago">pagos</Termo> no ano.
   </p>
   <p class="meta">fonte: SIOP (Ministério do Planejamento e Orçamento), execução orçamentária da União · valores pagos no ano</p>
 
@@ -57,14 +59,14 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
       <div class="hero">
         {tres.map((r) => (
           <div class="stat"><b>{compact(r.maquina)}</b>
-            <span><strong>{r.poder}</strong> · manter a máquina · {brl0(r.maquina / POP)}/habitante
+            <span><strong>{r.poder}</strong> · manter a máquina · <Termo t="per_capita">{brl0(r.maquina / POP)}/habitante</Termo>
               {r.politicas > 1e9 ? ` · mais ${compact(r.politicas)} em políticas públicas` : ""}</span></div>
         ))}
       </div>
 
       <h2>Do que é feita a máquina de cada Poder</h2>
       <div class="card">
-        <div class="legend">{SUBS.map((s, i) => <span><i style={`background:${coresSub[i]}`}></i>{s}</span>)}</div>
+        <div class="legend">{SUBS.map((s, i) => <span><i style={`background:${coresSub[i]}`}></i>{["pessoal_ativo", "aposentados", "custeio", "investimento"][i] ? <Termo t={["pessoal_ativo", "aposentados", "custeio", "investimento"][i]}>{s}</Termo> : s}</span>)}</div>
         <svg viewBox={`0 0 920 ${resumo.length * 40 + 10}`} width="100%" role="img" aria-label="Composição da despesa de manutenção por Poder">
           {resumo.map((r, i) => {
             let x = 220;
@@ -81,7 +83,7 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
           })}
         </svg>
         <table style="margin-top:14px">
-          <thead><tr><th>Poder</th><th class="num">Pessoal ativo</th><th class="num">Aposentados e pensões</th><th class="num">Custeio</th><th class="num">Investimento</th><th class="num">Máquina</th><th class="num">% pessoal</th></tr></thead>
+          <thead><tr><th>Poder</th><th class="num"><Termo t="pessoal_ativo">Pessoal ativo</Termo></th><th class="num"><Termo t="aposentados">Aposentados e pensões</Termo></th><th class="num"><Termo t="custeio" /></th><th class="num"><Termo t="investimento" /></th><th class="num"><Termo t="maquina">Máquina</Termo></th><th class="num">% pessoal</th></tr></thead>
           <tbody>
             {resumo.map((r) => (
               <tr><td>{r.poder}</td><td class="num">{compact(r.subs[0])}</td><td class="num">{compact(r.subs[1])}</td>
@@ -96,7 +98,7 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
 
       <h2>Máquina × políticas públicas: a parte de cada um</h2>
       <div class="card">
-        <div class="legend"><span><i style="background:var(--s1)"></i>Manter a máquina</span><span><i style="background:var(--s4)"></i>Políticas públicas</span><span><i style="background:var(--neutro)"></i>Encargos especiais</span></div>
+        <div class="legend"><span><i style="background:var(--s1)"></i><Termo t="maquina" /></span><span><i style="background:var(--s4)"></i><Termo t="politicas_publicas" /></span><span><i style="background:var(--neutro)"></i><Termo t="encargos_especiais" /></span></div>
         <svg viewBox={`0 0 920 ${resumo.length * 40 + 10}`} width="100%" role="img" aria-label="Proporção entre manutenção e políticas públicas por Poder">
           {resumo.map((r, i) => {
             const partes = [[r.maquina, "var(--s1)"], [r.politicas, "var(--s4)"], [r.encargos, "var(--neutro)"]] as const;
@@ -114,7 +116,7 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
         <p class="src">Total do Executivo inclui {compact(previdencia)} de Previdência Social. Base: despesa paga no ano, sem Dívida/Transferências.</p>
       </div>
 
-      <h2>Despesa total paga, por Poder</h2>
+      <h2><Termo t="despesa_paga">Despesa total paga</Termo>, por Poder</h2>
       <div class="card">
         <svg viewBox={`0 0 920 ${poderes.length * 34 + 10}`} width="100%" role="img" aria-label="Despesa paga por Poder">
           {poderes.map((p, i) => (
@@ -144,13 +146,14 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
 
       <h2>Todos os órgãos</h2>
       <table>
-        <thead><tr><th>Poder</th><th>Órgão superior</th><th>Órgão</th><th class="num">Empenhado</th><th class="num">Pago</th></tr></thead>
+        <thead><tr><th>Poder</th><th><Termo t="orgao_superior" /></th><th><Termo t="unidade_orcamentaria">Órgão</Termo></th><th class="num"><Termo t="empenhado" /></th><th class="num"><Termo t="pago" /></th></tr></thead>
         <tbody>
           {[...orgaos].sort((a, b) => b.pago - a.pago).map((o) => (
             <tr><td>{o.poder}</td><td>{o.orgao_superior}</td><td>{o.orgao}</td><td class="num">{brl0(o.empenhado)}</td><td class="num">{brl0(o.pago)}</td></tr>
           ))}
         </tbody>
       </table>
+      <Glossario termos={["maquina", "politicas_publicas", "encargos_especiais", "divida_transferencias", "funcoes_essenciais", "pessoal_ativo", "aposentados", "custeio", "investimento", "empenhado", "liquidado", "pago", "dotacao", "orgao_superior", "unidade_orcamentaria", "despesa_paga", "per_capita"]} />
     </>
   ) : (
     <div class="card">
