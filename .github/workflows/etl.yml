@@ -75,4 +75,4 @@ jobs:
           git add data/public site/public/data
           git diff --cached --quiet && echo "sem mudanças" && exit 0
           git commit -m "data: câmara custo-deputado $ANO ($(date -u +%F))"
-          git push
+          git pull --rebase origin main && git push
