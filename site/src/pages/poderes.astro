@@ -1,25 +1,84 @@
 ---
 import Base from "../layouts/Base.astro";
+const ANO = 2025;
+const mods = import.meta.glob("../../public/data/poderes_*.json", { eager: true, import: "default" });
+const poderes = (mods[`../../public/data/poderes_${ANO}.json`] as any[] | undefined) ?? null;
+const orgaos = (mods[`../../public/data/poderes_orgaos_${ANO}.json`] as any[] | undefined) ?? [];
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} mi` : brl0(v);
+const cores: Record<string, string> = { Legislativo: "var(--s1)", "Judiciário": "var(--s3)", Executivo: "var(--s2)",
+  "Funções essenciais": "var(--s5)", "Dívida/Transferências": "var(--line)" };
+const tres = poderes?.filter((p) => ["Legislativo", "Judiciário", "Executivo"].includes(p.poder)) ?? [];
+const maxP = Math.max(1, ...(poderes ?? []).map((p) => p.pago));
+const topOrgaos = [...orgaos].filter((o) => o.poder !== "Dívida/Transferências").sort((a, b) => b.pago - a.pago).slice(0, 25);
+const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
 ---
 <Base title="Quanto custa cada Poder? — Nosso Dinheiro">
   <h1>Quanto custa cada Poder da União?</h1>
   <p class="lede">
-    Legislativo (Câmara, Senado, TCU), Judiciário (STF, STJ, Justiça Federal, Eleitoral, do Trabalho…)
-    e Executivo, separando o <strong>custo de funcionar</strong> (pessoal, custeio, investimento) das
-    políticas públicas e da dívida.
+    Despesa <strong>paga</strong> em {ANO} por Poder e por órgão: Legislativo (Câmara, Senado, TCU), Judiciário
+    (STF, STJ, Justiça Federal, Eleitoral, do Trabalho…) e Executivo (ministérios).
   </p>
-  <p class="meta">Em construção · fonte: Portal da Transparência (despesa paga por órgão superior) · execução orçamentária por GND</p>
+  <p class="meta">fonte: Portal da Transparência (CGU), despesa por órgão superior · valores pagos no ano</p>
+
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
-    <div><b>Custo ≠ orçamento.</b> O Executivo paga Previdência, SUS e Bolsa Família — isso é política pública,
-    não custo da máquina. A comparação honesta entre Poderes é pessoal + custeio + investimento.</div>
+    <div><b>Custo ≠ orçamento.</b> O Executivo paga Previdência, SUS e Bolsa Família — isso é política pública, não custo
+    da máquina. A comparação honesta entre Poderes é pessoal + custeio + investimento (fase 2, por GND).
+    Juros e amortização da dívida e transferências a estados/municípios ficam fora dos três Poderes.</div>
   </div>
-  <div class="card">
-    <h2 style="margin-top:0">O que vai aparecer aqui</h2>
-    <ul>
-      <li>Despesa paga por Poder e por órgão (STF, STJ, TST, TSE, Câmara, Senado…), ano a ano desde 2015.</li>
-      <li>Custo por habitante e por magistrado/parlamentar.</li>
-      <li>Remuneração de magistrados (subsídio × verbas indenizatórias) — fonte CNJ, fase 2.</li>
-    </ul>
-    <p class="src">Justiça Estadual (TJs) é orçamento dos estados (SICONFI) e entra numa fase posterior.</p>
-  </div>
+
+  {poderes ? (
+    <>
+      <div class="hero">
+        {tres.map((p) => (
+          <div class="stat"><b>{compact(p.pago)}</b><span>{p.poder} · {p.orgaos} órgãos{p.pago_por_habitante ? ` · ${brl0(p.pago_por_habitante)}/habitante` : ""}</span></div>
+        ))}
+      </div>
+
+      <h2>Por Poder</h2>
+      <div class="card">
+        <svg viewBox={`0 0 920 ${poderes.length * 34 + 10}`} width="100%" role="img" aria-label="Despesa paga por Poder">
+          {poderes.map((p, i) => (
+            <g transform={`translate(0 ${i * 34 + 5})`}>
+              <text x="212" y="19" text-anchor="end" font-size="13" fill="var(--ink)">{p.poder}</text>
+              <rect x="220" y="5" width={Math.max(2, (p.pago / maxP) * 560)} height="20" rx="2" fill={cores[p.poder] ?? "var(--s4)"} />
+              <text x={226 + (p.pago / maxP) * 560} y="19" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(p.pago)}</text>
+            </g>
+          ))}
+        </svg>
+        <p class="src">Dívida/Transferências = encargos financeiros, transferências constitucionais e refinanciamento (órgãos 71000–75000).</p>
+      </div>
+
+      <h2>Os 25 órgãos que mais gastaram</h2>
+      <div class="card">
+        <svg viewBox={`0 0 920 ${topOrgaos.length * 28 + 10}`} width="100%" role="img" aria-label="Despesa paga por órgão">
+          {topOrgaos.map((o, i) => (
+            <g transform={`translate(0 ${i * 28 + 5})`}>
+              <text x="332" y="17" text-anchor="end" font-size="12" fill="var(--ink)">{(o.orgao ?? o.orgao_superior ?? "").slice(0, 48)}</text>
+              <rect x="340" y="4" width={Math.max(2, (o.pago / maxO) * 440)} height="18" rx="2" fill={cores[o.poder] ?? "var(--s4)"} />
+              <text x={346 + (o.pago / maxO) * 440} y="17" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(o.pago)}</text>
+            </g>
+          ))}
+        </svg>
+        <div class="legend" style="margin-top:12px">{Object.entries(cores).map(([k, c]) => <span><i style={`background:${c}`}></i>{k}</span>)}</div>
+      </div>
+
+      <h2>Todos os órgãos</h2>
+      <table>
+        <thead><tr><th>Poder</th><th>Órgão superior</th><th>Órgão</th><th class="num">Empenhado</th><th class="num">Pago</th></tr></thead>
+        <tbody>
+          {[...orgaos].sort((a, b) => b.pago - a.pago).map((o) => (
+            <tr><td>{o.poder}</td><td>{o.orgao_superior}</td><td>{o.orgao}</td><td class="num">{brl0(o.empenhado)}</td><td class="num">{brl0(o.pago)}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  ) : (
+    <div class="card">
+      <h2 style="margin-top:0">Em construção — primeira carga pendente</h2>
+      <p>O ETL (<code>etl/portal_transparencia/extract_poderes.py</code>) já está pronto; os dados aparecem aqui após a primeira execução agendada.</p>
+    </div>
+  )}
 </Base>
