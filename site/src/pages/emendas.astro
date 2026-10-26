@@ -1,0 +1,24 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="Emendas parlamentares — Nosso Dinheiro">
+  <h1>Para onde vai o dinheiro das emendas?</h1>
+  <p class="lede">
+    Quanto cada deputado e senador conseguiu alocar em emendas (empenhado), quanto de fato saiu
+    do caixa (pago) e para quais municípios, órgãos e fornecedores o dinheiro foi.
+  </p>
+  <p class="meta">Em construção · fonte: API de Dados do Portal da Transparência (CGU) · emendas individuais, de bancada e de comissão</p>
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Emenda não é custo do deputado.</b> É orçamento público que ele direciona. Por isso este painel é
+    separado do <a href="/">custo por deputado</a> e nunca é somado a ele.</div>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">O que vai aparecer aqui</h2>
+    <ul>
+      <li>Ranking por autor: empenhado × liquidado × pago, e a taxa de execução.</li>
+      <li>Destino: município, função (saúde, educação, infraestrutura…) e favorecido, com o documento de pagamento.</li>
+      <li>Emendas "Pix" (transferências especiais) destacadas, porque não têm objeto declarado.</li>
+    </ul>
+    <p class="src">ETL já implementado em <code>etl/portal_transparencia/</code>; aguardando primeira carga.</p>
+  </div>
+</Base>
