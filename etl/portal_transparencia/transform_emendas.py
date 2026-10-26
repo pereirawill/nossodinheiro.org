@@ -15,8 +15,9 @@ Metodologia (resumo — detalhar em docs/metodologia/painel-1b-emendas.md):
   Restos a pagar (valorRestoPago) são pagamentos de anos anteriores — somar à parte.
 - Tipos: individual (RP6), bancada (RP7), comissão (RP8), relator (RP9, extinta 2023).
   Para "por deputado" só RP6 tem autor individual; bancada/comissão são coletivas.
-- Join autor→deputado por nome normalizado (sem acento, maiúsculo). Homônimos e
-  senadores (autores também) exigem revisão manual: a saída traz `match_deputado`.
+- Join autor→parlamentar (deputados e senadores, inclusive quem já deixou o mandato) por nome:
+  exato ou aproximado (único candidato por tokens; ver nomes.py). Saída traz `casa`,
+  `em_exercicio` e `match_tipo` para revisão.
 - Emendas não entram no "custo do deputado" (painel 1). São outro painel.
 """
 
@@ -30,7 +31,8 @@ from pathlib import Path
 import duckdb
 
 from ..camara import config as C
-from ..camara.transform import SQL_DEPUTADOS
+from ..camara.transform import SQL_DEPUTADOS, SQL_STATUS
+from .nomes import casar
 
 log = logging.getLogger("etl.portal.emendas.transform")
 RAW, PQ, PUB = Path("data/raw"), Path("data/parquet"), Path("data/public")
@@ -56,20 +58,16 @@ FROM read_json_auto('{{raw}}', format='newline_delimited');
 
 SQL_POR_AUTOR = """
 CREATE OR REPLACE TABLE por_autor AS
-WITH dep AS (
-  SELECT casa, id_parlamentar, nome, partido, uf, upper(strip_accents(nome)) AS nome_norm
-  FROM parlamentares
-)
 SELECT e.autor, e.tipo,
-       any_value(d.id_parlamentar) AS id_deputado, any_value(d.partido) AS partido, any_value(d.uf) AS uf,
-       any_value(d.casa) AS casa,
-       count(DISTINCT d.id_parlamentar) > 0 AS match_deputado,
-       count(DISTINCT d.id_parlamentar) > 1 AS homonimo,
+       any_value(m.id_parlamentar) AS id_deputado, any_value(m.partido) AS partido, any_value(m.uf) AS uf,
+       any_value(m.casa) AS casa, any_value(m.em_exercicio) AS em_exercicio, any_value(m.match_tipo) AS match_tipo,
+       count(m.autor) > 0 AS match_deputado,
+       false AS homonimo,
        count(*) AS emendas,
        round(sum(empenhado), 2) AS empenhado, round(sum(liquidado), 2) AS liquidado,
        round(sum(pago), 2) AS pago, round(sum(rp_pago), 2) AS rp_pago,
        round(sum(pago) / nullif(sum(empenhado), 0), 4) AS pct_pago
-FROM emendas e LEFT JOIN dep d ON d.nome_norm = e.autor
+FROM emendas e LEFT JOIN autor_match m USING (autor)
 GROUP BY e.autor, e.tipo
 ORDER BY empenhado DESC;
 """
@@ -116,29 +114,48 @@ def run(ano: int) -> None:
 
 
 def _carregar_deputados(con: duckdb.DuckDBPyConnection) -> None:
-    """Tabela `parlamentares` (casa, id_parlamentar, nome, partido, uf) para o join por nome.
-    Deputados: parquet do ETL da Câmara se existir, senão a lista bruta da legislatura (`extract deputados`,
-    sem CEAP). Senadores: `data/raw/senadores_atual.jsonl.gz` (`etl.senado.extract senadores`), se existir —
-    senadores também têm emenda individual e, com cota maior, lideram a lista."""
+    """Tabela `autor_match` (autor → casa, id, partido, uf, em_exercicio, match_tipo) para o join.
+    Deputados: parquet do ETL da Câmara se existir, senão a lista bruta da legislatura (+ status, se houver).
+    Senadores: `senadores_atual` (em exercício) e `senadores_leg57` (quem passou pela legislatura, inclusive
+    quem já saiu). Casamento por nome exato e, se único, aproximado (ver nomes.py)."""
     pq = PQ / "deputados.parquet"
     raw = RAW / f"deputados_leg{C.LEGISLATURA_ATUAL}.jsonl.gz"
+    status = RAW / f"deputados_status_leg{C.LEGISLATURA_ATUAL}.jsonl.gz"
     if pq.exists():
         con.execute(f"CREATE OR REPLACE TABLE deputados AS SELECT * FROM read_parquet('{pq}')")
     elif raw.exists():
         con.execute(SQL_DEPUTADOS.format(raw=raw))
+        if status.exists():
+            con.execute(SQL_STATUS.format(raw=status))
     else:
         raise SystemExit(f"faltam {pq} e {raw}: rode `python -m etl.camara.extract deputados` antes")
-    con.execute("CREATE OR REPLACE TABLE parlamentares AS "
-                "SELECT 'Câmara' AS casa, id_deputado AS id_parlamentar, nome, partido, uf FROM deputados")
-    sen = RAW / "senadores_atual.jsonl.gz"
-    if sen.exists():
-        con.execute(f"""INSERT INTO parlamentares
-            SELECT 'Senado', TRY_CAST(id AS INTEGER), nome::VARCHAR, partido::VARCHAR, uf::VARCHAR
-            FROM read_json('{sen}', format='newline_delimited', columns={{
-                'id':'VARCHAR','nome':'VARCHAR','nome_completo':'VARCHAR','partido':'VARCHAR','uf':'VARCHAR','url_foto':'VARCHAR'}},
-                ignore_errors=true)""")
-    else:
-        log.warning("%s ausente: senadores ficarão sem partido/UF nas emendas", sen)
+    cols = {c[1] for c in con.execute("PRAGMA table_info('deputados')").fetchall()}
+    sit = "situacao = 'Exercício'" if "situacao" in cols else "NULL"
+    parl = [{"casa": "Câmara", "id": i, "nome": n, "partido": p, "uf": u, "em_exercicio": e}
+            for i, n, p, u, e in con.execute(f"SELECT id_deputado, nome, partido, uf, {sit} FROM deputados").fetchall()]
+
+    sen_cols = "columns={'id':'VARCHAR','nome':'VARCHAR','nome_completo':'VARCHAR','partido':'VARCHAR','uf':'VARCHAR','url_foto':'VARCHAR','participacao':'VARCHAR'}"
+    vistos: set[int] = set()
+    for arquivo, em_exercicio in ((RAW / "senadores_atual.jsonl.gz", True), (RAW / f"senadores_leg{C.LEGISLATURA_ATUAL}.jsonl.gz", False)):
+        if not arquivo.exists():
+            log.warning("%s ausente: senadores (%s) ficarão sem partido/UF", arquivo, "em exercício" if em_exercicio else "fora do mandato")
+            continue
+        for i, n, p, u in con.execute(f"SELECT TRY_CAST(id AS INTEGER), nome, partido, uf FROM read_json('{arquivo}', "
+                                      f"format='newline_delimited', {sen_cols}, ignore_errors=true)").fetchall():
+            if i in vistos:
+                continue
+            vistos.add(i); parl.append({"casa": "Senado", "id": i, "nome": n, "partido": p, "uf": u, "em_exercicio": em_exercicio})
+
+    autores = [a for (a,) in con.execute("SELECT DISTINCT autor FROM emendas").fetchall()]
+    casados = casar(autores, parl)
+    linhas = [(a, p["casa"], p["id"], p["nome"], p["partido"], p["uf"], p["em_exercicio"], tipo) for a, (p, tipo) in casados.items()]
+    con.execute("CREATE OR REPLACE TABLE autor_match (autor VARCHAR, casa VARCHAR, id_parlamentar INTEGER, nome VARCHAR, "
+                "partido VARCHAR, uf VARCHAR, em_exercicio BOOLEAN, match_tipo VARCHAR)")
+    con.executemany("INSERT INTO autor_match VALUES (?, ?, ?, ?, ?, ?, ?, ?)", linhas)
+    for a, casa, _, nome, *_r in linhas:
+        if _r[-1] == "aproximado":
+            log.info("casamento aproximado: %-32s → %s (%s)", a, nome, casa)
+    log.info("%d autores, %d casados (%d aproximados)", len(autores), len(casados), sum(t == "aproximado" for _, t in casados.values()))
 
 
 def _dump(con: duckdb.DuckDBPyConnection, table: str, out: Path) -> None:

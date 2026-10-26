@@ -56,6 +56,7 @@ jobs:
           # join autor→deputado por nome: basta a lista da legislatura (sem CEAP)
           test -f data/raw/deputados_leg57.jsonl.gz || python -m etl.camara.extract deputados
           python -m etl.senado.extract senadores
+          python -m etl.senado.extract legislatura --numero 57
           python -m etl.portal_transparencia.transform_emendas --ano "$ANO"
 
       - name: Emendas (documentos — para onde foi)

@@ -21,10 +21,16 @@ const porTipo = Object.values(rows.reduce((acc: Record<string, any>, r) => {
   acc[k].empenhado += r.empenhado; acc[k].pago += r.pago; acc[k].autores.add(r.autor); return acc;
 }, {})).sort((a: any, b: any) => b.empenhado - a.empenhado) as any[];
 const autoresAgg = Object.values(individuais.reduce((acc: Record<string, any>, r) => {
-  acc[r.autor] ??= { autor: r.autor, partido: r.partido, uf: r.uf, casa: r.casa, match: r.match_deputado, empenhado: 0, pago: 0, emendas: 0 };
+  acc[r.autor] ??= { autor: r.autor, partido: r.partido, uf: r.uf, casa: r.casa, em_exercicio: r.em_exercicio, match: r.match_deputado, empenhado: 0, pago: 0, emendas: 0 };
   acc[r.autor].empenhado += r.empenhado; acc[r.autor].pago += r.pago; acc[r.autor].emendas += r.emendas; return acc;
 }, {})).sort((a: any, b: any) => b.empenhado - a.empenhado) as any[];
 const top = autoresAgg.slice(0, 25);
+// Composição dos autores: quem está em exercício hoje, quem já deixou o mandato, quem não casou com as listas
+const conta = (f: (a: any) => boolean) => autoresAgg.filter(f).length;
+const depEx = conta((a) => a.casa === "Câmara" && a.em_exercicio === true);
+const senEx = conta((a) => a.casa === "Senado" && a.em_exercicio === true);
+const foraMandato = conta((a) => a.casa && a.em_exercicio !== true);
+const semId = conta((a) => !a.casa);
 const max = Math.max(1, ...top.map((a) => a.empenhado));
 ---
 <Base title="Emendas parlamentares — Nosso Dinheiro">
@@ -46,7 +52,7 @@ const max = Math.max(1, ...top.map((a) => a.empenhado));
       <div class="hero">
         <div class="stat big"><b>{compact(totEmp)}</b><span><Termo t="empenhado">empenhado</Termo> em emendas em {ANO}</span></div>
         <div class="stat"><b>{compact(totPago)}</b><span><Termo t="pago">pago</Termo> no exercício ({pct(totEmp ? totPago / totEmp : null)} do empenhado)</span></div>
-        <div class="stat"><b>{autoresAgg.length}</b><span>autores de <Termo t="emenda_individual">emendas individuais</Termo> (deputados e senadores)</span></div>
+        <div class="stat"><b>{autoresAgg.length}</b><span>autores de <Termo t="emenda_individual">emendas individuais</Termo>: {depEx} deputados e {senEx} senadores em exercício, {foraMandato} que deixaram o mandato ou estão licenciados{semId ? ` e ${semId} não identificados` : ""}</span></div>
       </div>
 
       <h2>Por tipo de emenda</h2>
@@ -70,14 +76,14 @@ const max = Math.max(1, ...top.map((a) => a.empenhado));
             </g>
           ))}
         </svg>
-        <p class="src">Partido/UF vêm do cruzamento por nome com as listas de deputados e senadores em exercício; "sen." = senador. Ex-parlamentares aparecem sem sigla.</p>
+        <p class="src">Partido/UF vêm do cruzamento por nome com as listas oficiais de deputados e senadores da legislatura (inclusive quem já saiu); "sen." = senador. Nomes que não casam com nenhuma lista aparecem sem sigla.</p>
       </div>
 
       <h2>Todos os autores (individuais)</h2>
       <table>
-        <thead><tr><th>#</th><th>Autor</th><th>Casa</th><th>Partido · UF</th><th class="num">Emendas</th><th class="num"><Termo t="empenhado" /></th><th class="num"><Termo t="pago" /></th><th class="num">% pago</th></tr></thead>
+        <thead><tr><th>#</th><th>Autor</th><th>Casa · situação</th><th>Partido · UF</th><th class="num">Emendas</th><th class="num"><Termo t="empenhado" /></th><th class="num"><Termo t="pago" /></th><th class="num">% pago</th></tr></thead>
         <tbody>{autoresAgg.map((a, i) => (
-          <tr><td class="rank">{i + 1}</td><td>{a.autor}</td><td>{a.casa === "Senado" ? "Senado" : a.casa === "Câmara" ? "Câmara" : "—"}</td><td>{a.partido ? `${a.partido} · ${a.uf}` : "—"}</td><td class="num">{a.emendas}</td>
+          <tr><td class="rank">{i + 1}</td><td>{a.autor}</td><td>{a.casa ? `${a.casa}${a.em_exercicio === true ? "" : " · fora do mandato"}` : "—"}</td><td>{a.partido ? `${a.partido} · ${a.uf}` : "—"}</td><td class="num">{a.emendas}</td>
               <td class="num">{brl0(a.empenhado)}</td><td class="num">{brl0(a.pago)}</td><td class="num">{pct(a.empenhado ? a.pago / a.empenhado : null)}</td></tr>
         ))}</tbody>
       </table>

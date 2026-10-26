@@ -11,7 +11,8 @@ DEPUTADOS = [
     {"id": 1002, "uri": "", "nome": "Deputada Exemplo B", "siglaPartido": "PXB", "uriPartido": "",
      "siglaUf": "DF", "idLegislatura": 57, "urlFoto": "", "email": None},
 ]
-SENADORES = [{"id": 5001, "nome": "Senador Exemplo", "nome_completo": "Senador Exemplo da Silva", "partido": "PXC", "uf": "GO", "url_foto": ""}]
+SENADORES = [{"id": 5001, "nome": "Senador Exemplo", "nome_completo": "Senador Exemplo da Silva", "partido": "PXC", "uf": "GO", "url_foto": "", "participacao": "Titular"}]
+SENADORES_LEG = SENADORES + [{"id": 5002, "nome": "Ex-Senadora Saiu", "nome_completo": "", "partido": "PXD", "uf": "AM", "url_foto": "", "participacao": "Titular"}]
 EMENDAS = [  # schema de GET /emendas?ano=  (valores em string pt-BR)
     {"codigoEmenda": "202512340001", "ano": 2025, "tipoEmenda": "Emenda Individual - Transferências com Finalidade Definida",
      "autor": "1234", "nomeAutor": "DEPUTADO EXEMPLO A", "numeroEmenda": "0001", "localidadeDoGasto": "PORTO ALEGRE - RS",
@@ -20,6 +21,14 @@ EMENDAS = [  # schema de GET /emendas?ano=  (valores em string pt-BR)
     {"codigoEmenda": "202556780002", "ano": 2025, "tipoEmenda": "Emenda Individual - Transferências com Finalidade Definida",
      "autor": "5678", "nomeAutor": "SENADOR EXEMPLO (EX-PARLAMENTAR 2023)", "numeroEmenda": "0002", "localidadeDoGasto": "BRASIL",
      "funcao": "Educação", "subfuncao": "Ensino fundamental", "valorEmpenhado": "500.000,00", "valorLiquidado": "0,00",
+     "valorPago": "0,00", "valorRestoInscrito": "0,00", "valorRestoCancelado": "0,00", "valorRestoPago": "0,00"},
+    {"codigoEmenda": "202599990003", "ano": 2025, "tipoEmenda": "Emenda Individual - Transferências com Finalidade Definida",
+     "autor": "9999", "nomeAutor": "DRA. DEPUTADA EXEMPLO B JR.", "numeroEmenda": "0003", "localidadeDoGasto": "BRASILIA - DF",
+     "funcao": "Saúde", "subfuncao": "Atenção básica", "valorEmpenhado": "10,00", "valorLiquidado": "0,00",
+     "valorPago": "0,00", "valorRestoInscrito": "0,00", "valorRestoCancelado": "0,00", "valorRestoPago": "0,00"},
+    {"codigoEmenda": "202599990004", "ano": 2025, "tipoEmenda": "Emenda Individual - Transferências com Finalidade Definida",
+     "autor": "9998", "nomeAutor": "EX-SENADORA SAIU", "numeroEmenda": "0004", "localidadeDoGasto": "MANAUS - AM",
+     "funcao": "Saúde", "subfuncao": "Atenção básica", "valorEmpenhado": "10,00", "valorLiquidado": "0,00",
      "valorPago": "0,00", "valorRestoInscrito": "0,00", "valorRestoCancelado": "0,00", "valorRestoPago": "0,00"},
 ]
 DESPESAS_ORGAO = [  # schema de extract_poderes (SIOP): órgão × UO × GND, valores numéricos
@@ -91,12 +100,29 @@ def test_transform_poderes(tmp_path, monkeypatch):
     assert leg == {"Pessoal ativo e encargos": 5.6e9, "Custeio": 1.3e9}
 
 
+def test_casar_nomes():
+    from etl.portal_transparencia.nomes import casar, tokens
+    assert tokens("DR. DANIEL SORANZ") == tokens("Daniel Soranz")
+    assert tokens("PAULO FOLLETTO") == tokens("Paulo Foletto")
+    parl = [{"casa": "Câmara", "id": 1, "nome": "Tenente Coronel Zucco", "em_exercicio": True},
+            {"casa": "Câmara", "id": 2, "nome": "Rafael Brito", "em_exercicio": True},
+            {"casa": "Câmara", "id": 3, "nome": "Rafael Prudente", "em_exercicio": True},
+            {"casa": "Senado", "id": 4, "nome": "Fausto Jr.", "em_exercicio": False},
+            {"casa": "Câmara", "id": 5, "nome": "Fausto Pinato", "em_exercicio": True}]
+    m = casar(["ZUCCO", "RAFAEL", "FAUSTO SANTOS JR.", "NINGUEM"], parl)
+    assert m["ZUCCO"][0]["id"] == 1 and m["ZUCCO"][1] == "aproximado"
+    assert "RAFAEL" not in m                            # dois candidatos → não casa
+    assert m["FAUSTO SANTOS JR."][0]["id"] == 4
+    assert "NINGUEM" not in m
+
+
 def test_transform_emendas_sem_parquet(tmp_path, monkeypatch):
     """Só a lista bruta de deputados (sem CEAP/parquet) basta para o join por nome."""
     monkeypatch.chdir(tmp_path)
     _jsonl(Path("data/raw/deputados_leg57.jsonl.gz"), DEPUTADOS)
     _jsonl(Path("data/raw/emendas_2025.jsonl.gz"), EMENDAS)
     _jsonl(Path("data/raw/senadores_atual.jsonl.gz"), SENADORES)
+    _jsonl(Path("data/raw/senadores_leg57.jsonl.gz"), SENADORES_LEG)
     from etl.portal_transparencia import transform_emendas
     transform_emendas.run(2025)
 
@@ -105,4 +131,8 @@ def test_transform_emendas_sem_parquet(tmp_path, monkeypatch):
     assert a["match_deputado"] is True and a["id_deputado"] == 1001 and a["uf"] == "RS" and a["casa"] == "Câmara"
     assert a["empenhado"] == 1_000_000.0 and a["pago"] == 750_000.5
     s = autores["SENADOR EXEMPLO"]                      # sufixo "(EX-PARLAMENTAR …)" cortado; casa pela lista do Senado
-    assert s["match_deputado"] is True and s["casa"] == "Senado" and s["uf"] == "GO"
+    assert s["match_deputado"] is True and s["casa"] == "Senado" and s["uf"] == "GO" and s["em_exercicio"] is True
+    b = autores["DRA. DEPUTADA EXEMPLO B JR."]          # título e sufixo ignorados → casamento aproximado único
+    assert b["id_deputado"] == 1002 and b["match_tipo"] == "aproximado"
+    x = autores["EX-SENADORA SAIU"]                     # só na lista da legislatura → fora do exercício
+    assert x["casa"] == "Senado" and x["em_exercicio"] is False and x["uf"] == "AM"
