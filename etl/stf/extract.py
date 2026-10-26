@@ -33,7 +33,6 @@ from ..portal_transparencia.extract_emendas import write_jsonl
 log = logging.getLogger("etl.stf")
 RAW = Path("data/raw")
 URL = "https://egesp-portal.stf.jus.br/transparencia/rendimento_folha"
-# O portal do STF devolve 403 para o user-agent "nossodinheiro-etl" a partir dos runners do GitHub; navegador comum passa.
 HEADERS = {"user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
            "accept": "text/csv,text/html;q=0.9,*/*;q=0.8", "accept-language": "pt-BR,pt;q=0.9"}
 CARGO_MINISTRO = "55"
@@ -49,7 +48,8 @@ def _get(c: httpx.Client, params: list[tuple[str, str]]) -> list[dict]:
             return [row for row in rows if row.get("Nome")]
         log.warning("HTTP %s (%s) em %s — tentativa %d", r.status_code, r.headers.get("content-type"), params, tentativa)
         time.sleep(5 * tentativa)
-    raise RuntimeError(f"STF não respondeu CSV para {params}")
+    raise RuntimeError(f"STF não respondeu CSV para {params} — se for HTTP 403, o portal bloqueia IPs fora do Brasil "
+                       "(GitHub Actions); rode `make stf` numa máquina no Brasil")
 
 
 def _unidades(c: httpx.Client) -> dict[str, str]:

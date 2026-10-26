@@ -1,11 +1,10 @@
 name: ETL STF — custo por ministro
 
+# O portal do STF (egesp-portal.stf.jus.br) responde 403 aos runners do GitHub (IPs fora do Brasil),
+# com qualquer user-agent (testado em 26/10/2026). Por isso NÃO há agendamento: a atualização mensal é
+# `make stf ANO=2026` numa máquina no Brasil + commit de data/public e site/public/data. O dispatch manual
+# fica para testar se o bloqueio mudou.
 on:
-  push:
-    branches: [main]
-    paths: [".github/workflows/etl-stf.yml", "etl/stf/**"]
-  schedule:
-    - cron: "17 10 * * 2"       # terça 07:17 BRT (a folha do mês anterior costuma sair na 1ª quinzena)
   workflow_dispatch:
     inputs:
       ano:

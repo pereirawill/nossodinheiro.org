@@ -65,7 +65,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Custo = "Remuneração bruta após o teto + outras verbas" do ministro + soma da mesma coluna de quem está lotado no
   gabinete (sem o ministro). Presidente (Fachin) aparece com o Gabinete da Presidência (7 pessoas) — subestimado,
   avisado na página. Aposentados (16) como estatística separada. 2026 jan–ago: 10 ministros, média R$ 811 mil/mês
-  (remuneração 53 mil + gabinete 758 mil, ~33 pessoas). Workflow `etl-stf.yml` (terça 07:17 BRT).
+  (remuneração 53 mil + gabinete 758 mil, ~33 pessoas). **O portal do STF devolve 403 a IPs fora do Brasil** (runners
+  do GitHub, qualquer UA) → sem agendamento; atualização mensal manual: `make stf ANO=2026` + commit. `etl-stf.yml` só dispatch.
 - Site: `/stf/`. Metodologia: `docs/metodologia/painel-stf.md`. Próximo: STJ/TST/TSE/CNJ no mesmo molde.
 
 ## Glossário e filtros (site)

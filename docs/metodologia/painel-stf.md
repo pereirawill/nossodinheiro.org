@@ -19,6 +19,10 @@ execução. Colunas usadas: Nome, Matrícula, Cargo Efetivo, Situação Funciona
 Código: `etl/stf/extract.py`, `etl/stf/transform.py`. A folha de um mês costuma sair na primeira quinzena do
 mês seguinte; o extrator para quando encontra dois meses seguidos sem folha.
 
+**Atualização.** O portal responde 403 a requisições vindas de fora do Brasil (runners do GitHub Actions),
+com qualquer user-agent. A atualização é mensal e manual (`make stf ANO=<ano>`) a partir de uma máquina no Brasil;
+a data da última carga aparece na página.
+
 ## 2. Fórmula
 
 ```
