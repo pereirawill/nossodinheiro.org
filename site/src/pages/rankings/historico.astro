@@ -9,13 +9,13 @@ const quando = new Date(dados.gerado_em_utc);
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 const fmtValor = (i: Indice, v: number) => {
   if (i.id === "pib") return v >= 1e12 ? `US$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : `US$ ${(v / 1e9).toFixed(0)} bi`;
-  if (i.id === "pib_per_capita") return `US$ ${Math.round(v).toLocaleString("pt-BR")}`;
+  if (i.id === "pib_per_capita" || i.id === "pib_per_capita_ppp" || i.id === "produtividade") return `US$ ${Math.round(v).toLocaleString("pt-BR")}`;
   if (i.id === "idh") return v.toFixed(3).replace(".", ",");
   if (i.id === "corrupcao") return `${Math.round(v)} pts`;
   if (i.id === "educacao_pct_pib") return `${v.toFixed(1).replace(".", ",")}%`;
   return v.toFixed(1).replace(".", ",");
 };
-const cor = (i: Indice) => ({ pib: "var(--s1)", pib_per_capita: "var(--s1)", idh: "var(--s2)", expectativa_vida: "var(--s2)", educacao_pct_pib: "var(--s5)",
+const cor = (i: Indice) => ({ pib: "var(--s1)", pib_per_capita: "var(--s1)", pib_per_capita_ppp: "var(--s1)", produtividade: "var(--s4)", idh: "var(--s2)", expectativa_vida: "var(--s2)", educacao_pct_pib: "var(--s5)",
   corrupcao: "var(--s4)", homicidios: "var(--s3)", gini: "var(--s3)" } as Record<string, string>)[i.id] ?? "var(--s1)";
 const variacao = (i: Indice) => { const a = i.serie[0], b = i.serie[i.serie.length - 1]; const d = a.posicao - b.posicao; return d === 0 ? "mesma posição" : d > 0 ? `subiu ${d} posições` : `caiu ${-d} posições`; };
 ---

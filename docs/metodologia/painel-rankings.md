@@ -15,6 +15,8 @@ nosso: a posição é a que a fonte dá, ou a ordenação direta do valor public
 |---|---|---|---|
 | PIB (US$ correntes) | Banco Mundial, `NY.GDP.MKTP.CD` (oficial) | API v2, `mrv=6`, último ano com dado por país | calculada por nós (maior = 1º) |
 | PIB per capita | Banco Mundial, `NY.GDP.PCAP.CD` | idem | calculada |
+| PIB per capita em PPP | Banco Mundial, `NY.GDP.PCAP.PP.CD` (dólares internacionais correntes, paridade de poder de compra) | idem | calculada |
+| Produtividade do trabalho | Banco Mundial / OIT, `SL.GDP.PCAP.EM.KD` (PIB por pessoa empregada, US$ PPP de 2021) | idem | calculada |
 | Expectativa de vida | Banco Mundial, `SP.DYN.LE00.IN` | idem | calculada |
 | Desigualdade (Gini) | Banco Mundial, `SI.POV.GINI` | idem; só países com pesquisa recente (~116) | calculada (menor = 1º) |
 | Gasto público em educação (% PIB) | Banco Mundial, `SE.XPD.TOTL.GD.ZS` | idem | calculada |

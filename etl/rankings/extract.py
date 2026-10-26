@@ -42,6 +42,8 @@ INDICADORES_WB = [
     # id, código, título, descrição curta, unidade, maior_melhor
     ("pib", "NY.GDP.MKTP.CD", "PIB", "Produto Interno Bruto, em dólares correntes", "US$", True),
     ("pib_per_capita", "NY.GDP.PCAP.CD", "PIB per capita", "PIB dividido pela população, em dólares correntes", "US$ por pessoa", True),
+    ("pib_per_capita_ppp", "NY.GDP.PCAP.PP.CD", "PIB per capita (poder de compra)", "Quanto cada habitante produz por ano, em dólares ajustados pelo custo de vida local (PPP)", "US$ PPP por pessoa", True),
+    ("produtividade", "SL.GDP.PCAP.EM.KD", "Produtividade do trabalho", "PIB por pessoa empregada: quanto cada trabalhador produz por ano, em dólares de 2021 ajustados pelo poder de compra (PPP)", "US$ PPP por trabalhador", True),
     ("expectativa_vida", "SP.DYN.LE00.IN", "Expectativa de vida", "Anos de vida esperados ao nascer", "anos", True),
     ("gini", "SI.POV.GINI", "Desigualdade (Gini)", "Índice de Gini da renda: 0 = todos iguais, 100 = um só tem tudo", "índice (menor é mais igual)", False),
     ("educacao_pct_pib", "SE.XPD.TOTL.GD.ZS", "Gasto público em educação", "Despesa pública em educação como % do PIB", "% do PIB", True),
