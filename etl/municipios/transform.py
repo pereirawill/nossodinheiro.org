@@ -71,6 +71,8 @@ def run(ano: int, ano_vagas: int = 2024) -> Path:
             por_ente[l["cod_ibge"]][chave][l["funcao_cod"]] += l["valor"]
             por_ente[l["cod_ibge"]]["populacao"] = l.get("populacao") or entes.get(l["cod_ibge"], {}).get("populacao")
 
+    # A lista de entes traz uf="BR" para estados; derivamos a UF pelo prefixo IBGE (2 dígitos) a partir dos municípios
+    uf_por_prefixo = {str(e["cod_ibge"])[:2]: e["uf"] for e in entes.values() if e["esfera"] == "M"}
     municipios, estados = [], []
     for cod, d in por_ente.items():
         e = entes.get(cod)
@@ -92,7 +94,8 @@ def run(ano: int, ano_vagas: int = 2024) -> Path:
             })
         else:
             funcs = {rot: round(pago.get(c, 0.0), 2) for c, rot in FUNCOES_ESTADO.items()}
-            estados.append({"cod_ibge": cod, "nome": e["ente"], "uf": e["uf"], "esfera": e["esfera"], "populacao": pop, "pago_total": round(total, 2),
+            uf = e["uf"] if len(e["uf"]) == 2 and e["uf"] != "BR" else uf_por_prefixo.get(str(cod)[:2], e["uf"])
+            estados.append({"cod_ibge": cod, "nome": e["ente"], "uf": uf, "esfera": e["esfera"], "populacao": pop, "pago_total": round(total, 2),
                             "empenhado_total": round(emp.get("00", 0.0), 2), **{f"pago_{k}": v for k, v in funcs.items()},
                             "por_hab_total": round(total / pop, 2) if pop else None,
                             **{f"por_hab_{k}": round(v / pop, 2) if pop else None for k, v in funcs.items()},
