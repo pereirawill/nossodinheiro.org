@@ -33,7 +33,9 @@ from ..portal_transparencia.extract_emendas import write_jsonl
 log = logging.getLogger("etl.stf")
 RAW = Path("data/raw")
 URL = "https://egesp-portal.stf.jus.br/transparencia/rendimento_folha"
-HEADERS = {"user-agent": "nossodinheiro-etl/0.1 (+https://nossodinheiro.org)"}
+# O portal do STF devolve 403 para o user-agent "nossodinheiro-etl" a partir dos runners do GitHub; navegador comum passa.
+HEADERS = {"user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+           "accept": "text/csv,text/html;q=0.9,*/*;q=0.8", "accept-language": "pt-BR,pt;q=0.9"}
 CARGO_MINISTRO = "55"
 COL_BRUTO = "Remuneração Bruta após o teto constitucional somada com outras verbas"
 COL_LIQUIDO = "Remuneração Liquida"

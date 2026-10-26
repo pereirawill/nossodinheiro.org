@@ -16,3 +16,15 @@ test:
 site:
 	cd site && npm install && npm run build
 .PHONY: etl test site
+
+senado: ## senadores: lista + recursos utilizados + transform
+	python -m etl.senado.extract senadores
+	python -m etl.senado.extract recursos --ano $(ANO)
+	python -m etl.senado.transform --ano $(ANO)
+	cp data/public/custo_senador_*.json data/public/meta_senado_*.json site/public/data/
+
+stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Actions levar 403, rode aqui.
+	python -m etl.stf.extract folha --ano $(ANO)
+	python -m etl.stf.transform --ano $(ANO)
+	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
+.PHONY: senado stf
