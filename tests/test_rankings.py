@@ -1,7 +1,7 @@
 """Testes do ETL de rankings: montagem da posição e leitor mínimo de xlsx (sem rede)."""
 import io, zipfile
 
-from etl.rankings.extract import montar, _xlsx_rows
+from etl.rankings.extract import montar, _xlsx_rows, serie_de
 
 
 def test_montar_posicoes():
@@ -43,3 +43,17 @@ def test_xlsx_rows():
     linhas = _xlsx_rows(conteudo)
     assert linhas[0] == ["Country / Territory", "ISO3", "CPI 2025 score", "Rank"]
     assert linhas[2] == ["Brazil", "BRA", 35.0, 107.0]
+
+
+def test_serie_de():
+    por_ano = {2000: {f"P{i}": float(i) for i in range(60)} | {"BRA": 10.5},
+               2001: {f"P{i}": float(i) for i in range(60)} | {"BRA": 100.0},
+               2002: {"BRA": 1.0, "ARG": 2.0}}                       # poucos países → ano ignorado
+    s = serie_de(por_ano, True)
+    assert [x["ano"] for x in s] == [2000, 2001]
+    assert s[0]["posicao"] == 50 and s[0]["total"] == 61              # 49 países acima de 10,5 (59..11)
+    assert s[1]["posicao"] == 1
+    assert serie_de(por_ano, False)[0]["posicao"] == 12              # menor é melhor: 11 países abaixo (0..10) → 12º
+    # janela: em 2002 só BRA e ARG têm dado novo, mas com janela 3 valem os 60 países de 2001 (BRA sobrescrito por 1.0)
+    j = serie_de(por_ano, True, janela=3)
+    assert [x["ano"] for x in j] == [2000, 2001, 2002] and j[2]["valor"] == 1.0 and j[2]["total"] == 62

@@ -31,6 +31,18 @@ ISO-3166-3), com o nome em inglês do Banco Mundial como reserva quando o IBGE n
 - Em índices do Banco Mundial, o ano pode variar por país (último disponível); o cartão avisa e a tabela mostra o ano.
 - PIB em dólares correntes muda com o câmbio; não é medida de bem-estar. PIB per capita e IDH são as comparações de nível de vida.
 
+## 3b. Série histórica (gráfico "trajetória do Brasil")
+
+Para cada índice, a posição do Brasil ano a ano desde 1985 (Banco Mundial), 1990 (IDH) ou 2012 (CPI, início da escala
+0–100). Regras (`serie_de()` em `extract.py`):
+- posição calculada entre os países **com dado naquele ano**; um ano só entra se houver ≥ 50 países (≥ 20 no CPI);
+- nos indicadores do Banco Mundial usamos uma janela de 3 anos: o país entra com o dado mais recente até 2 anos antes
+  (sem isso, Gini e homicídios teriam só 20–30 países por ano). O ano exibido é o do fim da janela;
+- IDH: valor e posição calculada a partir das colunas `hdi_1990…hdi_2023` do CSV do PNUD (a posição oficial só existe
+  para 2023); CPI: aba "CPI Timeseries 2012 - 2025" da planilha oficial, com a **posição oficial** de cada ano.
+- O total de países muda ao longo do tempo (mais países publicam); a legenda do gráfico mostra o total no início e no
+  fim, e subir/descer de posição pode refletir em parte essa mudança. Os pontos carregam valor e total no `<title>`.
+
 ## 4. Pendentes (sem arquivo aberto legível por máquina na fonte, em 26/10/2026)
 
 Liberdade econômica (Heritage Foundation, site só com visualização), Freedom in the World (Freedom House deixou de
