@@ -3,7 +3,9 @@
   "fonte_ceap": "bulk",
   "gerado_em": "2026-10-26",
   "meses_considerados": 10,
-  "deputados": 648,
+  "deputados": 513,
+  "deputados_na_legislatura": 648,
+  "filtro_situacao": "Exercício",
   "premissas": {
     "subsidio_mensal_vigente": 46366.19,
     "subsidios_por_ano": 13.333333333333334,
@@ -13,7 +15,7 @@
     "auxilio_moradia_no_total": false
   },
   "totais": [
-    141315254.47,
-    1548047386.63
+    135635351.01,
+    1249298288.97
   ]
 }
