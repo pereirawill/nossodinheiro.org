@@ -23,6 +23,10 @@ e o que é **teto/estimativa**.
 | Verba de gabinete (teto) | camara.leg.br/transparencia/gastos-parlamentares (lido em 26/10/2026) | oficial | valor fixo mensal |
 | Auxílio-moradia | idem | oficial | valor fixo mensal |
 
+**Fonte padrão da CEAP: CSV anual** (`Ano-YYYY.csv.zip`). Em 26/10/2026 o endpoint
+`/deputados/{id}/despesas` da API respondia 200 com lista vazia para qualquer filtro; o CSV
+é a mesma base publicada pela Câmara. A API fica como alternativa (`--fonte api`).
+
 A API é consumida sem autenticação; os dados são coletados pelo ETL em `etl/camara/`
 e versionados em `data/public/` (JSON agregado). O raw e o Parquet ficam fora do git
 e são publicados como artefato do GitHub Actions.
@@ -97,8 +101,13 @@ python -m etl.camara.chart --ano 2026 --top 20
 Todas as constantes e suas fontes/datas estão em `etl/camara/config.py`.
 Mudou um número lá → mudou aqui, na mesma PR.
 
+## 6b. Reconciliação com a fonte (26/10/2026)
+| Métrica | Oficial | Nosso ETL | Diferença | Explicação |
+|---|---|---|---|---|
+| CEAP 2026, todos os registros do CSV | R$ 179,09 mi (camara.leg.br/transparencia) | R$ 141,32 mi (só linhas com `ideCadastro`) | −21% | Lideranças partidárias/do governo têm cota própria e ficam fora do custo individual; o CSV também inclui lançamentos de ex-deputados da legislatura. A conferir: somar as linhas sem `ideCadastro` e verificar se fecha. |
+
 ## 7. Pendências conhecidas (v0.1)
 - [ ] Tabela completa do teto da CEAP por UF, de fonte primária (Ato da Mesa 43/2009 e atualizações).
 - [ ] Gasto real da verba de gabinete por deputado (substituir teto).
 - [ ] Confirmar 13º/férias do subsídio na folha publicada.
-- [ ] Deputados que assumiram/deixaram o mandato no meio do ano (suplentes): hoje o subsídio é anualizado para todos da lista da legislatura; corrigir pelo período de exercício (`/deputados/{id}` → `ultimoStatus`).
+- [x] Só deputados com `ultimoStatus.situacao = Exercício` entram (v0.2). Pendente: proporcionalizar o subsídio pelo período real de exercício de quem assumiu no meio do ano.

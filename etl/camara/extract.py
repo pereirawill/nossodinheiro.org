@@ -97,6 +97,26 @@ def cmd_deputados(c: Client, legislatura: int) -> None:
             vistos.add(row["id"]); yield row
 
     write_jsonl(RAW / f"deputados_leg{legislatura}.jsonl.gz", gen())
+    cmd_status(c, legislatura)
+
+
+def cmd_status(c: Client, legislatura: int) -> None:
+    """GET /deputados/{id} → ultimoStatus (situacao, condicaoEleitoral, data). Uma chamada por
+    deputado (~650); é o que separa titular em exercício de suplente/afastado."""
+    with gzip.open(RAW / f"deputados_leg{legislatura}.jsonl.gz", "rt", encoding="utf-8") as f:
+        ids = [json.loads(l)["id"] for l in f]
+
+    def gen() -> Iterator[dict]:
+        for i, dep_id in enumerate(ids, 1):
+            d = c.get_json(f"{API_BASE}/deputados/{dep_id}").get("dados", {})
+            st = d.get("ultimoStatus") or {}
+            yield {"id": dep_id, "situacao": st.get("situacao"), "condicao_eleitoral": st.get("condicaoEleitoral"),
+                   "data_status": st.get("data"), "nome_eleitoral": st.get("nomeEleitoral"),
+                   "partido": st.get("siglaPartido"), "uf": st.get("siglaUf")}
+            if i % 100 == 0:
+                log.info("status: %d/%d", i, len(ids))
+
+    write_jsonl(RAW / f"deputados_status_leg{legislatura}.jsonl.gz", gen())
 
 
 def cmd_despesas(c: Client, ano: int, legislatura: int) -> None:

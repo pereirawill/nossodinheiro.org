@@ -40,6 +40,21 @@ FROM read_json('{raw}', format='newline_delimited', columns={{
     'idLegislatura':'VARCHAR','urlFoto':'VARCHAR','email':'VARCHAR'}}, ignore_errors=true);
 """
 
+# Status atual (GET /deputados/{id} → ultimoStatus). Só "Exercício" entra no painel;
+# suplentes que já devolveram o mandato, licenciados e afastados ficam fora do custo.
+SQL_STATUS = """
+CREATE OR REPLACE TABLE status AS
+SELECT TRY_CAST(id AS INTEGER) AS id_deputado, situacao::VARCHAR AS situacao,
+       condicao_eleitoral::VARCHAR AS condicao_eleitoral,
+       TRY_CAST(left(data_status::VARCHAR, 10) AS DATE) AS data_status
+FROM read_json('{raw}', format='newline_delimited', columns={{
+    'id':'VARCHAR','situacao':'VARCHAR','condicao_eleitoral':'VARCHAR','data_status':'VARCHAR',
+    'nome_eleitoral':'VARCHAR','partido':'VARCHAR','uf':'VARCHAR'}}, ignore_errors=true);
+CREATE OR REPLACE TABLE deputados AS
+SELECT d.*, s.situacao, s.condicao_eleitoral, s.data_status
+FROM deputados d LEFT JOIN status s USING (id_deputado);
+"""
+
 # A API devolve valores já numéricos; o CSV anual usa string (às vezes com vírgula).
 SQL_CEAP_API = """
 CREATE OR REPLACE TABLE ceap AS
@@ -105,6 +120,7 @@ SELECT d.id_deputado, d.nome, d.partido, d.uf,
        {moradia_ano}::DOUBLE              AS auxilio_moradia_max,
        {subsidio_ano} + COALESCE(c.ceap_liquido, 0) + {gabinete_ano} AS custo_total_estimado
 FROM deputados d LEFT JOIN ceap_agg c USING (id_deputado)
+WHERE d.situacao = 'Exercício' OR d.situacao IS NULL
 ORDER BY custo_total_estimado DESC;
 """
 
@@ -148,6 +164,15 @@ def run(ano: int, fonte: str, legislatura: int = C.LEGISLATURA_ATUAL, hoje: date
     con = duckdb.connect()
 
     con.execute(SQL_DEPUTADOS.format(raw=RAW / f"deputados_leg{legislatura}.jsonl.gz"))
+    status_raw = RAW / f"deputados_status_leg{legislatura}.jsonl.gz"
+    if status_raw.exists():
+        con.execute(SQL_STATUS.format(raw=status_raw))
+    else:
+        log.warning("sem deputados_status: todos os %s da legislatura entram (inclui suplentes)",
+                    con.execute("SELECT count(*) FROM deputados").fetchone()[0])
+        con.execute("ALTER TABLE deputados ADD COLUMN situacao VARCHAR; "
+                    "ALTER TABLE deputados ADD COLUMN condicao_eleitoral VARCHAR; "
+                    "ALTER TABLE deputados ADD COLUMN data_status DATE")
     if fonte == "api":
         con.execute(SQL_CEAP_API.format(raw=RAW / f"despesas_api_{ano}.jsonl.gz"))
     else:
@@ -180,6 +205,8 @@ def run(ano: int, fonte: str, legislatura: int = C.LEGISLATURA_ATUAL, hoje: date
     meta = {
         "ano": ano, "fonte_ceap": fonte, "gerado_em": hoje.isoformat(),
         "meses_considerados": meses, "deputados": len(rows),
+        "deputados_na_legislatura": con.execute("SELECT count(*) FROM deputados").fetchone()[0],
+        "filtro_situacao": "Exercício" if status_raw.exists() else None,
         "premissas": {
             "subsidio_mensal_vigente": C.subsidio_mensal_em(hoje),
             "subsidios_por_ano": C.SUBSIDIOS_POR_ANO,
