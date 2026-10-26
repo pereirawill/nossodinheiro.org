@@ -73,6 +73,12 @@ fora desse teto e **não** estão contabilizados — o custo real do gabinete é
 - **Emendas parlamentares:** não são "custo do deputado" — são despesa pública
   alocada por ele. Painel próprio no futuro.
 
+### 3.5 Mensal e anual
+- `custo_mensal_medio` = custo_total_estimado / meses_considerados.
+- `custo_anual_projetado` = subsídio de 12 meses (com 13º e 1/3 de férias) + teto de gabinete × 12
+  + cota **extrapolada** pela média mensal observada. Para o ano corrente é **projeção** e o site
+  rotula como tal; para anos fechados é igual ao custo total.
+
 ## 4. Período e atualização
 - Ano corrente: `meses_considerados = mês atual` (o mês corrente entra parcial;
   despesas da CEAP têm atraso de lançamento de semanas). Anos fechados: 12.

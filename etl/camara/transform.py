@@ -118,7 +118,11 @@ SELECT d.id_deputado, d.nome, d.partido, d.uf,
        COALESCE(c.meses_com_ceap, 0)      AS meses_com_ceap,
        {gabinete_ano}::DOUBLE             AS verba_gabinete_teto,
        {moradia_ano}::DOUBLE              AS auxilio_moradia_max,
-       {subsidio_ano} + COALESCE(c.ceap_liquido, 0) + {gabinete_ano} AS custo_total_estimado
+       {subsidio_ano} + COALESCE(c.ceap_liquido, 0) + {gabinete_ano} AS custo_total_estimado,
+       round(({subsidio_ano} + COALESCE(c.ceap_liquido, 0) + {gabinete_ano}) / {meses}, 2) AS custo_mensal_medio,
+       -- Anual: subsídio e gabinete são contratuais (12 meses cheios + 13º/férias);
+       -- a cota é extrapolada pela média mensal observada. Para anos fechados = custo_total_estimado.
+       round({subsidio_12} + COALESCE(c.ceap_liquido, 0) * 12.0 / {meses} + {gabinete_12}, 2) AS custo_anual_projetado
 FROM deputados d LEFT JOIN ceap_agg c USING (id_deputado)
 WHERE d.situacao = 'Exercício' OR d.situacao IS NULL
 ORDER BY custo_total_estimado DESC;
@@ -182,7 +186,9 @@ def run(ano: int, fonte: str, legislatura: int = C.LEGISLATURA_ATUAL, hoje: date
     params = dict(
         ano=ano, meses=meses,
         subsidio_ano=subsidio_no_ano(ano, meses),
+        subsidio_12=subsidio_no_ano(ano, 12),
         gabinete_ano=round(C.VERBA_GABINETE_TETO_MENSAL * meses, 2),
+        gabinete_12=round(C.VERBA_GABINETE_TETO_MENSAL * 12, 2),
         moradia_ano=round(C.AUXILIO_MORADIA_MENSAL * meses, 2),
     )
     con.execute(SQL_CUSTO.format(**params))
@@ -218,6 +224,9 @@ def run(ano: int, fonte: str, legislatura: int = C.LEGISLATURA_ATUAL, hoje: date
         "totais": con.execute(
             "SELECT round(sum(ceap),2), round(sum(custo_total_estimado),2) FROM custo"
         ).fetchone(),
+        "custo_mensal_medio_por_deputado": con.execute("SELECT round(avg(custo_mensal_medio),2) FROM custo").fetchone()[0],
+        "custo_anual_projetado_total": con.execute("SELECT round(sum(custo_anual_projetado),2) FROM custo").fetchone()[0],
+        "anual_e_projecao": meses < 12,
     }
     (PUB / f"meta_{ano}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     log.info("custo_deputado_%d: %d deputados; CEAP total R$ %.2f", ano, len(rows), meta["totais"][0])

@@ -11,6 +11,9 @@ const n = rows.length;
 const totalCeap = rows.reduce((s, r) => s + r.ceap, 0);
 const totalEst = rows.reduce((s, r) => s + r.custo_total_estimado, 0);
 const mediaMes = totalEst / n / meta.meses_considerados;
+const anualTotal = rows.reduce((s, r) => s + (r.custo_anual_projetado ?? 0), 0);
+const anualMedio = anualTotal / n;
+const proj = meta.anual_e_projecao ? " (projeção)" : "";
 const dataFmt = new Date(meta.gerado_em + "T12:00:00").toLocaleDateString("pt-BR");
 ---
 <Base title="Quanto custa um deputado federal? — Nosso Dinheiro">
@@ -22,9 +25,14 @@ const dataFmt = new Date(meta.gerado_em + "T12:00:00").toLocaleDateString("pt-BR
   <p class="meta">Dados oficiais atualizados em {dataFmt} · Câmara dos Deputados</p>
 
   <div class="hero">
-    <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio estimado de um deputado, por mês</span></div>
-    <div class="stat"><b>{compact(totalCeap)}</b><span>cota parlamentar gasta por {n} deputados no período</span></div>
-    <div class="stat"><b>{compact(totalEst)}</b><span>custo total estimado da Câmara (só deputados) no período</span></div>
+    <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio estimado de um deputado, <strong>por mês</strong></span></div>
+    <div class="stat"><b>{compact(anualMedio)}</b><span>custo de um deputado <strong>por ano</strong>{proj}</span></div>
+    <div class="stat"><b>{compact(anualTotal)}</b><span>os {n} deputados <strong>por ano</strong>{proj}</span></div>
+  </div>
+  <div class="hero" style="margin-top:0">
+    <div class="stat"><b>{compact(totalCeap)}</b><span>cota parlamentar gasta por {n} deputados em {meta.meses_considerados} meses</span></div>
+    <div class="stat"><b>{compact(totalEst)}</b><span>custo total estimado em {meta.meses_considerados} meses de {meta.ano}</span></div>
+    <div class="stat"><b>{compact(totalEst / meta.meses_considerados)}</b><span>custo da Câmara (só deputados) <strong>por mês</strong></span></div>
   </div>
 
   <div class="disclaimer">
@@ -41,11 +49,11 @@ const dataFmt = new Date(meta.gerado_em + "T12:00:00").toLocaleDateString("pt-BR
 
   <h2>Todos os deputados</h2>
   <table>
-    <thead><tr><th>#</th><th>Deputado(a)</th><th>Partido · UF</th><th class="num">Cota parlamentar</th><th class="num">Custo estimado</th></tr></thead>
+    <thead><tr><th>#</th><th>Deputado(a)</th><th>Partido · UF</th><th class="num">Cota parlamentar</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
     <tbody>
       {rows.map((r, i) => (
         <tr><td class="rank">{i + 1}</td><td>{r.nome}</td><td>{r.partido} · {r.uf}</td>
-            <td class="num">{brl0(r.ceap)}</td><td class="num">{brl0(r.custo_total_estimado)}</td></tr>
+            <td class="num">{brl0(r.ceap)}</td><td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
       ))}
     </tbody>
   </table>
