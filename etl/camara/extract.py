@@ -106,15 +106,44 @@ def cmd_despesas(c: Client, ano: int, legislatura: int) -> None:
     with gzip.open(dep_path, "rt", encoding="utf-8") as f:
         ids = [json.loads(l)["id"] for l in f]
 
-    # sonda: resposta crua do primeiro deputado, para diagnóstico no log do Actions
-    probe = c.get_json(f"{API_BASE}/deputados/{ids[0]}/despesas", {"ano": ano, "itens": 2})
-    log.info("sonda despesas dep=%s ano=%s → %d itens; links=%s; exemplo=%s",
-             ids[0], ano, len(probe.get("dados", [])), [l.get("rel") for l in probe.get("links", [])],
-             json.dumps(probe.get("dados", [None])[0], ensure_ascii=False)[:300])
+    # Sonda: descobre qual combinação de filtros a API aceita hoje (ela muda).
+    # Testa em 3 deputados para não depender de um que não tenha despesas.
+    variantes: list[tuple[str, dict]] = [
+        ("ano", {"ano": ano}),
+        ("ano+mes", {"ano": ano, "mes": 1}),
+        ("sem filtro", {}),
+    ]
+    params_ok: dict | None = None
+    for nome, params in variantes:
+        for dep_id in ids[:3]:
+            probe = c.get_json(f"{API_BASE}/deputados/{dep_id}/despesas", {**params, "itens": 3})
+            dados = probe.get("dados", [])
+            log.info("sonda [%s] dep=%s → %d itens; exemplo=%s", nome, dep_id, len(dados),
+                     json.dumps(dados[0], ensure_ascii=False)[:300] if dados else None)
+            if dados and params_ok is None:
+                params_ok = params
+        if params_ok is not None:
+            break
+    if params_ok is None:
+        raise SystemExit(f"API não retornou despesas para {ano} em nenhuma variante; "
+                         f"use `ceap-bulk --ano {ano}` (CSV anual) ou --ano {ano - 1}")
+    if "mes" in params_ok:
+        log.warning("API exige `mes`: iterando 12 meses por deputado (12x mais requisições)")
+    if not params_ok:
+        log.warning("API ignorou `ano`: baixando tudo e filtrando ano=%d localmente", ano)
+
+    def paginas(dep_id: int) -> Iterator[dict]:
+        if "mes" in params_ok:
+            for m in range(1, 13):
+                yield from c.paginate(f"/deputados/{dep_id}/despesas", {"ano": ano, "mes": m})
+        else:
+            yield from c.paginate(f"/deputados/{dep_id}/despesas", {**params_ok, "ordem": "ASC", "ordenarPor": "ano"})
 
     def gen() -> Iterator[dict]:
         for i, dep_id in enumerate(ids, 1):
-            for row in c.paginate(f"/deputados/{dep_id}/despesas", {"ano": ano, "ordem": "ASC", "ordenarPor": "mes"}):
+            for row in paginas(dep_id):
+                if int(row.get("ano") or 0) != ano:
+                    continue
                 row["idDeputado"] = dep_id
                 yield row
             if i % 25 == 0:
