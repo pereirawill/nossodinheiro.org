@@ -9,6 +9,7 @@ Saídas: data/public/poderes_<ano>.json         (por Poder)
         data/public/poderes_gnd_<ano>.json     (por Poder × grupo de natureza da despesa)
         data/public/poderes_categoria_<ano>.json (por Poder × "Manter a máquina" | "Políticas públicas" |
                                                   "Encargos especiais" × subcategoria)
+        data/public/poderes_funcao_<ano>.json  (por função da LOA: Previdência, Saúde, Educação, Encargos Especiais…)
 
 Metodologia (resumo):
 - Valor = PAGO no ano (caixa). Dotação, empenhado e liquidado ficam como colunas.
@@ -33,9 +34,16 @@ RAW, PQ, PUB = Path("data/raw"), Path("data/parquet"), Path("data/public")
 SQL_ITENS = """
 CREATE OR REPLACE TABLE itens AS
 SELECT poder, cod_superior::VARCHAR AS cod_superior, orgao_superior, cod_orgao::VARCHAR AS cod_orgao, orgao,
-       gnd::VARCHAR AS gnd, gnd_nome, programa::VARCHAR AS programa, categoria, subcategoria, ano::INTEGER AS ano,
+       gnd::VARCHAR AS gnd, gnd_nome, programa::VARCHAR AS programa, categoria, subcategoria,
+       coalesce(funcao::VARCHAR, '') AS funcao, coalesce(funcao_nome, '') AS funcao_nome, ano::INTEGER AS ano,
        dotacao::DOUBLE AS dotacao, empenhado::DOUBLE AS empenhado, liquidado::DOUBLE AS liquidado, pago::DOUBLE AS pago
 FROM read_json_auto('{raw}', format='newline_delimited');
+"""
+SQL_FUNCOES = """
+CREATE OR REPLACE TABLE funcoes AS
+SELECT funcao, funcao_nome, round(sum(pago),2) AS pago, round(sum(empenhado),2) AS empenhado,
+       round(coalesce(sum(pago) FILTER (WHERE poder = 'Dívida/Transferências'), 0),2) AS pago_divida_transferencias
+FROM itens GROUP BY ALL ORDER BY pago DESC;
 """
 SQL_CATEGORIAS = """
 CREATE OR REPLACE TABLE categorias AS
@@ -71,6 +79,8 @@ def run(ano: int, populacao: int = 0) -> None:
     con.execute(SQL_PODERES.format(pop=populacao))
     con.execute(SQL_GND)
     con.execute(SQL_CATEGORIAS)
+    con.execute(SQL_FUNCOES)
+    _dump(con, "funcoes", PUB / f"poderes_funcao_{ano}.json")
     _dump(con, "poderes", PUB / f"poderes_{ano}.json")
     _dump(con, "orgaos", PUB / f"poderes_orgaos_{ano}.json")
     _dump(con, "gnd", PUB / f"poderes_gnd_{ano}.json")

@@ -1,0 +1,75 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import orgaos from "../../../public/data/poderes_orgaos_2025.json";
+import stf from "../../../public/data/custo_ministro_stf_2026.json";
+import metaStf from "../../../public/data/meta_stf_2026.json";
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) => v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const POP = 212_600_000;
+const soma = (cod: string) => orgaos.filter((o) => o.cod_superior === cod).reduce((s, o) => s + o.pago, 0);
+const TRIBUNAIS = [
+  { cod: "10000", nome: "Supremo Tribunal Federal", sigla: "STF", href: "/stf/", status: "painel com folha real de ministros e gabinetes" },
+  { cod: "11000", nome: "Superior Tribunal de Justiça", sigla: "STJ", status: "em preparação" },
+  { cod: "15000", nome: "Justiça do Trabalho (TST e 24 TRTs)", sigla: "TST/TRTs", status: "em preparação" },
+  { cod: "12000", nome: "Justiça Federal (CJF e 6 TRFs)", sigla: "TRFs", status: "em preparação" },
+  { cod: "14000", nome: "Justiça Eleitoral (TSE e 27 TREs)", sigla: "TSE/TREs", status: "em preparação" },
+  { cod: "16000", nome: "Tribunal de Justiça do DF e Territórios", sigla: "TJDFT", status: "em preparação" },
+  { cod: "13000", nome: "Justiça Militar da União", sigla: "STM", status: "em preparação" },
+  { cod: "17000", nome: "Conselho Nacional de Justiça", sigla: "CNJ", status: "em preparação" },
+];
+const ESSENCIAIS = [
+  { cod: "34000", nome: "Ministério Público da União", sigla: "MPU" }, { cod: "29000", nome: "Defensoria Pública da União", sigla: "DPU" }, { cod: "59000", nome: "Conselho Nacional do MP", sigla: "CNMP" },
+];
+const tcu = soma("03000");
+const totalJud = TRIBUNAIS.reduce((s, t) => s + soma(t.cod), 0);
+const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
+---
+<Base title="Quanto custa o Judiciário federal? — Nosso Dinheiro" accent="var(--s5)">
+  <h1>Quanto custa o Judiciário da União?</h1>
+  <p class="lede">
+    Os tribunais federais, tribunal a tribunal: quanto cada um pagou em 2025 (SIOP) e, onde já extraímos a folha, quanto custa cada
+    ministro com seu gabinete. Os Tribunais de Justiça dos estados estão em <a href="/estados/">Estados</a>; o Tribunal de Contas
+    da União, que fiscaliza todos, aparece ao fim.
+  </p>
+  <p class="meta">fontes: SIOP (execução orçamentária 2025, despesa paga por órgão) · Portal da Transparência do STF (folha) · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{compact(totalJud)}</b><span>pagos pelo Judiciário da União em 2025 · {brl0(totalJud / POP)} por habitante</span></div>
+    <div class="stat"><b>{brl0(mediaStf)}</b><span>por mês, um ministro do STF com seu gabinete (folha real, {metaStf.meses_com_folha.length} meses de 2026) · <a href="/stf/">ver painel</a></span></div>
+    <div class="stat"><b>{compact(tcu)}</b><span>Tribunal de Contas da União em 2025 (controle externo, auxiliar do Legislativo)</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Uma aba por tribunal, conforme a folha de cada um é extraída.</b> Todos os tribunais publicam remuneração por pessoa
+    (Resolução CNJ 102/2009), cada um no seu portal. O STF já tem painel com ministros e gabinetes; os demais entram no mesmo molde.
+    Enquanto isso, o total pago de cada um vem do orçamento da União (SIOP), que cobre todos.</div>
+  </div>
+
+  <h2>Tribunais da União, despesa paga em 2025</h2>
+  <table>
+    <thead><tr><th>Tribunal</th><th class="num">Pago em 2025</th><th class="num">Por habitante</th><th>Painel</th></tr></thead>
+    <tbody>{TRIBUNAIS.map((t) => { const v = soma(t.cod); return (
+      <tr><td><strong>{t.sigla}</strong> · {t.nome}</td><td class="num">{compact(v)}</td><td class="num">{brl0(v / POP)}</td>
+        <td>{t.href ? <a href={t.href}>{t.status}</a> : <span class="prep">{t.status}</span>}</td></tr>); })}</tbody>
+  </table>
+
+  <h2>Funções essenciais à Justiça (não são Poder)</h2>
+  <table>
+    <thead><tr><th>Órgão</th><th class="num">Pago em 2025</th><th class="num">Por habitante</th></tr></thead>
+    <tbody>{ESSENCIAIS.map((t) => { const v = soma(t.cod); return (<tr><td><strong>{t.sigla}</strong> · {t.nome}</td><td class="num">{compact(v)}</td><td class="num">{brl0(v / POP)}</td></tr>); })}</tbody>
+  </table>
+
+  <h2>Controle externo: Tribunal de Contas da União</h2>
+  <div class="card"><p style="margin:0">O TCU julga as contas de quem gasta dinheiro federal. Pela Constituição (art. 71) é órgão auxiliar do Congresso, por isso
+    seu orçamento está no Legislativo: <b>{compact(tcu)}</b> pagos em 2025, {brl0(tcu / POP)} por habitante. Ministros do TCU têm
+    o mesmo subsídio dos ministros do STJ; o painel com a folha do TCU entra junto com os tribunais.</p></div>
+
+  <Glossario termos={["despesa_paga", "pago", "gabinete_stf", "funcoes_essenciais", "per_capita"]} />
+</Base>
+<style>
+  .prep { color: var(--ink-2); font-size: 13px; }
+  td a { color: var(--accent); }
+</style>

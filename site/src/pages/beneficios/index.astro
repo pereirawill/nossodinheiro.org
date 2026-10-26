@@ -9,7 +9,7 @@ const lido = LIDO.split("-").reverse().join("/");
 const usoRotulo = { sim: "publicado por pessoa", parcial: "em parte", nao: "não publicado por pessoa" };
 const custoRotulo = { sim: "entra (gasto real)", teto: "entra pelo teto", nao: "não entra" };
 const grupos: { titulo: string; sub: string; painel: string; itens: Beneficio[] }[] = [
-  { titulo: "Deputado federal", sub: "513 em exercício", painel: "/", itens: DEPUTADOS },
+  { titulo: "Deputado federal", sub: "513 em exercício", painel: "/deputados/", itens: DEPUTADOS },
   { titulo: "Senador", sub: "81 em exercício", painel: "/senadores/", itens: SENADORES },
   { titulo: "Ministro do STF", sub: "10 em atividade", painel: "/stf/", itens: STF },
 ];
@@ -28,7 +28,7 @@ const grupos: { titulo: string; sub: string; painel: string; itens: Beneficio[] 
     <div><b>Dentro da mesma casa, o valor é igual para todos.</b> As exceções são as que dependem de uso: quem ocupa
     apartamento funcional não recebe auxílio-moradia, a cota varia com a distância do estado a Brasília, e no STF as
     vantagens pessoais dependem da carreira anterior de cada ministro. A coluna "no custo" diz se a linha entra na
-    conta dos painéis <a href="/">Deputados</a>, <a href="/senadores/">Senadores</a> e <a href="/stf/">STF</a>.
+    conta dos painéis <a href="/deputados/">Deputados</a>, <a href="/senadores/">Senadores</a> e <a href="/stf/">STF</a>.
     O chamado "auxílio-paletó" não existe: a Câmara desmente; o que existe é a ajuda de custo de mudança (1 subsídio).</div>
   </div>
 

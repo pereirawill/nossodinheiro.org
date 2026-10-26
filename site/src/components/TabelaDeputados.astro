@@ -7,7 +7,7 @@
  *        rotuloNome? ("Deputado(a)" | "Senador(a)"), cotaKey? ("ceap" | "ceaps"), rotuloCota?.
  */
 import { slug } from "../lib/slug";
-const { rows, todos, proj = "", ufAtiva, partidoAtivo, base = "/deputados", raiz = "/",
+const { rows, todos, proj = "", ufAtiva, partidoAtivo, base = "/deputados", raiz = "/deputados/",
         rotuloNome = "Deputado(a)", cotaKey = "ceap", rotuloCota = "Cota parlamentar" } = Astro.props;
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const ufs = [...new Set<string>(todos.map((r: any) => r.uf))].sort();

@@ -28,6 +28,13 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 `make site`. Disparar workflow via REST (GraphQL bloqueado no gh):
 `gh api -X POST repos/pereirawill/nossodinheiro.org/actions/workflows/etl-portal.yml/dispatches -f ref=main -f 'inputs[etapa]=poderes' -f 'inputs[ano]=2025'`
 
+## Estrutura do site (26/10/2026)
+- `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
+  Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
+  pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
+  Municípios, Impostos, Rankings, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
+
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
 - Fonte CEAP: **CSV anual** `camara.leg.br/cotas/Ano-YYYY.csv.zip` (o endpoint `/deputados/{id}/despesas`
   da API v2 respondia 200 com lista vazia em 26/10/2026 — registrado na metodologia). API v2 usada para

@@ -71,20 +71,21 @@ def classificar(cod_superior: str) -> str:
 QUERY = """
 PREFIX loa: <http://vocab.e.gov.br/2013/09/loa#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome ?programa ?programa_nome ?acao ?acao_nome
+SELECT ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome ?programa ?programa_nome ?acao ?acao_nome ?funcao ?funcao_nome
        (SUM(?emp) AS ?empenhado) (SUM(?liq) AS ?liquidado) (SUM(?pag) AS ?pago) (SUM(?dot) AS ?dotacao)
 FROM <http://orcamento.dados.gov.br/{ano}/>
 WHERE {{
-  ?i a loa:ItemDespesa ; loa:temUnidadeOrcamentaria ?u ; loa:temGND ?g ; loa:temPrograma ?p ; loa:temAcao ?a ;
+  ?i a loa:ItemDespesa ; loa:temUnidadeOrcamentaria ?u ; loa:temGND ?g ; loa:temPrograma ?p ; loa:temAcao ?a ; loa:temFuncao ?f ;
      loa:valorEmpenhado ?emp ; loa:valorLiquidado ?liq ; loa:valorPago ?pag ; loa:valorLeiMaisCredito ?dot .
   ?u loa:codigo ?cod_orgao ; rdfs:label ?orgao ; loa:temOrgao ?o .
   ?o loa:codigo ?cod_superior ; rdfs:label ?orgao_superior .
   ?g loa:codigo ?gnd ; rdfs:label ?gnd_nome .
   ?p loa:codigo ?programa ; rdfs:label ?programa_nome .
   ?a loa:codigo ?acao ; rdfs:label ?acao_nome .
+  ?f loa:codigo ?funcao ; rdfs:label ?funcao_nome .
 }}
-GROUP BY ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome ?programa ?programa_nome ?acao ?acao_nome
-ORDER BY ?cod_superior ?cod_orgao ?gnd ?programa ?acao
+GROUP BY ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome ?programa ?programa_nome ?acao ?acao_nome ?funcao ?funcao_nome
+ORDER BY ?cod_superior ?cod_orgao ?gnd ?programa ?acao ?funcao
 """
 NUMERICOS = ("empenhado", "liquidado", "pago", "dotacao")
 

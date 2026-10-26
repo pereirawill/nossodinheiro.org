@@ -11,6 +11,20 @@ lugar do gasto real, o rótulo diz isso. Abaixo, o essencial de cada painel. A v
 fórmulas, limitações e pendências, está no repositório do projeto (código MIT, dados e textos CC BY 4.0):
 `github.com/pereirawill/nossodinheiro.org`, pasta `docs/metodologia/`.
 
+## Geral — para onde vai o nosso dinheiro
+
+- **O que é:** a primeira aba junta os totais pagos por União (SIOP), estados e municípios (SICONFI) no último ano fechado,
+  a despesa da União por função (pizza, sem encargos especiais), a comparação por função entre os três níveis e um cartão
+  com o número-chave de cada painel. Nada é calculado aqui que não venha de um painel detalhado.
+- **Atenção:** "encargos especiais" (dívida, transferências) ficam fora da pizza e dentro do total; transferências da União
+  aparecem no nível que gastou. Municípios: só saúde, educação, legislativo e administração por enquanto.
+
+## Judiciário — quanto custa o Judiciário da União
+
+- **O que é:** índice dos tribunais federais com o total pago de cada um (SIOP 2025) e link para o painel de folha onde já
+  existe (STF). MPU e DPU como funções essenciais; TCU como controle externo (orçamento no Legislativo).
+- **Fonte:** SIOP (órgãos 10000–17000, 29000, 34000, 59000, 03000); folha do STF no painel próprio.
+
 ## Deputados — quanto custa um deputado federal
 
 - **Somamos:** subsídio (Decreto Legislativo 172/2022: R$ 46.366,19 desde fev/2025, 13 salários + ⅓ de férias por ano) + cota parlamentar

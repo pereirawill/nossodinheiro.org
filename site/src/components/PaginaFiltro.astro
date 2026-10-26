@@ -14,7 +14,7 @@ const cfg = sen
       rotuloCota: "Cota (CEAPS)", fonte: `Senado Federal (recursos utilizados, ${meta.ano})`,
       series: [["subsidio", "var(--s1)", "Subsídio"], ["ceaps", "var(--s2)", "Cota CEAPS (gasto real)"], ["nao_inclusos", "var(--s4)", "Fora da cota: diárias, passagens, correios (gasto real)"]],
       glossario: ["subsidio", "ceaps_senado", "gastos_nao_inclusos", "imovel_funcional", "projecao"] }
-  : { base: "/deputados", raiz: "/", singular: "deputado", plural: "deputados", rotuloNome: "Deputado(a)", cotaKey: "ceap",
+  : { base: "/deputados", raiz: "/deputados/", singular: "deputado", plural: "deputados", rotuloNome: "Deputado(a)", cotaKey: "ceap",
       rotuloCota: "Cota parlamentar", fonte: `Câmara dos Deputados (CEAP ${meta.ano})`, series: undefined,
       glossario: ["subsidio", "cota_parlamentar", "glosa", "verba_gabinete", "teto", "projecao"] };
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });

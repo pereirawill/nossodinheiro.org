@@ -1,61 +1,141 @@
 ---
 import Base from "../layouts/Base.astro";
-import Chart from "../components/CustoDeputadoChart.astro";
-import Tabela from "../components/TabelaDeputados.astro";
 import Termo from "../components/Termo.astro";
 import Glossario from "../components/Glossario.astro";
-import BeneficiosBox from "../components/BeneficiosBox.astro";
-import rows from "../../public/data/custo_deputado_2026.json";
-import meta from "../../public/data/meta_2026.json";
+import funcoes from "../../public/data/poderes_funcao_2025.json";
+import poderes from "../../public/data/poderes_2025.json";
+import categorias from "../../public/data/poderes_categoria_2025.json";
+import estados from "../../public/data/estados_2025.json";
+import municipios from "../../public/data/municipios_2025.json";
+import metaMun from "../../public/data/municipios_meta_2025.json";
+import impostos from "../../public/data/impostos.json";
+import dep from "../../public/data/custo_deputado_2026.json";
+import metaDep from "../../public/data/meta_2026.json";
+import sen from "../../public/data/custo_senador_2026.json";
+import metaSen from "../../public/data/meta_senado_2026.json";
+import stf from "../../public/data/custo_ministro_stf_2026.json";
+import metaStf from "../../public/data/meta_stf_2026.json";
+import pres from "../../public/data/presidencia_cpgf_2026.json";
+import rankings from "../../public/data/rankings.json";
 
+const ANO = 2025;
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
-  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
-const n = rows.length;
-const totalCeap = rows.reduce((s, r) => s + r.ceap, 0);
-const totalEst = rows.reduce((s, r) => s + r.custo_total_estimado, 0);
-const mediaMes = totalEst / n / meta.meses_considerados;
-const anualTotal = rows.reduce((s, r) => s + (r.custo_anual_projetado ?? 0), 0);
-const anualMedio = anualTotal / n;
-const proj = meta.anual_e_projecao ? " (projeção)" : "";
-const quando = meta.gerado_em_utc ? new Date(meta.gerado_em_utc) : new Date(meta.gerado_em + "T12:00:00Z");
-const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-const dataFmt = fmt.format(quando).replace(",", " às") + " (Brasília)";
+  v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} mi` : brl0(v);
+const pct = (a: number, b: number) => `${Math.round((a / b) * 100)}%`;
+const POP = 212_600_000;
+
+// União: por função (LOA). Encargos especiais (função 28) = dívida e transferências a estados/municípios — separado.
+const uniaoTotal = poderes.reduce((s, p) => s + p.pago, 0);
+const encargos = funcoes.find((f) => f.funcao === "28")?.pago ?? 0;
+const uniaoSemEncargos = uniaoTotal - encargos;
+const fTop = funcoes.filter((f) => f.funcao !== "28").sort((a, b) => b.pago - a.pago);
+const topN = fTop.slice(0, 9);
+const outros = fTop.slice(9).reduce((s, f) => s + f.pago, 0);
+const fatias = [...topN.map((f) => ({ nome: f.funcao_nome, v: f.pago })), { nome: "Demais funções", v: outros }];
+const CORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "#59a14f", "#b07aa1", "#edc948", "#76b7b2", "var(--neutro)"];
+const R = 86, C = 100; let ang = -Math.PI / 2;
+const arcos = fatias.map((f, i) => { const fr = f.v / uniaoSemEncargos; const a0 = ang; ang += fr * 2 * Math.PI;
+  const x0 = C + R * Math.cos(a0), y0 = C + R * Math.sin(a0), x1 = C + R * Math.cos(ang), y1 = C + R * Math.sin(ang);
+  return { ...f, fr, cor: CORES[i], d: `M${C},${C} L${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` }; });
+
+// Três níveis de governo
+const estTotal = estados.reduce((s, e) => s + e.pago_total, 0);
+const munTotal = metaMun.totais.pago_total;
+const somaF = (k: string) => estados.reduce((s, e) => s + ((e as any)[k] || 0), 0);
+const somaM = (k: string) => municipios.reduce((s, m) => s + ((m as any)[k] || 0), 0);
+const uf = (cod: string) => funcoes.find((f) => f.funcao === cod)?.pago ?? 0;
+const niveis = [
+  { nome: "Saúde", uniao: uf("10"), estados: somaF("pago_saude"), municipios: somaM("pago_saude") },
+  { nome: "Educação", uniao: uf("12"), estados: somaF("pago_educacao"), municipios: somaM("pago_educacao") },
+  { nome: "Previdência", uniao: uf("09"), estados: somaF("pago_previdencia"), municipios: null },
+  { nome: "Segurança pública", uniao: uf("06"), estados: somaF("pago_seguranca"), municipios: null },
+  { nome: "Legislativo", uniao: uf("01"), estados: somaF("pago_legislativa"), municipios: somaM("pago_legislativo") },
+  { nome: "Judiciário", uniao: uf("02"), estados: somaF("pago_judiciaria"), municipios: null },
+  { nome: "Administração", uniao: uf("04"), estados: somaF("pago_administracao"), municipios: somaM("pago_administracao") },
+];
+const maxNivel = Math.max(...niveis.map((n) => n.uniao + n.estados + (n.municipios ?? 0)));
+const maquina = categorias.filter((c) => c.categoria === "Manter a máquina" && c.poder !== "Dívida/Transferências").reduce((s, c) => s + c.pago, 0);
+
+// Cartões dos painéis
+const mediaDep = dep.reduce((s, r) => s + r.custo_total_estimado, 0) / dep.length / metaDep.meses_considerados;
+const mediaSen = sen.reduce((s, r) => s + r.custo_total_estimado, 0) / sen.length / metaSen.meses_considerados;
+const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
+const arrec = impostos.anual[impostos.anual.length - 1];
+const idh = (rankings.indices as any[]).find((i) => i.id === "idh")?.brasil;
+const W = 920;
 ---
-<Base title="Quanto custa um deputado federal? — Nosso Dinheiro" accent="var(--s1)">
-  <h1>Quanto custa um deputado federal?</h1>
+<Base title="Nosso Dinheiro — para onde vai o dinheiro público do Brasil" accent="var(--s1)">
+  <h1>Para onde vai o nosso dinheiro?</h1>
   <p class="lede">
-    <Termo t="subsidio">Subsídio</Termo>, <Termo t="cota_parlamentar">cota parlamentar</Termo> (gasto real, líquido de <Termo t="glosa">glosas</Termo>) e
-    <Termo t="verba_gabinete">verba de gabinete</Termo> (<Termo t="teto">teto</Termo>) dos
-    {n} deputados em exercício hoje, nos {meta.meses_considerados} primeiros meses de {meta.ano}.
+    O panorama: quanto a União, os estados e os municípios pagaram em {ANO}, em que, e quanto custa cada parte do Estado.
+    Cada número tem a fonte oficial ao lado; o detalhe está nas abas. Sem nota, sem ranking de "bom ou ruim", sem opinião.
   </p>
-  <p class="meta">Dados atualizados em {dataFmt} · fonte: Câmara dos Deputados (CEAP {meta.ano}, {meta.meses_considerados} meses) · atualização automática diária</p>
+  <p class="meta">fontes: SIOP (União, {ANO}), SICONFI/Tesouro (estados e municípios, {ANO}), Receita Federal, Câmara, Senado, STF, Portal da Transparência · <a href="/metodologia/">metodologia</a></p>
 
   <div class="hero">
-    <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio estimado de um deputado, <strong>por mês</strong></span></div>
-    <div class="stat"><b>{compact(anualMedio)}</b><span>custo de um deputado <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
-    <div class="stat"><b>{compact(anualTotal)}</b><span>os {n} deputados <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
+    <div class="stat big"><b>{compact(uniaoTotal)}</b><span>pagos pela <strong>União</strong> em {ANO} · {compact(encargos)} são dívida e transferências a estados e municípios; {compact(uniaoSemEncargos)} em políticas e máquina</span></div>
+    <div class="stat"><b>{compact(estTotal)}</b><span>pagos pelos <strong>26 estados e DF</strong> em {ANO}</span></div>
+    <div class="stat"><b>{compact(munTotal)}</b><span>pagos por <strong>{metaMun.municipios_com_dca.toLocaleString("pt-BR")} municípios</strong> em {ANO}</span></div>
   </div>
   <div class="hero" style="margin-top:0">
-    <div class="stat"><b>{compact(totalCeap)}</b><span><Termo t="cota_parlamentar">cota parlamentar</Termo> gasta por {n} deputados em {meta.meses_considerados} meses</span></div>
-    <div class="stat"><b>{compact(totalEst)}</b><span>custo total estimado em {meta.meses_considerados} meses de {meta.ano}</span></div>
-    <div class="stat"><b>{compact(totalEst / meta.meses_considerados)}</b><span>custo da Câmara (só deputados) <strong>por mês</strong></span></div>
+    <div class="stat"><b>{compact(arrec.total)}</b><span>arrecadados pela União em {arrec.meses} meses de {arrec.ano} · <a href="/impostos/">impostos</a></span></div>
+    <div class="stat"><b>{compact(maquina)}</b><span><Termo t="maquina">manter a máquina</Termo> dos três Poderes da União em {ANO} ({pct(maquina, uniaoSemEncargos)} do que não é dívida) · <a href="/poderes/">Poderes</a></span></div>
+    <div class="stat"><b>{brl0((uniaoTotal + estTotal + munTotal) / POP)}</b><span>por habitante por ano, somando os três níveis (com dívida e transferências contadas na União)</span></div>
   </div>
 
-  <div class="disclaimer">
-    <span aria-hidden="true">ⓘ</span>
-    <div><b>Sem nota, ranking de "bom ou ruim" nem opinião.</b> Subsídio e verba de gabinete são iguais para todos;
-    quem sobe no ranking é quem usou mais cota. Deputados de estados distantes têm teto maior por causa das passagens.</div>
+  <h2>Em que a União gasta ({ANO}, sem dívida e transferências)</h2>
+  <div class="card pizza">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label="Despesa da União por função">
+      {arcos.map((a) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {compact(a.v)} ({pct(a.v, uniaoSemEncargos)})</title></path>)}
+      <circle cx={C} cy={C} r="46" fill="var(--card)" />
+      <text x={C} y={C - 4} text-anchor="middle" font-size="10" fill="var(--ink-2)">União {ANO}</text>
+      <text x={C} y={C + 12} text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{compact(uniaoSemEncargos)}</text>
+    </svg>
+    <table>
+      <thead><tr><th>Função</th><th class="num">Pago</th><th class="num">%</th><th class="num">Por habitante</th></tr></thead>
+      <tbody>{arcos.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{compact(a.v)}</td><td class="num">{pct(a.v, uniaoSemEncargos)}</td><td class="num">{brl0(a.v / POP)}</td></tr>))}</tbody>
+    </table>
+    <p class="src" style="grid-column:1/-1">Função é a classificação oficial da Lei Orçamentária. "Encargos especiais" ({compact(encargos)}: juros, amortização e refinanciamento da dívida, transferências constitucionais a estados e municípios) ficam fora da pizza porque não são um serviço prestado; estão no total da União acima. Fonte: SIOP.</p>
   </div>
-  <BeneficiosBox casa="deputados" />
 
-  <h2>Os 20 que mais custaram</h2>
+  <h2>Quem paga o quê: União, estados e municípios ({ANO})</h2>
   <div class="card">
-    <Chart rows={rows} top={20} meses={meta.meses_considerados} />
-    <p class="src">Fonte: API de Dados Abertos da Câmara (CEAP) · verba de gabinete pelo teto de {brl0(meta.premissas.verba_gabinete_teto_mensal)}/mês · <a href="/metodologia/">metodologia</a></p>
+    <div class="legend"><span><i style="background:var(--s1)"></i>União</span><span><i style="background:var(--s3)"></i>Estados e DF</span><span><i style="background:var(--s2)"></i>Municípios</span></div>
+    <svg viewBox={`0 0 ${W} ${niveis.length * 34 + 10}`} width="100%" role="img" aria-label="Despesa por função nos três níveis de governo">
+      {niveis.map((n, i) => { const tot = n.uniao + n.estados + (n.municipios ?? 0); let x = 170; const seg = (v: number, c: string) => { const w = (v / maxNivel) * 600; const x0 = x; x += w; return <rect x={x0} y="6" width={Math.max(0, w)} height="22" fill={c}><title>{n.nome}: {compact(v)}</title></rect>; };
+        return (<g transform={`translate(0 ${i * 34 + 5})`}>
+          <text x="162" y="21" text-anchor="end" font-size="13" fill="var(--ink)">{n.nome}</text>
+          {seg(n.uniao, "var(--s1)")}{seg(n.estados, "var(--s3)")}{n.municipios != null && seg(n.municipios, "var(--s2)")}
+          <text x={x + 6} y="21" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(tot)}{n.municipios == null ? " (sem municípios)" : ""}</text>
+        </g>); })}
+    </svg>
+    <p class="src">Despesa paga por função em cada nível. Municípios: só saúde, educação, legislativo e administração estão carregados por enquanto; previdência, segurança e judiciário municipais não existem ou não foram extraídos. Transferências da União a estados e municípios aparecem no nível que gastou. Fontes: SIOP e SICONFI.</p>
   </div>
 
-  <h2>Todos os deputados</h2>
-  <Tabela rows={rows} todos={rows} proj={proj} />
-  <Glossario termos={["subsidio", "cota_parlamentar", "glosa", "verba_gabinete", "teto", "auxilio_moradia", "projecao"]} />
+  <h2>Quanto custa cada parte do Estado</h2>
+  <div class="grade">
+    <a class="card tile" href="/deputados/"><b>{brl0(mediaDep)}</b><span>por mês, um deputado federal (subsídio + cota + gabinete pelo teto) · {dep.length} deputados</span></a>
+    <a class="card tile" href="/senadores/"><b>{brl0(mediaSen)}</b><span>por mês, um senador (subsídio + cota + gastos fora da cota; sem gabinete) · {sen.length} senadores</span></a>
+    <a class="card tile" href="/presidencia/"><b>{compact(pres.totais.presidencia)}</b><span>cartão corporativo da Presidência em {pres.totais.meses_publicados} meses de 2026 · {pct(pres.totais.sigiloso, pres.totais.presidencia)} sob sigilo</span></a>
+    <a class="card tile" href="/judiciario/"><b>{brl0(mediaStf)}</b><span>por mês, um ministro do STF com seu gabinete ({metaStf.ministros_ativos} ministros, folha real)</span></a>
+    <a class="card tile" href="/poderes/"><b>{compact(maquina)}</b><span>manter a máquina dos Poderes da União em {ANO}: pessoal, aposentados, custeio</span></a>
+    <a class="card tile" href="/estados/"><b>{compact(somaF("pago_legislativa") + somaF("pago_judiciaria"))}</b><span>Assembleias, TCEs e Tribunais de Justiça dos estados em {ANO}</span></a>
+    <a class="card tile" href="/municipios/"><b>{compact(metaMun.totais.pago_legislativo)}</b><span>Câmaras Municipais em {ANO} · {metaMun.totais.vereadores.toLocaleString("pt-BR")} vereadores</span></a>
+    <a class="card tile" href="/emendas/"><b>R$ 47,1 bi</b><span>empenhados em emendas parlamentares em 2025 · veja por autor</span></a>
+    <a class="card tile" href="/impostos/"><b>{compact(arrec.total)}</b><span>arrecadação federal em {arrec.meses} meses de {arrec.ano}, por base de incidência e por estado</span></a>
+    <a class="card tile" href="/rankings/"><b>{idh ? `${idh.posicao}º` : "—"}</b><span>posição do Brasil no IDH entre {idh?.total} países · 10 rankings e o histórico de 40 anos</span></a>
+  </div>
+
+  <Glossario termos={["pago", "empenhado", "maquina", "politicas_publicas", "divida_transferencias", "per_capita"]} />
 </Base>
+<style>
+  .pizza { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 720px) { .pizza { grid-template-columns: 1fr; } }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .tile { display: block; text-decoration: none; color: inherit; border-top: 4px solid var(--accent); }
+  .tile b { display: block; font-family: var(--display); font-weight: 800; font-size: 2rem; line-height: 1; color: var(--accent); }
+  .tile span { display: block; margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+  .tile:hover { border-color: var(--s3); }
+</style>
