@@ -126,6 +126,15 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   o total divulgado na imprensa (receitas não administradas pela RFB). Série anual em valores nominais.
 - Completo: `docs/metodologia/painel-impostos.md`.
 
+## Trabalho — quem trabalha, quem empreende, quem recebe
+
+- **O que é:** ocupados por posição (carteira, sem carteira, conta própria, setor público, empregadores), desocupados e fora da
+  força de trabalho (IBGE PNAD Contínua); empresas ativas por natureza e porte, com MEI (Mapa de Empresas); benefícios pagos pelo
+  INSS por mês (BEPS).
+- **Atenção:** os grupos se sobrepõem (MEI empregado, aposentado que trabalha); PNAD conta pessoas, Mapa conta CNPJs. Bolsa Família
+  e optantes do Simples ainda não têm fonte aberta carregada.
+- Completo: `docs/metodologia/painel-trabalho.md`.
+
 ## Rankings — onde o Brasil está
 
 - **O que é:** posição do Brasil em índices internacionais, com os 10 primeiros e os vizinhos. 1º é sempre o melhor.

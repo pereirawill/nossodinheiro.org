@@ -20,8 +20,9 @@ import rankings from "../../public/data/rankings.json";
 
 const ANO = 2025;
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+// Na página inicial, por extenso: "R$ 5,06 trilhões", "R$ 30,4 bilhões", "R$ 224 milhões"
 const compact = (v: number) =>
-  v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} mi` : brl0(v);
+  v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} trilhões` : v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bilhões` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} milhões` : brl0(v);
 const pct = (a: number, b: number) => `${Math.round((a / b) * 100)}%`;
 const POP = 212_600_000;
 

@@ -1,0 +1,132 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/trabalho.json";
+
+const mi = (v: number) => `${(v / 1e6).toFixed(1).replace(".", ",")} mi`;
+const miMil = (v: number) => mi(v * 1e3); // PNAD vem em mil pessoas
+const num = (v: number) => Math.round(v).toLocaleString("pt-BR");
+const pct = (a: number, b: number) => `${(100 * a / b).toFixed(1).replace(".", ",")}%`;
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const p = d.pnad.mil as Record<string, number>;
+const e = d.empresas, inss = d.inss;
+
+// População de 14+: fora da força, desocupados e ocupados por posição
+const posicoes = [
+  { k: "privado_com_carteira", nome: "Empregados com carteira (setor privado)", cor: "var(--s1)" },
+  { k: "privado_sem_carteira", nome: "Empregados sem carteira (setor privado)", cor: "#9ec5e8" },
+  { k: "domestico_com_carteira", nome: "Domésticos com carteira", cor: "var(--s5)" },
+  { k: "domestico_sem_carteira", nome: "Domésticos sem carteira", cor: "#9ad9e6" },
+  { k: "setor_publico", nome: "Setor público (servidores, militares, celetistas)", cor: "var(--s3)" },
+  { k: "conta_propria", nome: "Conta própria (autônomos, MEI, informais)", cor: "var(--s4)" },
+  { k: "empregador", nome: "Empregadores", cor: "var(--s2)" },
+  { k: "familiar_auxiliar", nome: "Trabalhador familiar auxiliar", cor: "var(--neutro)" },
+];
+const ocupados = p.ocupados;
+const R = 86, C = 100; let ang = -Math.PI / 2;
+const arcos = posicoes.map((x) => { const v = p[x.k]; const fr = v / ocupados; const a0 = ang; ang += fr * 2 * Math.PI;
+  const x0 = C + R * Math.cos(a0), y0 = C + R * Math.sin(a0), x1 = C + R * Math.cos(ang), y1 = C + R * Math.sin(ang);
+  return { ...x, v, fr, d: `M${C},${C} L${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` }; });
+const barraPop = [
+  { nome: "Ocupados", v: p.ocupada, cor: "var(--s2)" }, { nome: "Desocupados (procurando)", v: p.desocupada, cor: "var(--s4)" },
+  { nome: "Fora da força de trabalho (estudantes, aposentados, donas de casa, desalentados…)", v: p.fora_forca, cor: "var(--neutro)" },
+];
+const W = 920;
+const empresasBarras = [
+  { nome: "MEI (microempreendedor individual)", v: e.mei, cor: "var(--s4)" },
+  { nome: "Micro e pequenas empresas (não MEI)", v: e.micro_e_pequenas_nao_mei, cor: "var(--s2)" },
+  { nome: "Demais (médias, grandes, estatais, cooperativas…)", v: e.demais, cor: "var(--s1)" },
+];
+---
+<Base title="Quem trabalha, quem empreende, quem recebe — Nosso Dinheiro" accent="var(--s2)">
+  <h1>Quem trabalha, quem empreende, quem recebe</h1>
+  <p class="lede">
+    Quantos brasileiros trabalham e como (carteira assinada, sem carteira, por conta própria, servidores, empregadores), quantos
+    estão desempregados ou fora do mercado, quantas empresas e MEIs existem e quantos benefícios o INSS paga por mês. Cada bloco com
+    a fonte oficial e a data de referência.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · IBGE PNAD Contínua ({d.pnad.periodo}) · Mapa de Empresas ({e.referencia}) · INSS ({inss.mes}/{inss.ano}) · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{miMil(p.ocupados)}</b><span>pessoas ocupadas no Brasil ({d.pnad.periodo}), de {miMil(p.pop_14_mais)} com 14 anos ou mais</span></div>
+    <div class="stat"><b>{miMil(p.privado_com_carteira + p.domestico_com_carteira + p.setor_publico)}</b><span>com vínculo formal: carteira assinada no setor privado, domésticos com carteira e setor público</span></div>
+    <div class="stat"><b>{miMil(p.desocupada)}</b><span>desocupados (procuram e não acham): taxa de {String(d.pnad.taxa_desocupacao).replace(".", ",")}% ({d.pnad.periodo_movel})</span></div>
+  </div>
+  <div class="hero" style="margin-top:0">
+    <div class="stat"><b>{mi(e.ativas)}</b><span>empresas ativas (CNPJ), das quais {mi(e.mei)} são MEI ({pct(e.mei, e.ativas)})</span></div>
+    <div class="stat"><b>{miMil(p.conta_propria)}</b><span>trabalham por conta própria (inclui MEI e informais)</span></div>
+    <div class="stat"><b>{mi(inss.total)}</b><span>benefícios pagos pelo INSS em {inss.mes.toLowerCase()}/{inss.ano}: {mi(inss.rgps)} previdenciários (aposentadorias, pensões, auxílios) e {mi(inss.assistencial)} assistenciais (BPC)</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Os grupos se sobrepõem; não dá para somar "quem sustenta" e "quem recebe".</b> Um MEI pode ser também empregado; um
+    aposentado pode trabalhar; uma pessoa pode receber dois benefícios do INSS; a PNAD conta pessoas (amostra trimestral do IBGE) e o
+    Mapa de Empresas conta CNPJs. Bolsa Família e optantes do Simples ainda não estão aqui (ver pendências na metodologia).</div>
+  </div>
+
+  <h2>Brasileiros com 14 anos ou mais: {miMil(p.pop_14_mais)}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} 60`} width="100%" role="img" aria-label="População de 14 anos ou mais por condição">
+      {(() => { let x = 0; return barraPop.map((b) => { const w = (b.v / p.pop_14_mais) * W; const x0 = x; x += w;
+        return <g><rect x={x0} y="8" width={Math.max(0, w - 1)} height="34" fill={b.cor} rx="3"><title>{b.nome}: {miMil(b.v)}</title></rect>
+          {w > 110 && <text x={x0 + 8} y="30" font-size="12" font-weight="700" fill="#fff">{miMil(b.v)} · {pct(b.v, p.pop_14_mais)}</text>}</g>; }); })()}
+    </svg>
+    <div class="legend">{barraPop.map((b) => <span><i style={`background:${b.cor}`}></i>{b.nome}</span>)}</div>
+    <p class="src">Fonte: IBGE, PNAD Contínua, tabela 6318 ({d.pnad.periodo_movel}). "Fora da força de trabalho" = não trabalha nem procura trabalho.</p>
+  </div>
+
+  <h2>Como trabalham os {miMil(ocupados)} ocupados ({d.pnad.periodo})</h2>
+  <div class="card pizza">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label="Ocupados por posição na ocupação">
+      {arcos.map((a) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {miMil(a.v)} ({pct(a.v, ocupados)})</title></path>)}
+      <circle cx={C} cy={C} r="46" fill="var(--card)" />
+      <text x={C} y={C - 4} text-anchor="middle" font-size="10" fill="var(--ink-2)">ocupados</text>
+      <text x={C} y={C + 12} text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{miMil(ocupados)}</text>
+    </svg>
+    <table>
+      <thead><tr><th>Posição na ocupação</th><th class="num">Pessoas</th><th class="num">%</th></tr></thead>
+      <tbody>{arcos.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{miMil(a.v)}</td><td class="num">{pct(a.v, ocupados)}</td></tr>))}
+        <tr><td style="padding-left:28px;color:var(--ink-2)">dos quais militares e estatutários</td><td class="num">{miMil(p.publico_estatutario_militar)}</td><td class="num">{pct(p.publico_estatutario_militar, ocupados)}</td></tr></tbody>
+    </table>
+    <p class="src" style="grid-column:1/-1">Fonte: IBGE, PNAD Contínua, tabela 4097. "Conta própria" inclui autônomos formais (MEI) e informais; "setor público" inclui servidores estatutários, militares e celetistas de órgãos públicos.</p>
+  </div>
+
+  <h2>Empresas ativas no Brasil: {mi(e.ativas)} ({e.referencia})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${empresasBarras.length * 30 + 10}`} width="100%" role="img" aria-label="Empresas ativas por tipo">
+      {empresasBarras.map((b, i) => (<g transform={`translate(0 ${i * 30 + 5})`}>
+        <text x="330" y="18" text-anchor="end" font-size="12" fill="var(--ink)">{b.nome}</text>
+        <rect x="340" y="4" width={Math.max(1, (b.v / e.ativas) * 440)} height="20" fill={b.cor} rx="2" />
+        <text x={346 + (b.v / e.ativas) * 440} y="18" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{mi(b.v)} · {pct(b.v, e.ativas)}</text>
+      </g>))}
+    </svg>
+    <table style="margin-top:12px">
+      <thead><tr><th>Natureza jurídica</th><th class="num">Empresas ativas</th><th class="num">%</th></tr></thead>
+      <tbody>{(e.por_natureza as any[]).map((n) => (<tr><td>{n.natureza}</td><td class="num">{num(n.ativas)}</td><td class="num">{pct(n.ativas, e.ativas)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Fonte: <a href={e.url} rel="noopener">Mapa de Empresas (governo federal, dados abertos)</a>, empresas ativas por natureza jurídica e porte. Conta CNPJs, não pessoas: uma pessoa pode ter mais de uma empresa.</p>
+  </div>
+
+  <h2>Benefícios pagos pelo INSS: {mi(inss.total)} por mês ({inss.mes.toLowerCase()}/{inss.ano})</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Grupo</th><th class="num">Benefícios</th><th class="num">%</th><th>O que é</th></tr></thead>
+      <tbody>
+        <tr><td>Previdenciários (RGPS)</td><td class="num">{num(inss.rgps)}</td><td class="num">{pct(inss.rgps, inss.total)}</td><td class="desc">Aposentadorias, pensões por morte, auxílios por incapacidade, salário-maternidade: quem contribuiu.</td></tr>
+        <tr><td>Assistenciais (BPC/LOAS)</td><td class="num">{num(inss.assistencial)}</td><td class="num">{pct(inss.assistencial, inss.total)}</td><td class="desc">Um salário mínimo a idosos de 65+ e pessoas com deficiência de baixa renda, sem contribuição.</td></tr>
+        {inss.ble != null && <tr><td>Legislação especial</td><td class="num">{num(inss.ble)}</td><td class="num">{pct(inss.ble, inss.total)}</td><td class="desc">Pensões especiais (ex.: hanseníase, talidomida, anistiados).</td></tr>}
+      </tbody>
+    </table>
+    <p class="src">Fonte: <a href={inss.url} rel="noopener">Boletim Estatístico da Previdência Social</a> (edição {inss.edicao}), tabela 14, benefícios emitidos no mês. Não inclui aposentados de regimes próprios (servidores da União, estados e municípios).</p>
+  </div>
+
+  <Glossario termos={["per_capita"]} />
+</Base>
+<style>
+  .pizza { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 720px) { .pizza { grid-template-columns: 1fr; } }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  td.desc { color: var(--ink-2); font-size: 12.5px; white-space: normal; max-width: 40ch; }
+</style>
