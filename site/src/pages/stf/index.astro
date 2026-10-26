@@ -1,0 +1,85 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import rows from "../../../public/data/custo_ministro_stf_2026.json";
+import meta from "../../../public/data/meta_stf_2026.json";
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const n = rows.length;
+const nMeses = meta.meses_com_folha.length;
+const totalMes = rows.reduce((s, r) => s + r.custo_mensal_medio, 0);
+const mediaMes = totalMes / n;
+const remMes = rows.reduce((s, r) => s + r.remuneracao_mensal_media, 0) / n;
+const gabMes = rows.reduce((s, r) => s + r.gabinete_mensal_medio, 0) / n;
+const anualTotal = rows.reduce((s, r) => s + r.custo_anual_projetado, 0);
+const proj = meta.anual_e_projecao ? " (projeção)" : "";
+const quando = new Date(meta.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const dataFmt = fmt.format(quando).replace(",", " às") + " (Brasília)";
+const nomeCurto = (s: string) => s.split(" ").filter((p) => p.length > 2).slice(0, 3).join(" ").toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+const max = Math.max(1, ...rows.map((r) => r.custo_mensal_medio));
+const W = 920, labelW = 260, plotW = W - labelW - 110, rowH = 30;
+const x = (v: number) => (v / max) * plotW;
+---
+<Base title="Quanto custa um ministro do STF? — Nosso Dinheiro">
+  <h1>Quanto custa um ministro do STF?</h1>
+  <p class="lede">
+    <Termo t="remuneracao_bruta">Remuneração</Termo> de cada ministro e <Termo t="gabinete_stf">folha do seu gabinete</Termo>
+    (servidores, assessores, juízes auxiliares), mês a mês, como o próprio STF publica. {meta.ano}:
+    {nMeses} meses com folha ({MESES[meta.meses_com_folha[0] - 1]} a {MESES[meta.ultimo_mes - 1]}), {n} ministros em atividade.
+  </p>
+  <p class="meta">Dados atualizados em {dataFmt} · fonte: STF, Portal da Transparência → Remuneração (exportação CSV por cargo e por lotação) · atualização automática toda terça-feira</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio de um ministro, <strong>por mês</strong>: remuneração + gabinete</span></div>
+    <div class="stat"><b>{brl0(remMes)}</b><span><Termo t="remuneracao_bruta">remuneração bruta</Termo> média do ministro por mês</span></div>
+    <div class="stat"><b>{brl0(gabMes)}</b><span><Termo t="gabinete_stf">gabinete</Termo> por mês, em média ({Math.round(rows.reduce((s, r) => s + r.gabinete_pessoas_media, 0) / n)} pessoas)</span></div>
+  </div>
+  <div class="hero" style="margin-top:0">
+    <div class="stat"><b>{compact(anualTotal)}</b><span>os {n} ministros e seus gabinetes <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
+    <div class="stat"><b>{brl0(meta.aposentados.bruto_ultimo_mes)}</b><span>pagos em {MESES[meta.ultimo_mes - 1]} a {meta.aposentados.quantidade_ultimo_mes} <Termo t="ministro_aposentado">ministros aposentados</Termo> (fora do total)</span></div>
+    <div class="stat"><b>{compact(meta.totais.custo_total_estimado)}</b><span>custo acumulado em {nMeses} meses de {meta.ano}</span></div>
+  </div>
+
+  <div class="disclaimer">
+    <span aria-hidden="true">ⓘ</span>
+    <div><b>É folha publicada, não estimativa.</b> O valor do ministro é a coluna "remuneração bruta após o teto constitucional
+    somada com outras verbas" do STF: o subsídio limitado ao <Termo t="teto_constitucional">teto</Termo> mais verbas indenizatórias e
+    eventuais (auxílios, retroativos), que explicam a diferença entre ministros. O gabinete é a soma da mesma coluna para todas as
+    pessoas lotadas no gabinete. O presidente do Tribunal aparece com o Gabinete da Presidência, menor que um gabinete de ministro.
+    Não entram: prédio, segurança, viagens, aposentados. <a href="/metodologia/">Metodologia</a>.</div>
+  </div>
+
+  <h2>Por ministro, por mês</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--s3)"></i>Remuneração do ministro</span><span><i style="background:var(--s1)"></i>Folha do gabinete</span></div>
+    <svg viewBox={`0 0 ${W} ${rows.length * rowH + 20}`} width="100%" role="img" aria-label="Custo mensal médio por ministro do STF">
+      {rows.map((r, i) => (
+        <g transform={`translate(0 ${10 + i * rowH})`}>
+          <text x={labelW - 8} y={rowH / 2 + 4} text-anchor="end" font-size="12" fill="var(--ink)">{nomeCurto(r.nome)}</text>
+          <rect x={labelW} y="5" width={Math.max(0, x(r.remuneracao_mensal_media) - 1)} height={rowH - 10} fill="var(--s3)" rx="2"><title>Remuneração: {brl0(r.remuneracao_mensal_media)}/mês</title></rect>
+          <rect x={labelW + x(r.remuneracao_mensal_media)} y="5" width={Math.max(0, x(r.gabinete_mensal_medio) - 1)} height={rowH - 10} fill="var(--s1)" rx="2"><title>Gabinete: {brl0(r.gabinete_mensal_medio)}/mês, {r.gabinete_pessoas_media} pessoas</title></rect>
+          <text x={labelW + x(r.custo_mensal_medio) + 6} y={rowH / 2 + 4} font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl0(r.custo_mensal_medio)}</text>
+        </g>
+      ))}
+    </svg>
+    <p class="src">Média dos {nMeses} meses com folha publicada em {meta.ano}. Fonte: STF, Remuneração (CSV). <a href="/metodologia/">metodologia</a></p>
+  </div>
+
+  <h2>Todos os ministros</h2>
+  <table>
+    <thead><tr><th>#</th><th>Ministro(a)</th><th>Lotação</th><th class="num"><Termo t="remuneracao_bruta">Remuneração</Termo> / mês</th><th class="num"><Termo t="gabinete_stf">Gabinete</Termo> / mês</th><th class="num">Pessoas</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
+    <tbody>
+      {rows.map((r, i) => (
+        <tr><td class="rank">{i + 1}</td><td>{nomeCurto(r.nome)}</td><td>{r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
+            <td class="num">{brl0(r.remuneracao_mensal_media)}</td><td class="num">{brl0(r.gabinete_mensal_medio)}</td><td class="num">{r.gabinete_pessoas_media}</td>
+            <td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+  <Glossario termos={["remuneracao_bruta", "teto_constitucional", "gabinete_stf", "ministro_aposentado", "projecao"]} />
+</Base>

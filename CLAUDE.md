@@ -47,6 +47,32 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Pendências: teto CEAP por UF (Ato da Mesa 43/2009), gasto real de gabinete, confirmar 13º/férias,
   subsídio proporcional p/ quem assumiu no meio do ano, passagens SIGEPA não aparecem no CSV (verificar).
 
+## Painel Senadores (NO AR, dados reais, sem chave)
+- `etl/senado/extract.py`: `senadores` (lista atual), `legislatura --numero 57` (245, inclusive quem saiu; usado nas
+  emendas), `recursos --ano` (JSON oficial `adm.senado.gov.br/adm-dadosabertos/api/v1/senadores/{id}/recursos-utilizados`:
+  CEAPS por categoria, gastos não inclusos na cota — diárias, passagens aéreas, correios, mídias —, benefícios,
+  nº de pessoal por gabinete). `transform.py` → `custo_senador_<ano>.json` + `meta_senado_<ano>.json`.
+- Fórmula: subsídio (mesmo dos deputados) + CEAPS real + gastos fora da cota (real). **Sem pessoal do gabinete**
+  (Senado publica só a quantidade; custo está na folha de servidores — pendência) e sem auxílio-moradia (só
+  utilizou/não). 2026 (10 meses): 81 senadores, média R$ 90,8 mil/mês. Workflow `etl-senado.yml` (segunda 06:47 BRT).
+- Site: `/senadores/`, `/senadores/uf/{uf}/`, `/senadores/partido/{slug}/`; componentes parametrizados por `casa`.
+  Metodologia: `docs/metodologia/painel-senadores.md`.
+
+## Painel STF (NO AR, folha real do STF, sem chave)
+- `etl/stf/extract.py folha --ano`: CSV do formulário `egesp-portal.stf.jus.br/transparencia/rendimento_folha`
+  (`tipo_relatorio=CSV`; cargo 55 = ministros; `q[cdg_unidade_in][]` = folha de um gabinete; ids das lotações
+  lidos do HTML). Para em 2 meses seguidos sem folha. `transform.py` → `custo_ministro_stf_<ano>.json` + `meta_stf_<ano>.json`.
+- Custo = "Remuneração bruta após o teto + outras verbas" do ministro + soma da mesma coluna de quem está lotado no
+  gabinete (sem o ministro). Presidente (Fachin) aparece com o Gabinete da Presidência (7 pessoas) — subestimado,
+  avisado na página. Aposentados (16) como estatística separada. 2026 jan–ago: 10 ministros, média R$ 811 mil/mês
+  (remuneração 53 mil + gabinete 758 mil, ~33 pessoas). Workflow `etl-stf.yml` (terça 07:17 BRT).
+- Site: `/stf/`. Metodologia: `docs/metodologia/painel-stf.md`. Próximo: STJ/TST/TSE/CNJ no mesmo molde.
+
+## Glossário e filtros (site)
+- `site/src/lib/glossario.ts` + `<Termo t="…">` (dica ⓘ em CSS, sem JS) + `<Glossario termos=[…]>` no fim de cada página.
+- Emendas: autores casados com deputados + senadores da legislatura (`etl/portal_transparencia/nomes.py`: exato →
+  aproximado por tokens, único candidato). 2025: 590/592 autores identificados; página mostra em exercício × fora.
+
 ## Painel Poderes (NO AR, dados reais 2025 — todos os Poderes)
 - Fonte: **SIOP, SPARQL público** `https://www1.siop.planejamento.gov.br/sparql/`, grafo
   `http://orcamento.dados.gov.br/<ano>/` (sem chave; 1 consulta agregada órgão × UO × GND, ~1.200 linhas, ~10 s).
@@ -76,8 +102,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   (RP6) têm autor único.
 
 ## Próximos passos combinados
-1. Senadores: painel "quanto custa um senador" (API legis.senado.leg.br/dadosabertos/senador/lista/atual + CEAPS CSV
-   `senado.gov.br/transparencia/LAI/verba/despesa_ceaps_<ano>.csv`; falta fonte do teto de gabinete do Senado).
+1. Senado: custo do gabinete por senador via folha de servidores (lotação); teto CEAPS por UF; auxílio-moradia com fonte.
+   STF: composição da remuneração; replicar para STJ/TST/TSE/CNJ.
 2. Página por deputado `/deputado/{id}` (foto, cota mês a mês, categorias, fornecedores, link da NF) — maior
    ganho de SEO e o link para os comentários do Instagram.
 3. Painel "No que gastaram" (categorias) e fornecedores em rede.

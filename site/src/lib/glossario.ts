@@ -32,6 +32,12 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   gastos_nao_inclusos: { rotulo: "Gastos fora da cota", texto: "Despesas do senador que o Senado paga por fora da cota e publica por nome: diárias de viagens oficiais, passagens aéreas compradas pelo Senado, correios, material e impulsionamento em mídias sociais." },
   imovel_funcional: { rotulo: "Imóvel funcional", texto: "Apartamento do Senado em Brasília cedido ao senador. Quem não ocupa pode receber auxílio-moradia. Nenhum dos dois entra no total porque o Senado não publica o custo por senador." },
 
+  // STF
+  remuneracao_bruta: { rotulo: "Remuneração bruta", texto: "Coluna 'remuneração bruta após o teto constitucional somada com outras verbas' da folha do STF: o subsídio limitado ao teto mais verbas indenizatórias e eventuais (auxílios, retroativos, substituições). Antes dos descontos de imposto de renda e previdência." },
+  teto_constitucional: { rotulo: "Teto constitucional", texto: "Limite para qualquer remuneração no serviço público: o subsídio de ministro do STF (R$ 46.366,19 desde fevereiro de 2026). Verbas indenizatórias, como auxílios, ficam fora do teto, por isso o bruto pode passar dele." },
+  gabinete_stf: { rotulo: "Gabinete do ministro", texto: "Equipe lotada no gabinete: assessores, analistas, técnicos, servidores cedidos de outros órgãos, juízes auxiliares. O valor é a soma da remuneração bruta de todos eles no mês, conforme a folha publicada pelo STF." },
+  ministro_aposentado: { rotulo: "Ministros aposentados", texto: "Ex-ministros do STF que recebem aposentadoria pela própria folha do Tribunal. Mostramos o total como informação; não entra no custo de nenhum ministro em atividade." },
+
   // Poderes
   maquina: { rotulo: "Manter a máquina", texto: "Despesas do 'Programa de Gestão e Manutenção' de cada Poder na Lei Orçamentária: salários, aposentadorias e pensões do órgão, prédios, custeio, equipamentos. É o que o Poder gasta para existir e funcionar." },
   politicas_publicas: { rotulo: "Políticas públicas", texto: "Programas finalísticos do orçamento: Previdência, SUS, Bolsa Família, educação, estradas. São serviços entregues à população, não custo de funcionamento do órgão." },
