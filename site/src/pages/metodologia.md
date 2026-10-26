@@ -3,117 +3,72 @@ layout: ../layouts/Base.astro
 title: Metodologia — Nosso Dinheiro
 ---
 
-Versão 0.1 · 26/10/2026 · Status: MVP
+Última revisão: 26/10/2026
 
-## 1. Pergunta
+**Regra única do site: só o que os órgãos públicos publicam, com a fonte de cada número.** Não damos nota,
+não fazemos ranking de "bom ou ruim" e não estimamos o que a fonte não publica — quando usamos um teto no
+lugar do gasto real, o rótulo diz isso. Abaixo, o essencial de cada painel. A versão completa de cada um, com
+fórmulas, limitações e pendências, está no repositório do projeto (código MIT, dados e textos CC BY 4.0):
+`github.com/pereirawill/nossodinheiro.org`, pasta `docs/metodologia/`.
 
-**Quanto custa, para o contribuinte, manter cada um dos 513 deputados federais em um ano?**
-O painel decompõe o custo em parcelas com naturezas diferentes — o que é remuneração
-pessoal (subsídio), o que é reembolso de despesa de mandato (cota parlamentar) e o que é
-folha de pessoal do gabinete (verba de gabinete) — e deixa explícito o que é **gasto real**
-e o que é **teto/estimativa**.
+## Deputados — quanto custa um deputado federal
 
-## 2. Fontes
+- **Somamos:** subsídio (Decreto Legislativo 172/2022, 13 salários + ⅓ de férias por ano) + cota parlamentar
+  realmente gasta, líquida de glosas (CSV anual da CEAP da Câmara) + verba de gabinete pelo **teto**
+  (R$ 165.806,07/mês, igual para todos).
+- **Não somamos:** auxílio-moradia (não há lista pública de quem recebe), plano de saúde, previdência,
+  estrutura da Câmara, emendas (não são custo do deputado).
+- **Fonte:** API de Dados Abertos da Câmara (lista e situação de cada deputado) e `camara.leg.br/cotas`.
+- **Atenção:** o gasto real de gabinete não é publicado em dado aberto; por isso o teto. Ano corrente:
+  valores até o mês atual, custo anual é projeção.
+- Completo: `docs/metodologia/painel-1-custo-deputados.md`.
 
-| Parcela | Fonte | Tipo | Granularidade |
-|---|---|---|---|
-| Lista de deputados | API Dados Abertos da Câmara, `GET /deputados?idLegislatura=57` | primária, oficial | por deputado |
-| Cota parlamentar (CEAP) — gasto real | API, `GET /deputados/{id}/despesas?ano=` **ou** CSV anual `camara.leg.br/cotas/Ano-YYYY.csv.zip` | primária, oficial | por documento (nota fiscal/recibo) |
-| Subsídio mensal | Decreto Legislativo 172/2022 (escalonamento 2023-2026) | norma | valor fixo por período |
-| Verba de gabinete (teto) | camara.leg.br/transparencia/gastos-parlamentares (lido em 26/10/2026) | oficial | valor fixo mensal |
-| Auxílio-moradia | idem | oficial | valor fixo mensal |
+## Senadores — quanto custa um senador
 
-**Fonte padrão da CEAP: CSV anual** (`Ano-YYYY.csv.zip`). Em 26/10/2026 o endpoint
-`/deputados/{id}/despesas` da API respondia 200 com lista vazia para qualquer filtro; o CSV
-é a mesma base publicada pela Câmara. A API fica como alternativa (`--fonte api`).
+- **Somamos:** subsídio (o mesmo dos deputados) + cota CEAPS reembolsada, por categoria + gastos fora da
+  cota que o Senado publica por nome (diárias, passagens aéreas, correios, material, mídias sociais). Tudo gasto real.
+- **Não somamos:** pessoal do gabinete (o Senado publica quantas pessoas, não quanto custam, e não há teto
+  único publicado) nem auxílio-moradia e imóvel funcional (só "utilizou / não utilizou"). **Por isso o senador
+  aparece mais barato que o deputado: compare só subsídio + cota.**
+- **Fonte:** Senado Federal, Transparência → "Recursos utilizados" por senador (API `adm-dadosabertos`) e
+  Dados Abertos do Senado (lista de senadores).
+- Completo: `docs/metodologia/painel-senadores.md`.
 
-A API é consumida sem autenticação; os dados são coletados pelo ETL em `etl/camara/`
-e versionados em `data/public/` (JSON agregado). O raw e o Parquet ficam fora do git
-e são publicados como artefato do GitHub Actions.
+## STF — quanto custa um ministro
 
-## 3. Fórmula
+- **Somamos:** a coluna "remuneração bruta após o teto constitucional somada com outras verbas" do ministro,
+  mês a mês, + a mesma coluna para todas as pessoas lotadas no gabinete dele. É folha publicada, não estimativa.
+- **Não somamos:** prédio, segurança, viagens, estrutura comum do Tribunal, ministros aposentados (mostrados à parte).
+- **Fonte:** STF, Portal da Transparência → Remuneração, exportação CSV por cargo (ministros) e por lotação (gabinete).
+- **Atenção:** o presidente do Tribunal aparece com o Gabinete da Presidência, menor que um gabinete de
+  ministro; o custo dele fica subestimado. A folha de um mês sai no mês seguinte; a página informa até que mês há dados.
+- Completo: `docs/metodologia/painel-stf.md`.
 
-```
-custo_total_estimado(deputado, ano) =
-      subsídio(ano)                       # §3.1 — fixo, igual para todos
-    + CEAP_líquida(deputado, ano)         # §3.2 — gasto REAL, varia por deputado
-    + verba_gabinete_teto(ano)            # §3.3 — TETO, igual para todos (estimativa superior)
-```
+## Emendas — para onde vai o dinheiro das emendas
 
-### 3.1 Subsídio
-Valor bruto mensal, com reajuste em fevereiro de cada ano (DL 172/2022):
-R$ 39.293,32 (2023) → 41.650,92 (2024) → 44.008,52 (2025) → **46.366,19 (2026)**.
-Somamos mês a mês (janeiro de 2026 ainda usa o valor de 2025) e acrescentamos
-13º subsídio e 1/3 de férias, proporcionais aos meses considerados
-(`SUBSIDIOS_POR_ANO = 13 + 1/3`).
-**Premissa a confirmar:** a incidência exata de 13º/férias deve ser conferida na folha
-publicada pela Câmara (transparência → remuneração). Até lá, está sinalizada como premissa.
+- **O que é:** valor empenhado (reservado) e pago (saiu do caixa) das emendas de cada autor no ano; só
+  emendas individuais têm autor único. **Emenda não é custo do parlamentar** e nunca é somada aos painéis acima.
+- **Autor → partido e UF:** cruzamento por nome com as listas oficiais de deputados e senadores da legislatura,
+  inclusive quem já saiu; casamentos aproximados (títulos e sufixos ignorados) só quando há um único candidato,
+  e ficam registrados. Quem não casa aparece sem sigla.
+- **Fonte:** API de Dados do Portal da Transparência (CGU), `/emendas`.
+- Completo: `docs/metodologia/painel-emendas.md`.
 
-### 3.2 Cota parlamentar (CEAP)
-Soma de `valorLiquido` de todos os documentos do deputado no ano.
-- `valorLiquido = valorDocumento − valorGlosa`. Glosa é o valor **não** reembolsado
-  pela Câmara; usar o líquido evita inflar o custo com despesas rejeitadas.
-- Inclui todos os tipos (passagens, divulgação, combustível, escritório etc.).
-- Sem rateio de teto: a cota não gasta não é custo.
-- O ETL **não** persiste o CPF do parlamentar presente no CSV anual.
+## Poderes — quanto custa manter cada Poder
 
-### 3.3 Verba de gabinete
-Teto mensal de **R$ 165.806,07** para até 25 secretários parlamentares.
-**Limitação central do MVP:** o gasto real por gabinete não está na API de Dados
-Abertos; é publicado por deputado no site da Câmara. Usamos o teto como
-estimativa superior e declaramos isso no gráfico. Roadmap: raspar a página de
-verba de gabinete por deputado e substituir o teto pelo real (v0.2).
-Encargos (13º, férias, auxílio-alimentação dos secretários) são pagos pela Câmara
-fora desse teto e **não** estão contabilizados — o custo real do gabinete é maior.
+- **O número:** despesa paga no ano por órgão da União, separada em "manter a máquina" (o Programa de Gestão e
+  Manutenção de cada Poder na Lei Orçamentária: pessoal ativo, aposentados, custeio, investimento) e "políticas
+  públicas" (programas finalísticos: Previdência, SUS, Bolsa Família). A divisão é a da própria LOA, não nossa.
+- **Fora da comparação:** juros, amortização, transferências a estados e municípios e encargos de órgãos
+  extintos ("Dívida/Transferências"). Ministério Público e Defensoria ficam em "Funções essenciais".
+- **Fonte:** SIOP (Ministério do Planejamento e Orçamento), dados abertos da execução orçamentária, consulta SPARQL.
+  Não usamos a API do Portal da Transparência porque ela cobre só o Poder Executivo.
+- Completo: `docs/metodologia/painel-poderes.md`.
 
-### 3.4 O que fica de fora do total (e por quê)
-- **Auxílio-moradia (R$ 4.253/mês):** só recebe quem não ocupa um dos 447
-  apartamentos funcionais. Sem lista pública fácil de quem ocupa, não há como
-  atribuir individualmente sem chutar. Aparece como coluna separada `auxilio_moradia_max`.
-- **Ajuda de custo** (um subsídio no início e no fim da legislatura), **plano de saúde**,
-  **previdência**, **passaporte diplomático**, **estrutura física/TI da Câmara**: custos
-  reais, mas sem base individual na fonte. Documentados como lacuna.
-- **Emendas parlamentares:** não são "custo do deputado" — são despesa pública
-  alocada por ele. Painel próprio no futuro.
+## Como conferir
 
-### 3.5 Mensal e anual
-- `custo_mensal_medio` = custo_total_estimado / meses_considerados.
-- `custo_anual_projetado` = subsídio de 12 meses (com 13º e 1/3 de férias) + teto de gabinete × 12
-  + cota **extrapolada** pela média mensal observada. Para o ano corrente é **projeção** e o site
-  rotula como tal; para anos fechados é igual ao custo total.
-
-## 4. Período e atualização
-- Ano corrente: `meses_considerados = mês atual` (o mês corrente entra parcial;
-  despesas da CEAP têm atraso de lançamento de semanas). Anos fechados: 12.
-- Atualização semanal via GitHub Actions (segunda, 06:17 BRT). Cada execução
-  reprocessa o ano inteiro — a API corrige/glosa documentos retroativamente.
-
-## 5. Como ler o gráfico
-- Como subsídio e verba de gabinete são iguais para todos, **o ranking é decidido
-  pela cota parlamentar**. O gráfico empilhado existe para mostrar a *proporção*,
-  não para sugerir que um deputado "ganha" mais salário.
-- "Mais caro" ≠ "pior". Deputados de estados distantes têm teto de cota maior
-  (R$ ~41,6 mil no DF a ~57,3 mil em RR) porque passagens custam mais.
-  Versão futura: coluna "% do teto da UF" para comparar justo.
-
-## 6. Reprodutibilidade
-```
-pip install -r requirements.txt
-python -m etl.camara.extract deputados
-python -m etl.camara.extract despesas --ano 2026     # ou: ceap-bulk --ano 2026
-python -m etl.camara.transform --ano 2026 --fonte api # ou --fonte bulk
-python -m etl.camara.chart --ano 2026 --top 20
-```
-Todas as constantes e suas fontes/datas estão em `etl/camara/config.py`.
-Mudou um número lá → mudou aqui, na mesma PR.
-
-## 6b. Reconciliação com a fonte (26/10/2026)
-| Métrica | Oficial | Nosso ETL | Diferença | Explicação |
-|---|---|---|---|---|
-| CEAP 2026, todos os registros do CSV | R$ 179,09 mi (camara.leg.br/transparencia) | R$ 141,32 mi (só linhas com `ideCadastro`) | −21% | Lideranças partidárias/do governo têm cota própria e ficam fora do custo individual; o CSV também inclui lançamentos de ex-deputados da legislatura. A conferir: somar as linhas sem `ideCadastro` e verificar se fecha. |
-
-## 7. Pendências conhecidas (v0.1)
-- [ ] Tabela completa do teto da CEAP por UF, de fonte primária (Ato da Mesa 43/2009 e atualizações).
-- [ ] Gasto real da verba de gabinete por deputado (substituir teto).
-- [ ] Confirmar 13º/férias do subsídio na folha publicada.
-- [x] Só deputados com `ultimoStatus.situacao = Exercício` entram (v0.2). Pendente: proporcionalizar o subsídio pelo período real de exercício de quem assumiu no meio do ano.
+Cada página tem a fonte no topo, um aviso com as premissas e um glossário no fim. Todo número fixo (subsídio,
+teto, população) está em arquivos de configuração com fonte e data, e mudar um deles exige mudar a metodologia
+na mesma alteração. Os dados brutos são baixados automaticamente das fontes oficiais; os agregados que
+alimentam o site são versionados no repositório, com data de geração. Erro ou divergência: abra uma issue no
+repositório ou escreva pelo Instagram.
