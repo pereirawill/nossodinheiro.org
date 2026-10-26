@@ -20,7 +20,6 @@ const proj = meta.anual_e_projecao ? " (projeção)" : "";
 const quando = new Date(meta.gerado_em_utc);
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const dataFmt = fmt.format(quando).replace(",", " às") + " (Brasília)";
-const nomeCurto = (s: string) => s.split(" ").filter((p) => p.length > 2).slice(0, 3).join(" ").toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 const max = Math.max(1, ...rows.map((r) => r.custo_mensal_medio));
 const W = 920, labelW = 260, plotW = W - labelW - 110, rowH = 30;
 const x = (v: number) => (v / max) * plotW;
@@ -60,7 +59,7 @@ const x = (v: number) => (v / max) * plotW;
     <svg viewBox={`0 0 ${W} ${rows.length * rowH + 20}`} width="100%" role="img" aria-label="Custo mensal médio por ministro do STF">
       {rows.map((r, i) => (
         <g transform={`translate(0 ${10 + i * rowH})`}>
-          <text x={labelW - 8} y={rowH / 2 + 4} text-anchor="end" font-size="12" fill="var(--ink)">{nomeCurto(r.nome)}</text>
+          <text x={labelW - 8} y={rowH / 2 + 4} text-anchor="end" font-size="12" fill="var(--ink)">{r.nome_curto}</text>
           <rect x={labelW} y="5" width={Math.max(0, x(r.remuneracao_mensal_media) - 1)} height={rowH - 10} fill="var(--s3)" rx="2"><title>Remuneração: {brl0(r.remuneracao_mensal_media)}/mês</title></rect>
           <rect x={labelW + x(r.remuneracao_mensal_media)} y="5" width={Math.max(0, x(r.gabinete_mensal_medio) - 1)} height={rowH - 10} fill="var(--s1)" rx="2"><title>Gabinete: {brl0(r.gabinete_mensal_medio)}/mês, {r.gabinete_pessoas_media} pessoas</title></rect>
           <text x={labelW + x(r.custo_mensal_medio) + 6} y={rowH / 2 + 4} font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl0(r.custo_mensal_medio)}</text>
@@ -75,7 +74,7 @@ const x = (v: number) => (v / max) * plotW;
     <thead><tr><th>#</th><th>Ministro(a)</th><th>Lotação</th><th class="num"><Termo t="remuneracao_bruta">Remuneração</Termo> / mês</th><th class="num"><Termo t="gabinete_stf">Gabinete</Termo> / mês</th><th class="num">Pessoas</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
     <tbody>
       {rows.map((r, i) => (
-        <tr><td class="rank">{i + 1}</td><td>{nomeCurto(r.nome)}</td><td>{r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
+        <tr><td class="rank">{i + 1}</td><td>{r.nome_curto}</td><td>{r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
             <td class="num">{brl0(r.remuneracao_mensal_media)}</td><td class="num">{brl0(r.gabinete_mensal_medio)}</td><td class="num">{r.gabinete_pessoas_media}</td>
             <td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
       ))}

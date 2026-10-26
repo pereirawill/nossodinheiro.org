@@ -35,7 +35,10 @@ def test_transform_stf(tmp_path, monkeypatch):
     rows = json.loads(out.read_text(encoding="utf-8"))
     assert len(rows) == 1                       # aposentado não vira linha
     r = rows[0]
-    assert r["meses_com_folha"] == 2
+    assert r["meses_com_folha"] == 2 and r["nome_curto"] == "Exemplo"
+    from etl.stf.transform import nome_curto
+    assert nome_curto("JOSÉ ANTONIO DIAS TOFFOLI", "GABINETE MINISTRO DIAS TOFFOLI") == "Dias Toffoli"
+    assert nome_curto("LUIZ EDSON FACHIN", "GABINETE DA PRESIDÊNCIA") == "Edson Fachin"
     assert r["remuneracao_bruta"] == 100000.0 and r["remuneracao_mensal_media"] == 50000.0
     assert r["gabinete"] == 50000.0             # 20k+10k (jan) + 20k+0 (fev); o ministro não é contado no gabinete
     assert r["gabinete_pessoas_media"] == 2.0

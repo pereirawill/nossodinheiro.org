@@ -42,6 +42,18 @@ def _f(v) -> float:
         return 0.0
 
 
+def nome_curto(nome: str, unidade: str) -> str:
+    """'GABINETE MINISTRO DIAS TOFFOLI' → 'Dias Toffoli'; sem gabinete próprio → dois últimos nomes."""
+    u = unidade.upper()
+    for prefixo in ("GABINETE MINISTRA ", "GABINETE MINISTRO "):
+        if u.startswith(prefixo):
+            base = unidade[len(prefixo):]
+            break
+    else:
+        base = " ".join(nome.split()[-2:])
+    return " ".join(w.lower() if w.lower() in ("de", "da", "do", "e") else w.capitalize() for w in base.split())
+
+
 def run(ano: int, hoje: date | None = None) -> Path:
     hoje = hoje or date.today()
     PUB.mkdir(parents=True, exist_ok=True)
@@ -82,7 +94,7 @@ def run(ano: int, hoje: date | None = None) -> Path:
         gab = round(gab_total.get(u, 0.0), 2)
         total = round(m["remuneracao"] + gab, 2)
         out_rows.append({
-            "matricula": m["matricula"], "nome": m["nome"], "unidade": u, "ano": ano, "meses_com_folha": n_meses,
+            "matricula": m["matricula"], "nome": m["nome"], "nome_curto": nome_curto(m["nome"], u), "unidade": u, "ano": ano, "meses_com_folha": n_meses,
             "remuneracao_bruta": round(m["remuneracao"], 2), "remuneracao_liquida": round(m["liquido"], 2),
             "remuneracao_mensal_media": round(m["remuneracao"] / n_meses, 2),
             "gabinete": gab, "gabinete_mensal_medio": round(gab / n_meses, 2),
