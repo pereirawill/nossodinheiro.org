@@ -103,10 +103,37 @@ const W = 920, L = 60, rowH = 26;
     </table>
   </div>
 
+  <h2>Em que foi gasta a parte identificada (2026)</h2>
+  {(() => {
+    const at = c26.por_atividade as { atividade: string; valor: number; transacoes: number; fornecedores: number }[];
+    const totAt = at.reduce((s, a) => s + a.valor, 0);
+    const CORES = ["var(--s4)", "var(--s1)", "var(--s2)", "var(--s3)", "var(--s5)", "#b07aa1", "#59a14f", "#edc948", "#76b7b2", "#ff9da7", "#9c755f", "#bab0ac", "#4e79a7"];
+    const R = 80, C = 100; let ang = -Math.PI / 2;
+    const fatias = at.map((a, i) => { const f = a.valor / totAt; const a0 = ang; ang += f * 2 * Math.PI;
+      const x0 = C + R * Math.cos(a0), y0 = C + R * Math.sin(a0), x1 = C + R * Math.cos(ang), y1 = C + R * Math.sin(ang);
+      return { ...a, f, cor: CORES[i % CORES.length], d: `M${C},${C} L${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${f > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` }; });
+    return (
+      <div class="card pizza">
+        <svg viewBox="0 0 200 200" width="220" role="img" aria-label="Parte identificada do cartão por tipo de atividade do fornecedor">
+          {fatias.map((f) => <path d={f.d} fill={f.cor} stroke="var(--card)" stroke-width="1"><title>{f.atividade}: {brl0(f.valor)} ({pct(f.f)})</title></path>)}
+          <circle cx={C} cy={C} r="42" fill="var(--card)" />
+          <text x={C} y={C - 2} text-anchor="middle" font-size="11" fill="var(--ink-2)">identificado</text>
+          <text x={C} y={C + 14} text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{compact(totAt)}</text>
+        </svg>
+        <table>
+          <thead><tr><th>Tipo de atividade do fornecedor (CNAE)</th><th class="num">Valor</th><th class="num">%</th><th class="num">Fornecedores</th></tr></thead>
+          <tbody>{fatias.map((f) => (<tr><td><i class="sw" style={`background:${f.cor}`}></i>{f.atividade}</td><td class="num">{brl0(f.valor)}</td><td class="num">{pct(f.f)}</td><td class="num">{f.fornecedores}</td></tr>))}</tbody>
+        </table>
+        <p class="src" style="grid-column:1/-1">Classificação pela atividade principal (CNAE) que cada CNPJ declara à Receita Federal, não pelo nome do fornecedor. Cobre só a parte identificada e
+          com CNPJ ({compact(totAt)} de {compact(t.presidencia)}); os {pct(t.pct_sigiloso)} sob sigilo não têm fornecedor publicado e por isso não entram aqui.</p>
+      </div>
+    );
+  })()}
+
   <h2>Fornecedores identificados (pessoa jurídica, 2026)</h2>
   <table>
-    <thead><tr><th>#</th><th>Fornecedor</th><th>CNPJ</th><th class="num">Valor</th><th class="num">Transações</th></tr></thead>
-    <tbody>{c26.favorecidos.map((f, i) => (<tr><td class="rank">{i + 1}</td><td>{f.favorecido}</td><td class="mono">{f.doc}</td><td class="num">{brl0(f.valor)}</td><td class="num">{f.transacoes}</td></tr>))}</tbody>
+    <thead><tr><th>#</th><th>Fornecedor</th><th>Atividade (CNAE)</th><th>CNPJ</th><th class="num">Valor</th><th class="num">Transações</th></tr></thead>
+    <tbody>{c26.favorecidos.map((f: any, i) => (<tr><td class="rank">{i + 1}</td><td>{f.favorecido}</td><td style="white-space:normal;font-size:12.5px">{f.atividade}</td><td class="mono">{f.doc}</td><td class="num">{brl0(f.valor)}</td><td class="num">{f.transacoes}</td></tr>))}</tbody>
   </table>
   <p class="src">Só a parte identificada do cartão ({compact(t.presidencia - t.sigiloso)} em 2026); favorecidos pessoa física não são listados aqui.</p>
 
@@ -127,4 +154,7 @@ const W = 920, L = 60, rowH = 26;
   .grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 860px) { .grade2 { grid-template-columns: 1fr; } }
   td.mono { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .pizza { display: grid; grid-template-columns: 240px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 720px) { .pizza { grid-template-columns: 1fr; } }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 </style>

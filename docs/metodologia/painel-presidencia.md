@@ -27,6 +27,11 @@ Não há uma linha "gasto do presidente" publicada por nenhum órgão. O que o g
   (`***.xxx.xxx-**`); o site lista só favorecidos pessoa jurídica (CNPJ) e o número de portadores, não seus nomes.
 - Meses ainda não publicados respondem HTTP 403 e são pulados; o painel informa quantos meses do ano há.
 
+- **Tipo de serviço**: a parte identificada com CNPJ é classificada pela atividade principal (CNAE) que o fornecedor declara
+  à Receita Federal, consultada por API pública (BrasilAPI; minhareceita.org de reserva) e guardada em `data/cnae_cache.json`.
+  O mapa CNAE → rótulo está em `etl/presidencia/cnae.py` (ex.: 4731 = postos de combustível; 55 = hospedagem; 56 = alimentação).
+  Nada é inferido pelo nome do fornecedor. 2026: 60% da parte identificada é combustível.
+
 ## 3. Resultado (lido em 2026-10-26)
 
 2026, jan–ago: Presidência R$ 10,47 mi (98% sob sigilo; R$ 1,31 mi/mês); governo federal inteiro R$ 72,46 mi.

@@ -6,7 +6,8 @@ Presidência — agregação do cartão corporativo (CPGF).
 Entrada: data/raw/presidencia_cpgf_<ano>.jsonl.gz
 Saída:   data/public/presidencia_cpgf_<ano>.json
   { ano, meses:[{mes, presidencia, sigiloso, governo, transacoes}], por_orgao:[{cod_orgao, orgao, valor, transacoes, sigiloso}],
-    por_tipo:[{tipo, valor, transacoes}], favorecidos:[{favorecido, doc, valor, transacoes}]  (só pessoa jurídica, top 25),
+    por_tipo:[{tipo, valor, transacoes}], favorecidos:[{favorecido, doc, valor, transacoes, atividade, cnae}]  (só PJ, top 25),
+    por_atividade:[{atividade, valor, transacoes, fornecedores}]  (PJ identificados, classificados pelo CNAE da Receita — ver cnae.py),
     portadores: n (quantos portadores identificados), totais:{presidencia, sigiloso, pct_sigiloso, governo, meses_publicados} }
 Regras: "sigiloso" = linha que o Portal publica sem portador/favorecido ("Informações protegidas por sigilo"); são as
 despesas de segurança da Presidência (LAI art. 23). Favorecidos pessoa física não aparecem no site (só o total).
@@ -21,6 +22,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import duckdb
+
+from .cnae import cnae_de, categoria_de
 
 log = logging.getLogger("etl.presidencia.transform")
 RAW, PUB = Path("data/raw"), Path("data/public")
@@ -47,12 +50,24 @@ def run(ano: int) -> Path:
     favorecidos = q("""SELECT favorecido, favorecido_doc AS doc, round(sum(valor),2) AS valor, count(*) AS transacoes
                        FROM p WHERE NOT sigiloso AND length(regexp_replace(favorecido_doc, '\\D', '', 'g')) = 14
                        GROUP BY ALL ORDER BY valor DESC LIMIT 25""")
+    # Tipo de serviço pelo CNAE (atividade principal na Receita) de cada CNPJ identificado — nada é adivinhado pelo nome
+    pj = q("""SELECT regexp_replace(favorecido_doc, '\\D', '', 'g') AS cnpj, round(sum(valor),2) AS valor, count(*) AS transacoes
+              FROM p WHERE NOT sigiloso AND length(regexp_replace(favorecido_doc, '\\D', '', 'g')) = 14 GROUP BY ALL""")
+    info = cnae_de([x["cnpj"] for x in pj])
+    por_atividade: dict[str, dict] = {}
+    for x in pj:
+        i = info.get(x["cnpj"], {}); cat = categoria_de(i.get("cnae", ""))
+        a = por_atividade.setdefault(cat, {"atividade": cat, "valor": 0.0, "transacoes": 0, "fornecedores": 0, "exemplo_cnae": i.get("descricao", "")})
+        a["valor"] = round(a["valor"] + x["valor"], 2); a["transacoes"] += x["transacoes"]; a["fornecedores"] += 1
+    por_atividade = sorted(por_atividade.values(), key=lambda a: -a["valor"])
+    for f in favorecidos:
+        i = info.get(__import__("re").sub(r"\D", "", f["doc"]), {}); f["atividade"] = categoria_de(i.get("cnae", "")); f["cnae"] = i.get("descricao", "")
     portadores = con.execute("SELECT count(DISTINCT portador) FROM p WHERE NOT sigiloso").fetchone()[0]
     tot_p, tot_s, tot_g, n_meses = con.execute("""SELECT round(sum(valor),2), round(sum(valor) FILTER (WHERE sigiloso),2),
         (SELECT round(sum(valor),2) FROM t WHERE origem='total_governo'), (SELECT count(*) FROM t WHERE origem='total_governo') FROM p""").fetchone()
     out = {"ano": ano, "gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"),
            "fonte": "Portal da Transparência (CGU), download de dados — Cartões de Pagamento do Governo Federal (CPGF)",
-           "meses": meses, "por_orgao": por_orgao, "por_tipo": por_tipo, "favorecidos": favorecidos, "portadores": portadores,
+           "meses": meses, "por_orgao": por_orgao, "por_tipo": por_tipo, "favorecidos": favorecidos, "por_atividade": por_atividade, "portadores": portadores,
            "totais": {"presidencia": tot_p, "sigiloso": tot_s, "pct_sigiloso": round(tot_s / tot_p, 4) if tot_p else None, "governo": tot_g, "meses_publicados": n_meses}}
     path = PUB / f"presidencia_cpgf_{ano}.json"
     path.write_text(json.dumps(out, ensure_ascii=False, default=str), encoding="utf-8")
