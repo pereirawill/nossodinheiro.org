@@ -88,8 +88,15 @@ def write_jsonl(path: Path, rows: Iterator[dict]) -> int:
 # --- comandos ---------------------------------------------------------------
 
 def cmd_deputados(c: Client, legislatura: int) -> None:
-    rows = c.paginate("/deputados", {"idLegislatura": legislatura, "ordem": "ASC", "ordenarPor": "nome"})
-    write_jsonl(RAW / f"deputados_leg{legislatura}.jsonl.gz", rows)
+    vistos: set[int] = set()
+
+    def gen() -> Iterator[dict]:
+        for row in c.paginate("/deputados", {"idLegislatura": legislatura, "ordem": "ASC", "ordenarPor": "nome"}):
+            if row["id"] in vistos:   # a API repete o deputado a cada mudança de status/partido
+                continue
+            vistos.add(row["id"]); yield row
+
+    write_jsonl(RAW / f"deputados_leg{legislatura}.jsonl.gz", gen())
 
 
 def cmd_despesas(c: Client, ano: int, legislatura: int) -> None:
@@ -99,6 +106,12 @@ def cmd_despesas(c: Client, ano: int, legislatura: int) -> None:
     with gzip.open(dep_path, "rt", encoding="utf-8") as f:
         ids = [json.loads(l)["id"] for l in f]
 
+    # sonda: resposta crua do primeiro deputado, para diagnóstico no log do Actions
+    probe = c.get_json(f"{API_BASE}/deputados/{ids[0]}/despesas", {"ano": ano, "itens": 2})
+    log.info("sonda despesas dep=%s ano=%s → %d itens; links=%s; exemplo=%s",
+             ids[0], ano, len(probe.get("dados", [])), [l.get("rel") for l in probe.get("links", [])],
+             json.dumps(probe.get("dados", [None])[0], ensure_ascii=False)[:300])
+
     def gen() -> Iterator[dict]:
         for i, dep_id in enumerate(ids, 1):
             for row in c.paginate(f"/deputados/{dep_id}/despesas", {"ano": ano, "ordem": "ASC", "ordenarPor": "mes"}):
@@ -107,7 +120,10 @@ def cmd_despesas(c: Client, ano: int, legislatura: int) -> None:
             if i % 25 == 0:
                 log.info("despesas %d: %d/%d deputados", ano, i, len(ids))
 
-    write_jsonl(RAW / f"despesas_api_{ano}.jsonl.gz", gen())
+    n = write_jsonl(RAW / f"despesas_api_{ano}.jsonl.gz", gen())
+    if n == 0:
+        raise SystemExit(f"nenhuma despesa retornada para {ano} — veja a sonda acima; "
+                         f"se a API não tem {ano} ainda, rode com --ano {ano - 1}")
 
 
 def cmd_ceap_bulk(c: Client, ano: int) -> None:
