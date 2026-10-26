@@ -1,0 +1,68 @@
+---
+import Base from "../../../layouts/Base.astro";
+import Termo from "../../../components/Termo.astro";
+import Glossario from "../../../components/Glossario.astro";
+import { slug } from "../../../lib/slug";
+import municipios from "../../../../public/data/municipios_2025.json";
+import meta from "../../../../public/data/municipios_meta_2025.json";
+
+export async function getStaticPaths() {
+  const rows = (await import("../../../../public/data/municipios_2025.json")).default as any[];
+  const { slug } = await import("../../../lib/slug");
+  const vistos = new Set<string>();
+  return rows.flatMap((m) => {
+    const k = `${m.uf.toLowerCase()}/${slug(m.nome)}`;
+    if (vistos.has(k)) return [];           // homônimos no mesmo estado (raro): fica o primeiro
+    vistos.add(k);
+    return [{ params: { uf: m.uf.toLowerCase(), slug: slug(m.nome) }, props: { cod: m.cod_ibge } }];
+  });
+}
+const { cod } = Astro.props;
+const m = (municipios as any[]).find((x) => x.cod_ibge === cod)!;
+const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) => v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const pct = (v: number | null | undefined) => v == null ? "—" : `${(v * 100).toFixed(1).replace(".", ",")}%`;
+const num = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR");
+const med = (meta.medianas_por_faixa as any)[m.faixa] as { por_hab_legislativo: number; pct_legislativo: number; por_vereador: number | null } | undefined;
+const estado = (municipios as any[]).filter((x) => x.uf === m.uf && x.por_hab_legislativo != null).sort((a, b) => a.por_hab_legislativo - b.por_hab_legislativo);
+const posUf = estado.findIndex((x) => x.cod_ibge === m.cod_ibge) + 1;
+const faixaRows = (municipios as any[]).filter((x) => x.faixa === m.faixa && x.por_hab_legislativo != null).sort((a, b) => a.por_hab_legislativo - b.por_hab_legislativo);
+const posFaixa = faixaRows.findIndex((x) => x.cod_ibge === m.cod_ibge) + 1;
+const funcoes = [["Saúde", m.pago_saude], ["Educação", m.pago_educacao], ["Administração", m.pago_administracao], ["Legislativa (Câmara)", m.pago_legislativo]] as const;
+---
+<Base title={`Quanto custa a Câmara de ${m.nome} (${m.uf})? — Nosso Dinheiro`} accent="var(--s3)">
+  <h1>Quanto custa a Câmara Municipal de {m.nome}?</h1>
+  <p class="lede">{m.nome} ({m.uf}), {num(m.populacao)} habitantes, {m.vereadores ? `${m.vereadores} vereadores` : "número de vereadores não casado com o TSE"}.
+    Despesa paga pela prefeitura com a função <Termo t="funcao_legislativa">Legislativa</Termo> em {meta.ano}, comparada com as cidades do mesmo tamanho.
+    <a href={`/municipios/uf/${m.uf.toLowerCase()}/`}>Todas as cidades de {m.uf}</a> · <a href="/municipios/">outros estados</a>.</p>
+  <p class="meta">fonte: SICONFI/Tesouro Nacional, Declaração de Contas Anuais {meta.ano} (anexo I-E, despesa por função), código IBGE {m.cod_ibge}; vagas de vereador: TSE {meta.ano_vagas}</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{compact(m.pago_legislativo)}</b><span>pagos com a Câmara Municipal em {meta.ano} · {pct(m.pct_legislativo)} de tudo que a prefeitura pagou ({compact(m.pago_total)})</span></div>
+    <div class="stat"><b>{brl0(m.por_hab_legislativo)}</b><span>por habitante por ano{med ? ` · mediana das cidades de ${m.faixa}: ${brl0(med.por_hab_legislativo)}` : ""}</span></div>
+    <div class="stat"><b>{brl0(m.por_vereador_legislativo)}</b><span>por vereador por ano (custo da Câmara ÷ vagas){med?.por_vereador ? ` · mediana da faixa: ${brl0(med.por_vereador)}` : ""}</span></div>
+  </div>
+  <div class="hero" style="margin-top:0">
+    <div class="stat"><b>{posUf}º</b><span>de {estado.length} cidades de {m.uf}, da Câmara mais barata por habitante para a mais cara</span></div>
+    <div class="stat"><b>{posFaixa}º</b><span>de {faixaRows.length} cidades brasileiras com população {m.faixa}</span></div>
+    <div class="stat"><b>{brl0(m.por_hab_total)}</b><span>é quanto a prefeitura pagou por habitante no total em {meta.ano}</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Custo da Câmara ≠ salário do vereador.</b> A função Legislativa é tudo que a Câmara paga: vereadores, servidores, prédio,
+    contratos. "Por vereador" é só uma escala (custo ÷ vagas), não o que cada um recebe; o salário é fixado por lei municipal dentro
+    do teto da Constituição (art. 29, VI), que vai de 20% a 75% do subsídio de deputado estadual conforme a população.</div>
+  </div>
+
+  <h2>Para onde foi o dinheiro da prefeitura em {meta.ano}</h2>
+  <table>
+    <thead><tr><th>Função</th><th class="num">Pago</th><th class="num">% do total</th><th class="num">Por habitante</th></tr></thead>
+    <tbody>
+      {funcoes.map(([f, v]) => (<tr><td>{f}</td><td class="num">{brl0(v)}</td><td class="num">{pct(m.pago_total ? v / m.pago_total : null)}</td><td class="num">{brl0(m.populacao ? v / m.populacao : null)}</td></tr>))}
+      <tr><td><strong>Total pago</strong></td><td class="num"><strong>{brl0(m.pago_total)}</strong></td><td class="num">100%</td><td class="num">{brl0(m.por_hab_total)}</td></tr>
+    </tbody>
+  </table>
+  <p class="src">Empenhado no ano: {brl0(m.empenhado_total)}. Outras funções (urbanismo, transporte, assistência social…) estão na DCA completa no SICONFI.</p>
+
+  <Glossario termos={["funcao_legislativa", "despesa_paga", "pago", "empenhado", "per_capita"]} />
+</Base>

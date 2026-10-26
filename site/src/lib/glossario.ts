@@ -40,6 +40,9 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   gabinete_presidencia: { rotulo: "Gabinete da Presidência", texto: "O ministro que preside o STF aparece na folha lotado no Gabinete da Presidência, uma unidade administrativa pequena. A equipe que julga os processos dele fica em outras lotações que o portal não separa, por isso o custo do presidente sai subestimado aqui." },
   ministro_aposentado: { rotulo: "Ministros aposentados", texto: "Ex-ministros do STF que seguem pagos pela folha do próprio Tribunal, com proventos iguais aos da ativa (subsídio mais vantagens pessoais). Aposentadoria compulsória aos 75 anos. Mostramos o total como informação; não entra no custo de nenhum ministro em atividade." },
 
+  // Municípios
+  funcao_legislativa: { rotulo: "Função Legislativa", texto: "Classificação oficial do orçamento (Portaria 42/1999): tudo que o município paga com a Câmara de Vereadores — subsídio dos vereadores, servidores, prédio, contratos. Nos estados, inclui a Assembleia Legislativa e o Tribunal de Contas." },
+
   // Impostos
   arrecadacao: { rotulo: "Arrecadação", texto: "Tudo que entrou nos cofres da União em tributos federais no período, como a Receita Federal publica: impostos, contribuições (inclusive previdência) e receitas administradas por outros órgãos. Não inclui ICMS, IPVA, ISS e IPTU, que são de estados e municípios." },
   base_incidencia: { rotulo: "Base de incidência", texto: "Sobre o que o tributo é cobrado: consumo e produção (IPI, COFINS, PIS), folha de salários (previdência), lucro das empresas (IRPJ, CSLL), renda do trabalho (IRPF, IRRF sobre salários), renda do capital (IRRF sobre aplicações, IOF), patrimônio (ITR). É a classificação econômica usual; o agrupamento é nosso e está na metodologia." },

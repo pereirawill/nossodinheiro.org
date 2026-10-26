@@ -1,0 +1,22 @@
+---
+/** Tabela padrão de municípios (custo da Câmara). Props: rows, rank? (numera as linhas). */
+import { slug } from "../lib/slug";
+const { rows, rank = false } = Astro.props as { rows: any[]; rank?: boolean };
+const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const pct = (v: number | null | undefined) => v == null ? "—" : `${(v * 100).toFixed(1).replace(".", ",")}%`;
+const num = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR");
+---
+<table>
+  <thead><tr>{rank && <th>#</th>}<th>Município</th><th class="num">População</th><th class="num">Vereadores</th><th class="num">Câmara (pago)</th><th class="num">Por habitante</th><th class="num">Por vereador</th><th class="num">% do orçamento</th></tr></thead>
+  <tbody>
+    {rows.map((m, i) => (
+      <tr>{rank && <td class="rank">{i + 1}</td>}<td><a href={`/municipios/${m.uf.toLowerCase()}/${slug(m.nome)}/`}>{m.nome}</a> <span class="uf">{m.uf}{m.capital ? " ★" : ""}</span></td>
+        <td class="num">{num(m.populacao)}</td><td class="num">{num(m.vereadores)}</td><td class="num">{brl0(m.pago_legislativo)}</td>
+        <td class="num">{brl0(m.por_hab_legislativo)}</td><td class="num">{brl0(m.por_vereador_legislativo)}</td><td class="num">{pct(m.pct_legislativo)}</td></tr>
+    ))}
+  </tbody>
+</table>
+<style>
+  td .uf { color: var(--ink-2); font-size: 12px; font-family: var(--mono); margin-left: 4px; }
+  td a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--line); }
+</style>

@@ -1,0 +1,77 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import Tabela from "../../components/TabelaMunicipios.astro";
+import municipios from "../../../public/data/municipios_2025.json";
+import meta from "../../../public/data/municipios_meta_2025.json";
+
+type M = (typeof municipios)[number];
+const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const pct = (v: number | null | undefined) => v == null ? "—" : `${(v * 100).toFixed(1).replace(".", ",")}%`;
+const num = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR");
+const quando = new Date(meta.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const capitais = municipios.filter((m) => m.capital).sort((a, b) => (b.por_hab_legislativo ?? 0) - (a.por_hab_legislativo ?? 0));
+const grandes = municipios.filter((m) => (m.populacao ?? 0) >= 50_000 && m.por_hab_legislativo != null);
+const maisCaras = grandes.slice(0, 25);
+const maisBaratas = [...grandes].reverse().slice(0, 25);
+const porVereador = municipios.filter((m) => m.por_vereador_legislativo != null).sort((a, b) => b.por_vereador_legislativo! - a.por_vereador_legislativo!).slice(0, 25);
+const ufs = [...new Set(municipios.map((m) => m.uf))].sort();
+const t = meta.totais;
+const medianas = meta.medianas_por_faixa as Record<string, { municipios: number; por_hab_legislativo: number; pct_legislativo: number; por_vereador: number | null }>;
+---
+<Base title="Quanto custa a Câmara Municipal da sua cidade? — Nosso Dinheiro" accent="var(--s3)">
+  <h1>Quanto custa a Câmara Municipal da sua cidade?</h1>
+  <p class="lede">
+    O que cada prefeitura pagou em {meta.ano} com a função <Termo t="funcao_legislativa">Legislativa</Termo> (a Câmara de Vereadores: salários,
+    servidores, prédio), por habitante e por vereador, em {num(meta.municipios_com_dca)} municípios que entregaram suas contas ao Tesouro.
+    Escolha o estado para ver todas as cidades, ou procure a sua na lista por estado.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fonte: SICONFI/Tesouro Nacional (Declaração de Contas Anuais {meta.ano}, despesa por função) e TSE (vagas de vereador, eleição de {meta.ano_vagas})</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{compact(t.pago_legislativo)}</b><span>pagos pelas Câmaras Municipais em {meta.ano} ({num(meta.municipios_com_dca)} municípios, {num(t.populacao_coberta)} habitantes)</span></div>
+    <div class="stat"><b>{brl0(t.pago_legislativo / t.populacao_coberta)}</b><span>por habitante, no total</span></div>
+    <div class="stat"><b>{num(t.vereadores)}</b><span>vereadores nesses municípios · {brl0(t.pago_legislativo / t.vereadores)} por vereador por ano, em média</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>É o custo da Câmara, não o salário do vereador.</b> A função Legislativa inclui vereadores, servidores da Câmara, prédio,
+    contratos. Salário de vereador é lei de cada cidade, dentro de um teto constitucional por faixa de população; não existe base
+    nacional. Município sem contas entregues ao Tesouro fica fora do ranking (não aparece como zero). Comparar por faixa de população
+    é mais justo: cidade pequena tem Câmara proporcionalmente mais cara.</div>
+  </div>
+
+  <h2>Por estado</h2>
+  <div class="ufs">{ufs.map((uf) => <a href={`/municipios/uf/${uf.toLowerCase()}/`}>{uf}</a>)}</div>
+
+  <h2>Mediana por faixa de população</h2>
+  <table>
+    <thead><tr><th>Faixa</th><th class="num">Municípios</th><th class="num">Câmara por habitante</th><th class="num">% do orçamento</th><th class="num">Por vereador</th></tr></thead>
+    <tbody>{Object.entries(medianas).map(([fx, v]) => (<tr><td>{fx}</td><td class="num">{num(v.municipios)}</td><td class="num">{brl0(v.por_hab_legislativo)}</td><td class="num">{pct(v.pct_legislativo)}</td><td class="num">{brl0(v.por_vereador)}</td></tr>))}</tbody>
+  </table>
+
+  <h2>Capitais</h2>
+  <Tabela rows={capitais} />
+
+  <h2>Câmaras mais caras por habitante (cidades com 50 mil habitantes ou mais)</h2>
+  <Tabela rows={maisCaras} rank={true} />
+
+  <h2>Câmaras mais baratas por habitante (50 mil habitantes ou mais)</h2>
+  <Tabela rows={maisBaratas} rank={true} />
+
+  <h2>Maior custo por vereador</h2>
+  <Tabela rows={porVereador} rank={true} />
+
+  <Glossario termos={["funcao_legislativa", "despesa_paga", "pago", "empenhado", "per_capita"]} />
+</Base>
+<style>
+  .ufs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ufs a { text-decoration: none; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+  .ufs a:hover { border-color: var(--accent); color: var(--accent); }
+  td .uf { color: var(--ink-2); font-size: 12px; font-family: var(--mono); margin-left: 4px; }
+  td a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--line); }
+</style>

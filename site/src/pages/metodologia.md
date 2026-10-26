@@ -84,6 +84,16 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Só fornecedores pessoa jurídica são listados; CPF de pessoa física é mascarado.
 - Completo: `docs/metodologia/painel-presidencia.md`.
 
+## Municípios — quanto custa a Câmara Municipal da sua cidade
+
+- **O que é:** despesa paga por cada prefeitura na função Legislativa (a Câmara inteira: vereadores, servidores, prédio),
+  por habitante e por vereador, em todos os municípios que entregaram contas ao Tesouro; mais Assembleia, Tribunal de
+  Justiça e total de cada estado. Uma página por município.
+- **Fonte:** SICONFI/Tesouro Nacional (Declaração de Contas Anuais, anexo I-E) e TSE (vagas de vereador por cidade).
+- **Atenção:** é o custo da Câmara, não o salário do vereador (lei de cada cidade, dentro do teto constitucional). Cidade
+  sem contas entregues fica fora, não zero. Compare dentro da mesma faixa de população.
+- Completo: `docs/metodologia/painel-municipios.md`.
+
 ## Impostos — quanto o Brasil paga de imposto federal
 
 - **O que é:** arrecadação administrada pela Receita Federal, mês a mês desde 2000, agrupada por base de incidência

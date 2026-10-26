@@ -1,0 +1,55 @@
+---
+import Base from "../../../layouts/Base.astro";
+import Termo from "../../../components/Termo.astro";
+import Glossario from "../../../components/Glossario.astro";
+import { slug } from "../../../lib/slug";
+import municipios from "../../../../public/data/municipios_2025.json";
+import estados from "../../../../public/data/estados_2025.json";
+import meta from "../../../../public/data/municipios_meta_2025.json";
+
+export async function getStaticPaths() {
+  const rows = (await import("../../../../public/data/municipios_2025.json")).default as any[];
+  return [...new Set(rows.map((r) => r.uf as string))].map((uf) => ({ params: { uf: uf.toLowerCase() }, props: { uf } }));
+}
+const { uf } = Astro.props;
+const rows = (municipios as any[]).filter((m) => m.uf === uf).sort((a, b) => (b.por_hab_legislativo ?? 0) - (a.por_hab_legislativo ?? 0));
+const estado = (estados as any[]).find((e) => e.uf === uf && e.esfera !== "M");
+const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) => v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const pct = (v: number | null | undefined) => v == null ? "—" : `${(v * 100).toFixed(1).replace(".", ",")}%`;
+const num = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR");
+const totLeg = rows.reduce((s, m) => s + m.pago_legislativo, 0), totPop = rows.reduce((s, m) => s + (m.populacao ?? 0), 0), totVer = rows.reduce((s, m) => s + (m.vereadores ?? 0), 0);
+---
+<Base title={`Câmaras Municipais de ${uf}: quanto custam — Nosso Dinheiro`} accent="var(--s3)">
+  <h1>Quanto custam as Câmaras Municipais de {uf}?</h1>
+  <p class="lede">Despesa paga com a função <Termo t="funcao_legislativa">Legislativa</Termo> por cada prefeitura de {uf} em {meta.ano}, por habitante e por vereador.
+    Clique no cabeçalho para ordenar; clique na cidade para ver a página dela. <a href="/municipios/">Todos os estados</a>.</p>
+  <p class="meta">fonte: SICONFI/Tesouro Nacional (DCA {meta.ano}) e TSE (vagas de vereador {meta.ano_vagas}) · {rows.length} municípios com contas entregues</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{compact(totLeg)}</b><span>pagos pelas Câmaras Municipais de {uf} em {meta.ano}</span></div>
+    <div class="stat"><b>{brl0(totPop ? totLeg / totPop : null)}</b><span>por habitante</span></div>
+    <div class="stat"><b>{num(totVer)}</b><span>vereadores · {brl0(totVer ? totLeg / totVer : null)} por vereador por ano</span></div>
+  </div>
+  {estado && (
+    <div class="hero" style="margin-top:0">
+      <div class="stat"><b>{compact(estado.pago_legislativa)}</b><span>Assembleia Legislativa + Tribunal de Contas do estado ({estado.nome}), função Legislativa paga em {meta.ano} · {brl0(estado.por_hab_legislativa)} por habitante</span></div>
+      <div class="stat"><b>{compact(estado.pago_judiciaria)}</b><span>Tribunal de Justiça (função Judiciária) · {brl0(estado.por_hab_judiciaria)} por habitante</span></div>
+      <div class="stat"><b>{compact(estado.pago_total)}</b><span>despesa total paga pelo governo do estado · {brl0(estado.por_hab_total)} por habitante</span></div>
+    </div>
+  )}
+
+  <h2>Todos os municípios de {uf}</h2>
+  <table>
+    <thead><tr><th>#</th><th>Município</th><th class="num">População</th><th class="num">Vereadores</th><th class="num">Câmara (pago)</th><th class="num">Por habitante</th><th class="num">Por vereador</th><th class="num">% do orçamento</th><th class="num">Orçamento pago</th></tr></thead>
+    <tbody>{rows.map((m, i) => (
+      <tr><td class="rank">{i + 1}</td><td><a href={`/municipios/${uf.toLowerCase()}/${slug(m.nome)}/`}>{m.nome}</a>{m.capital ? " ★" : ""}</td><td class="num">{num(m.populacao)}</td><td class="num">{num(m.vereadores)}</td>
+        <td class="num">{brl0(m.pago_legislativo)}</td><td class="num">{brl0(m.por_hab_legislativo)}</td><td class="num">{brl0(m.por_vereador_legislativo)}</td><td class="num">{pct(m.pct_legislativo)}</td><td class="num">{brl0(m.pago_total)}</td></tr>
+    ))}</tbody>
+  </table>
+  <p class="src">★ capital. Município ausente = não entregou a Declaração de Contas Anuais de {meta.ano} ao Tesouro até a data da carga.</p>
+  <Glossario termos={["funcao_legislativa", "despesa_paga", "per_capita"]} />
+</Base>
+<style>
+  td a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--line); }
+</style>
