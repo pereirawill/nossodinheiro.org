@@ -34,7 +34,8 @@ const fTop = funcoes.filter((f) => f.funcao !== "28").sort((a, b) => b.pago - a.
 const topN = fTop.slice(0, 9);
 const outros = fTop.slice(9).reduce((s, f) => s + f.pago, 0);
 const fatias = [...topN.map((f) => ({ nome: f.funcao_nome, v: f.pago })), { nome: "Demais funções", v: outros }];
-const CORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "#59a14f", "#b07aa1", "#edc948", "#76b7b2", "var(--neutro)"];
+// Cores bem distintas entre si (a pizza tem 10 fatias; tons parecidos confundem)
+const CORES = ["#1d5a8a", "#e07b00", "#1f9d55", "#c2185b", "#6a1b9a", "#8d6e63", "#00a3c4", "#f1c232", "#d32f2f", "#9e9e9e"];
 const R = 86, C = 100; let ang = -Math.PI / 2;
 const arcos = fatias.map((f, i) => { const fr = f.v / uniaoSemEncargos; const a0 = ang; ang += fr * 2 * Math.PI;
   const x0 = C + R * Math.cos(a0), y0 = C + R * Math.sin(a0), x1 = C + R * Math.cos(ang), y1 = C + R * Math.sin(ang);
@@ -65,6 +66,15 @@ const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
 const arrec = impostos.anual[impostos.anual.length - 1];
 const idh = (rankings.indices as any[]).find((i) => i.id === "idh")?.brasil;
 const W = 920;
+// Conclusões factuais, calculadas dos próprios dados (sem opinião)
+const prev = uf("09"), saude = uf("10"), educ = uf("12"), assist = uf("08");
+const resumo = [
+  `De cada R$ 100 que a União pagou em ${ANO}, R$ ${Math.round(100 * encargos / uniaoTotal)} foram dívida e transferências a estados e municípios; R$ ${Math.round(100 * uniaoSemEncargos / uniaoTotal)} viraram políticas públicas e custo da máquina.`,
+  `Da parte que não é dívida, ${pct(prev, uniaoSemEncargos)} é Previdência (${compact(prev)}). Saúde (${compact(saude)}) e Educação (${compact(educ)}) juntas ficam com ${pct(saude + educ, uniaoSemEncargos)}; Assistência Social, onde está o Bolsa Família, com ${pct(assist, uniaoSemEncargos)}.`,
+  `Manter a máquina dos três Poderes (pessoal, aposentados, custeio) custou ${compact(maquina)}: ${pct(maquina, uniaoSemEncargos)} do que não é dívida.`,
+  `Estados e municípios pagaram juntos ${compact(estTotal + munTotal)}, mais do que a União gastou em políticas e máquina (${compact(uniaoSemEncargos)}). Saúde e educação são, na prática, estaduais e municipais: dos três níveis, ${pct(somaF("pago_saude") + somaM("pago_saude"), uf("10") + somaF("pago_saude") + somaM("pago_saude"))} da saúde e ${pct(somaF("pago_educacao") + somaM("pago_educacao"), uf("12") + somaF("pago_educacao") + somaM("pago_educacao"))} da educação são pagos por eles.`,
+  `Somando os três níveis, o setor público pagou ${brl0((uniaoTotal + estTotal + munTotal) / POP)} por habitante no ano, ${brl0((uniaoTotal + estTotal + munTotal) / POP / 12)} por mês.`,
+];
 ---
 <Base title="Nosso Dinheiro — para onde vai o dinheiro público do Brasil" accent="var(--s1)">
   <h1>Para onde vai o nosso dinheiro?</h1>
@@ -85,6 +95,12 @@ const W = 920;
     <div class="stat"><b>{brl0((uniaoTotal + estTotal + munTotal) / POP)}</b><span>por habitante por ano, somando os três níveis (com dívida e transferências contadas na União)</span></div>
   </div>
 
+  <h2>O que os números dizem</h2>
+  <div class="card resumo">
+    <ul>{resumo.map((r) => <li>{r}</li>)}</ul>
+    <p class="src">Só aritmética sobre os dados oficiais desta página; nenhuma avaliação sobre se é muito ou pouco. Fontes nos cartões e nas abas.</p>
+  </div>
+
   <h2>Em que a União gasta ({ANO}, sem dívida e transferências)</h2>
   <div class="card pizza">
     <svg viewBox="0 0 200 200" width="240" role="img" aria-label="Despesa da União por função">
@@ -94,10 +110,11 @@ const W = 920;
       <text x={C} y={C + 12} text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{compact(uniaoSemEncargos)}</text>
     </svg>
     <table>
-      <thead><tr><th>Função</th><th class="num">Pago</th><th class="num">%</th><th class="num">Por habitante</th></tr></thead>
+      <thead><tr><th>Função</th><th class="num"><Termo t="pago">Pago</Termo></th><th class="num">% do total</th><th class="num"><Termo t="per_capita">Por habitante</Termo></th></tr></thead>
       <tbody>{arcos.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{compact(a.v)}</td><td class="num">{pct(a.v, uniaoSemEncargos)}</td><td class="num">{brl0(a.v / POP)}</td></tr>))}</tbody>
     </table>
-    <p class="src" style="grid-column:1/-1">Função é a classificação oficial da Lei Orçamentária. "Encargos especiais" ({compact(encargos)}: juros, amortização e refinanciamento da dívida, transferências constitucionais a estados e municípios) ficam fora da pizza porque não são um serviço prestado; estão no total da União acima. Fonte: SIOP.</p>
+    <p class="src" style="grid-column:1/-1"><b>Pago</b> = dinheiro que saiu do caixa no ano (não o orçado). <b>Por habitante</b> = pago ÷ 212,6 milhões de brasileiros (IBGE): só dá escala, não é quanto cada um recebeu.
+      Função é a classificação oficial da Lei Orçamentária. "Encargos especiais" ({compact(encargos)}: juros, amortização e refinanciamento da dívida, transferências constitucionais a estados e municípios) ficam fora da pizza porque não são um serviço prestado; estão no total da União acima. Fonte: SIOP.</p>
   </div>
 
   <h2>Quem paga o quê: União, estados e municípios ({ANO})</h2>
@@ -139,4 +156,5 @@ const W = 920;
   .tile b { display: block; font-family: var(--display); font-weight: 800; font-size: 2rem; line-height: 1; color: var(--accent); }
   .tile span { display: block; margin-top: 8px; font-size: 13px; color: var(--ink-2); }
   .tile:hover { border-color: var(--s3); }
+  .resumo ul { margin: 0; padding-left: 20px; } .resumo li { margin: 6px 0; font-size: 15px; }
 </style>
