@@ -1,0 +1,48 @@
+---
+/**
+ * Barras horizontais empilhadas, geradas em build (SVG estático, zero JS).
+ * Props: rows (JSON do ETL), top (n), meses.
+ */
+const { rows, top = 20, meses } = Astro.props;
+const items = [...rows]
+  .sort((a, b) => b.custo_total_estimado - a.custo_total_estimado)
+  .slice(0, top);
+const max = Math.max(...items.map((r) => r.custo_total_estimado));
+const W = 920, labelW = 300, rowH = 30, padTop = 10;
+const plotW = W - labelW - 110;
+const H = padTop + items.length * rowH + 10;
+const x = (v: number) => (v / max) * plotW;
+const brl = (v: number): string =>
+  v >= 1e6 ? `R$ ${(v / 1e6).toFixed(2).replace(".", ",")} mi` : `R$ ${Math.round(v / 1e3)} mil`;
+const series = [
+  ["subsidio", "var(--s1)", "Subsídio"],
+  ["ceap", "var(--s2)", "Cota parlamentar (gasto real)"],
+  ["verba_gabinete_teto", "var(--line)", "Verba de gabinete (teto, igual p/ todos)"],
+] as const;
+---
+<div class="legend">
+  {series.map(([, c, l]) => <span><i style={`background:${c}`}></i>{l}</span>)}
+</div>
+<svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img"
+     aria-label={`Custo estimado dos ${top} deputados mais caros em ${meses} meses`}>
+  {items.map((r, i) => {
+    const y = padTop + i * rowH;
+    let left = 0;
+    const segs = series.map(([k, c]) => { const s = { k, c, x0: x(left), w: x(r[k]) }; left += r[k]; return s; });
+    return (
+      <g transform={`translate(0 ${y})`}>
+        <text x={labelW - 8} y={rowH / 2 + 4} text-anchor="end" font-size="12" font-family="Public Sans, sans-serif" fill="var(--ink)">
+          {r.nome} <tspan fill="var(--ink-2)">({r.partido}-{r.uf})</tspan>
+        </text>
+        {segs.map((s) => (
+          <rect x={labelW + s.x0} y={5} width={Math.max(s.w - 2, 0)} height={rowH - 10} fill={s.c} rx="2">
+            <title>{r.nome} — {s.k}: {brl(r[s.k])}</title>
+          </rect>
+        ))}
+        <text x={labelW + x(r.custo_total_estimado) + 6} y={rowH / 2 + 4} font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">
+          {brl(r.custo_total_estimado)}
+        </text>
+      </g>
+    );
+  })}
+</svg>

@@ -1,0 +1,87 @@
+---
+const { title, description = "O dinheiro público do Brasil, explicado com dados oficiais." } = Astro.props;
+const nav = [
+  ["/", "Deputados"], ["/emendas/", "Emendas"], ["/poderes/", "Poderes"],
+  ["/metodologia/", "Metodologia"], ["/sobre/", "Sobre"],
+];
+const path = Astro.url.pathname;
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style is:global>
+      :root {
+        --bg: #f2f4f2; --card: #ffffff; --ink: #14181d; --ink-2: #56606b; --line: #e3e8eb;
+        --s1: #1d5a8a; --s2: #1f9d55; --s3: #8e3a6e; --s4: #7f5500; --s5: #008caa;
+        --mono: "IBM Plex Mono", ui-monospace, monospace;
+        --display: "Big Shoulders Display", "Public Sans", sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #0f1215; --card: #171b20; --ink: #eef0f2; --ink-2: #a3acb6; --line: #2a3139;
+                --s1: #5aa0dc; --s2: #3fc27a; --s3: #c56aa3; --s4: #d9a23b; --s5: #39b8d6; }
+      }
+      * { box-sizing: border-box; }
+      html { background: var(--bg); }
+      body { margin: 0; color: var(--ink); font: 15px/1.55 "Public Sans", system-ui, sans-serif; }
+      a { color: var(--s1); }
+      header { background: var(--card); border-bottom: 1px solid var(--line); }
+      .brand { max-width: 1040px; margin: 0 auto; padding: 14px 16px 10px; display: flex; align-items: center; justify-content: space-between; }
+      .brand .logo { font-weight: 800; font-size: 20px; letter-spacing: -.01em; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+      .brand .logo svg { width: 22px; height: 22px; }
+      .brand .cta { font-size: 13px; color: var(--ink-2); }
+      nav.panels { max-width: 1040px; margin: 0 auto; padding: 0 16px 10px; display: flex; gap: 4px; overflow-x: auto; }
+      nav.panels a { white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink-2); text-decoration: none; padding: 6px 10px; border-radius: 999px; }
+      nav.panels a[aria-current] { background: var(--bg); color: var(--ink); }
+      .stripe { height: 4px; background: linear-gradient(90deg, var(--s1) 0 20%, var(--s2) 20% 40%, var(--s3) 40% 60%, var(--s4) 60% 80%, var(--s5) 80%); }
+      main { max-width: 1040px; margin: 0 auto; padding: 28px 16px 64px; }
+      h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.02; letter-spacing: -.005em; margin: 0 0 6px; }
+      h2 { font-size: 17px; font-weight: 700; margin: 36px 0 12px; }
+      .lede { color: var(--ink-2); max-width: 70ch; margin: 0 0 20px; }
+      .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+      .hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin: 20px 0 8px; }
+      .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 14px; }
+      .stat b { display: block; font-family: var(--display); font-weight: 800; font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: .95; letter-spacing: -.01em; }
+      .stat.big b { font-size: clamp(3rem, 9vw, 6rem); }
+      .stat span { display: block; margin-top: 8px; font-size: 13px; color: var(--ink-2); }
+      @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } .stat.big { grid-column: 1 / -1; } }
+      .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+      .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); margin: 0 0 12px; }
+      .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+      .disclaimer { display: flex; gap: 10px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); margin: 16px 0; }
+      .disclaimer b { color: var(--ink); }
+      table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+      th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); font-weight: 600; }
+      th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+      tr:last-child td { border-bottom: 0; }
+      td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; }
+      td.rank { color: var(--ink-2); font-family: var(--mono); width: 2.5em; }
+      .src { font-family: var(--mono); font-size: 12px; color: var(--ink-2); margin-top: 10px; }
+      footer { border-top: 1px solid var(--line); background: var(--card); padding: 18px 16px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+      footer div { max-width: 1040px; margin: 0 auto; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <a class="logo" href="/">
+          <svg viewBox="0 0 22 22" aria-hidden="true"><rect x="2" y="12" width="4" height="8" fill="var(--s1)"/><rect x="9" y="6" width="4" height="14" fill="var(--s2)"/><rect x="16" y="2" width="4" height="18" fill="var(--s3)"/></svg>
+          Nosso Dinheiro
+        </a>
+        <span class="cta">Só o que os órgãos públicos publicam, com a fonte de cada número.</span>
+      </div>
+      <nav class="panels">
+        {nav.map(([href, label]) => <a href={href} aria-current={path === href ? "page" : undefined}>{label}</a>)}
+      </nav>
+      <div class="stripe"></div>
+    </header>
+    <main><slot /></main>
+    <footer><div>Fontes: Câmara dos Deputados · Portal da Transparência (CGU) · código MIT · dados e textos CC BY 4.0 · metodologia aberta no GitHub</div></footer>
+  </body>
+</html>

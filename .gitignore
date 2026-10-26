@@ -1,0 +1,9 @@
+data/raw/
+data/parquet/
+*.png
+!data/public/*.png
+site/node_modules/
+site/dist/
+site/.astro/
+__pycache__/
+.pytest_cache/

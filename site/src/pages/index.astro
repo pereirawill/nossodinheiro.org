@@ -1,0 +1,52 @@
+---
+import Base from "../layouts/Base.astro";
+import Chart from "../components/CustoDeputadoChart.astro";
+import rows from "../../public/data/custo_deputado_2026.json";
+import meta from "../../public/data/meta_2026.json";
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const n = rows.length;
+const totalCeap = rows.reduce((s, r) => s + r.ceap, 0);
+const totalEst = rows.reduce((s, r) => s + r.custo_total_estimado, 0);
+const mediaMes = totalEst / n / meta.meses_considerados;
+const dataFmt = new Date(meta.gerado_em + "T12:00:00").toLocaleDateString("pt-BR");
+---
+<Base title="Quanto custa um deputado federal? — Nosso Dinheiro">
+  <h1>Quanto custa um deputado federal?</h1>
+  <p class="lede">
+    Subsídio, cota parlamentar (gasto real, líquido de glosas) e verba de gabinete (teto) dos
+    {n} deputados em exercício, nos {meta.meses_considerados} primeiros meses de {meta.ano}.
+  </p>
+  <p class="meta">Dados oficiais atualizados em {dataFmt} · Câmara dos Deputados</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio estimado de um deputado, por mês</span></div>
+    <div class="stat"><b>{compact(totalCeap)}</b><span>cota parlamentar gasta por {n} deputados no período</span></div>
+    <div class="stat"><b>{compact(totalEst)}</b><span>custo total estimado da Câmara (só deputados) no período</span></div>
+  </div>
+
+  <div class="disclaimer">
+    <span aria-hidden="true">ⓘ</span>
+    <div><b>Sem nota, ranking de "bom ou ruim" nem opinião.</b> Subsídio e verba de gabinete são iguais para todos;
+    quem sobe no ranking é quem usou mais cota. Deputados de estados distantes têm teto maior por causa das passagens.</div>
+  </div>
+
+  <h2>Os 20 que mais custaram</h2>
+  <div class="card">
+    <Chart rows={rows} top={20} meses={meta.meses_considerados} />
+    <p class="src">Fonte: API de Dados Abertos da Câmara (CEAP) · verba de gabinete pelo teto de {brl0(meta.premissas.verba_gabinete_teto_mensal)}/mês · <a href="/metodologia/">metodologia</a></p>
+  </div>
+
+  <h2>Todos os deputados</h2>
+  <table>
+    <thead><tr><th>#</th><th>Deputado(a)</th><th>Partido · UF</th><th class="num">Cota parlamentar</th><th class="num">Custo estimado</th></tr></thead>
+    <tbody>
+      {rows.map((r, i) => (
+        <tr><td class="rank">{i + 1}</td><td>{r.nome}</td><td>{r.partido} · {r.uf}</td>
+            <td class="num">{brl0(r.ceap)}</td><td class="num">{brl0(r.custo_total_estimado)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+</Base>
