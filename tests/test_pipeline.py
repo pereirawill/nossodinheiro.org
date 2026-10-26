@@ -60,7 +60,7 @@ def test_pipeline(tmp_path, monkeypatch):
     # subsídio: R$ 46.366,19 desde fev/2025 (DL 172/2022) → 10 meses cheios em 2026
     esperado = 10 * 46366.19 + (C.SUBSIDIOS_POR_ANO - 12) * 46366.19 * 10 / 12
     assert abs(by_id[1001]["subsidio"] - round(esperado, 2)) < 0.01
-    assert by_id[1001]["custo_total_estimado"] == by_id[1001]["subsidio"] + 12500.0 + C.VERBA_GABINETE_TETO_MENSAL * 10
+    assert abs(by_id[1001]["custo_total_estimado"] - (by_id[1001]["subsidio"] + 12500.0 + C.VERBA_GABINETE_TETO_MENSAL * 10)) < 0.01
 
     # parquet legível e sem coluna de CPF do parlamentar
     cols = [c[0] for c in duckdb.sql("SELECT * FROM 'data/parquet/ceap_2026.parquet'").description]
