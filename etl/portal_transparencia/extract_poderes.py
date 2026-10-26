@@ -86,13 +86,20 @@ def extrair_por_orgao(c: Client, ano: int, inspect: bool = False) -> None:
     def gen():
         for cod in ORGAOS_SUPERIORES:
             n = 0
-            for row in c.paginate("/despesas/por-orgao", {"ano": ano, "orgaoSuperior": cod}):
-                row["poder"] = classificar(row.get("codigoOrgaoSuperior") or cod)
-                n += 1
-                if inspect and n == 1:
-                    print("campos:", sorted(row.keys())); print(json.dumps(row, ensure_ascii=False, indent=2))
-                yield row
+            # A API aceita o código com ou sem zeros à esquerda dependendo do órgão;
+            # tenta "01000" e, se vier vazio, "1000".
+            for variante in dict.fromkeys([cod, cod.lstrip("0")]):
+                for row in c.paginate("/despesas/por-orgao", {"ano": ano, "orgaoSuperior": variante}):
+                    row["poder"] = classificar(row.get("codigoOrgaoSuperior") or cod)
+                    n += 1
+                    if inspect and n == 1:
+                        print("campos:", sorted(row.keys())); print(json.dumps(row, ensure_ascii=False, indent=2))
+                    yield row
+                if n:
+                    break
             log.info("orgaoSuperior=%s: %d linhas", cod, n)
+            if n == 0:
+                log.warning("orgaoSuperior=%s sem retorno (nenhuma variante) — conferir código", cod)
             if inspect and n:
                 return
     write_jsonl(RAW / f"despesas_orgao_{ano}.jsonl.gz", gen())
