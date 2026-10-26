@@ -41,7 +41,7 @@ def test_transform_stf(tmp_path, monkeypatch):
     assert nome_curto("LUIZ EDSON FACHIN", "GABINETE DA PRESIDÊNCIA") == "Edson Fachin"
     assert r["remuneracao_bruta"] == 100000.0 and r["remuneracao_mensal_media"] == 50000.0
     assert r["gabinete"] == 50000.0             # 20k+10k (jan) + 20k+0 (fev); o ministro não é contado no gabinete
-    assert r["gabinete_pessoas_media"] == 2.0
+    assert r["gabinete_pessoas_media"] == 2.0 and r["gabinete_pessoas_ultimo_mes"] == 2
     assert r["custo_total_estimado"] == 150000.0 and r["custo_mensal_medio"] == 75000.0
     assert r["custo_anual_projetado"] == 900000.0
     meta = json.loads(Path("data/public/meta_stf_2026.json").read_text(encoding="utf-8"))

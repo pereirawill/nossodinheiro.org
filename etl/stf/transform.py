@@ -99,6 +99,7 @@ def run(ano: int, hoje: date | None = None) -> Path:
             "remuneracao_mensal_media": round(m["remuneracao"] / n_meses, 2),
             "gabinete": gab, "gabinete_mensal_medio": round(gab / n_meses, 2),
             "gabinete_pessoas_media": round(sum(pessoas_mes) / len(pessoas_mes), 1),
+            "gabinete_pessoas_ultimo_mes": len(gab_pessoas[u].get(max(m["meses"]), set())),
             "gabinete_vinculos": {k: round(v / n_meses, 1) for k, v in gab_vinculos[u].items()},
             "custo_total_estimado": total, "custo_mensal_medio": round(total / n_meses, 2),
             "custo_anual_projetado": round(total / n_meses * 12, 2),

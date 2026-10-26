@@ -36,7 +36,7 @@ const x = (v: number) => (v / max) * plotW;
   <div class="hero">
     <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio de um ministro, <strong>por mês</strong>: remuneração + gabinete</span></div>
     <div class="stat"><b>{brl0(remMes)}</b><span><Termo t="remuneracao_bruta">remuneração bruta</Termo> média do ministro por mês</span></div>
-    <div class="stat"><b>{brl0(gabMes)}</b><span><Termo t="gabinete_stf">gabinete</Termo> por mês, em média ({Math.round(rows.reduce((s, r) => s + r.gabinete_pessoas_media, 0) / n)} pessoas)</span></div>
+    <div class="stat"><b>{brl0(gabMes)}</b><span><Termo t="gabinete_stf">gabinete</Termo> por mês, em média ({Math.round(rows.reduce((s, r) => s + r.gabinete_pessoas_ultimo_mes, 0) / n)} pessoas por gabinete em {MESES[meta.ultimo_mes - 1]})</span></div>
   </div>
   <div class="hero" style="margin-top:0">
     <div class="stat"><b>{compact(anualTotal)}</b><span>os {n} ministros e seus gabinetes <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
@@ -61,7 +61,7 @@ const x = (v: number) => (v / max) * plotW;
         <g transform={`translate(0 ${10 + i * rowH})`}>
           <text x={labelW - 8} y={rowH / 2 + 4} text-anchor="end" font-size="12" fill="var(--ink)">{r.nome_curto}</text>
           <rect x={labelW} y="5" width={Math.max(0, x(r.remuneracao_mensal_media) - 1)} height={rowH - 10} fill="var(--s3)" rx="2"><title>Remuneração: {brl0(r.remuneracao_mensal_media)}/mês</title></rect>
-          <rect x={labelW + x(r.remuneracao_mensal_media)} y="5" width={Math.max(0, x(r.gabinete_mensal_medio) - 1)} height={rowH - 10} fill="var(--s1)" rx="2"><title>Gabinete: {brl0(r.gabinete_mensal_medio)}/mês, {r.gabinete_pessoas_media} pessoas</title></rect>
+          <rect x={labelW + x(r.remuneracao_mensal_media)} y="5" width={Math.max(0, x(r.gabinete_mensal_medio) - 1)} height={rowH - 10} fill="var(--s1)" rx="2"><title>Gabinete: {brl0(r.gabinete_mensal_medio)}/mês, {r.gabinete_pessoas_ultimo_mes} pessoas em {MESES[meta.ultimo_mes - 1]}</title></rect>
           <text x={labelW + x(r.custo_mensal_medio) + 6} y={rowH / 2 + 4} font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl0(r.custo_mensal_medio)}</text>
         </g>
       ))}
@@ -71,11 +71,11 @@ const x = (v: number) => (v / max) * plotW;
 
   <h2>Todos os ministros</h2>
   <table>
-    <thead><tr><th>#</th><th>Ministro(a)</th><th>Lotação</th><th class="num"><Termo t="remuneracao_bruta">Remuneração</Termo> / mês</th><th class="num"><Termo t="gabinete_stf">Gabinete</Termo> / mês</th><th class="num">Pessoas</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
+    <thead><tr><th>#</th><th>Ministro(a)</th><th>Lotação</th><th class="num"><Termo t="remuneracao_bruta">Remuneração</Termo> / mês</th><th class="num"><Termo t="gabinete_stf">Gabinete</Termo> / mês</th><th class="num">Pessoas ({MESES[meta.ultimo_mes - 1]})</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
     <tbody>
       {rows.map((r, i) => (
         <tr><td class="rank">{i + 1}</td><td>{r.nome_curto}</td><td>{r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
-            <td class="num">{brl0(r.remuneracao_mensal_media)}</td><td class="num">{brl0(r.gabinete_mensal_medio)}</td><td class="num">{r.gabinete_pessoas_media}</td>
+            <td class="num">{brl0(r.remuneracao_mensal_media)}</td><td class="num">{brl0(r.gabinete_mensal_medio)}</td><td class="num">{r.gabinete_pessoas_ultimo_mes}</td>
             <td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
       ))}
     </tbody>
