@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import { PRESIDENTE, EX_PRESIDENTES, LIDO } from "../../lib/beneficios";
 import c26 from "../../../public/data/presidencia_cpgf_2026.json";
 import c25 from "../../../public/data/presidencia_cpgf_2025.json";
 const mods = import.meta.glob("../../../public/data/poderes_orgaos_*.json", { eager: true, import: "default" });
@@ -48,6 +49,31 @@ const W = 920, L = 60, rowH = 26;
     um dado. "Primeira-dama" não é cargo nem centro de custo; o que houver está dentro das despesas da Presidência.
     Viagens e diárias da Presidência são o próximo bloco deste painel.</div>
   </div>
+
+  <details class="glossario">
+    <summary>Cartão corporativo × "cartão presidencial": qual é a diferença?</summary>
+    <p style="font-size:14px;color:var(--ink-2);margin:10px 0 0">Existe um só instrumento: o <b>Cartão de Pagamento do Governo Federal (CPGF)</b>, um cartão de crédito
+    em nome de servidores (os portadores) de cada órgão, para despesas pequenas e urgentes. Não há cartão em nome do presidente. O que a imprensa
+    chama de "cartão presidencial" ou "cartão corporativo do presidente" é o conjunto de cartões da Presidência usados nas despesas de
+    deslocamento e segurança do presidente, do vice e das famílias, que o governo publica <b>sob sigilo</b>: o Portal mostra o valor e a data,
+    mas não o portador nem o fornecedor. É a parte cinza do gráfico abaixo, ~98% do total. A parte colorida é o uso comum: combustível,
+    material, passagens compradas por servidores identificados, com fornecedor público.</p>
+  </details>
+
+  <details class="glossario">
+    <summary>O que o presidente tem direito a receber (e o que não existe)</summary>
+    <table style="margin-top:10px">
+      <thead><tr><th>Item</th><th>Regra</th><th>Fonte</th></tr></thead>
+      <tbody>{PRESIDENTE.map((b) => (<tr><td><strong>{b.item}</strong></td><td style="white-space:normal">{b.valor}{b.usoNota ? <small style="display:block;color:var(--ink-2)">{b.usoNota}</small> : null}</td><td style="font-size:12px;white-space:normal"><a href={b.url} rel="noopener">{b.fonte}</a></td></tr>))}</tbody>
+    </table>
+    <p class="src">Não existem "verba de representação", "auxílio-paletó" ou cartão pessoal; o que circula com esses nomes não tem base em norma. Lido em {LIDO.split("-").reverse().join("/")}.</p>
+  </details>
+
+  <details class="glossario">
+    <summary>Ex-presidentes: quanto custam</summary>
+    <p style="font-size:14px;color:var(--ink-2);margin:10px 0 0">{EX_PRESIDENTES.texto}</p>
+    <p class="src">Fonte: <a href={EX_PRESIDENTES.url} rel="noopener">{EX_PRESIDENTES.fonte}</a>.</p>
+  </details>
 
   <h2>Cartão corporativo da Presidência, mês a mês (2026)</h2>
   <div class="card">

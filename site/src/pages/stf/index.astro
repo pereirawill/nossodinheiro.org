@@ -44,7 +44,7 @@ const x = (v: number) => (v / max) * plotW;
   <div class="hero" style="margin-top:0">
     <div class="stat"><b>{compact(anualTotal)}</b><span>os {n} ministros e seus gabinetes <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
     <div class="stat"><b>{brl0(meta.aposentados.bruto_ultimo_mes)}</b><span>pagos em {MESES[meta.ultimo_mes - 1]} a {meta.aposentados.quantidade_ultimo_mes} <Termo t="ministro_aposentado">ministros aposentados</Termo> (fora do total)</span></div>
-    <div class="stat"><b>{compact(meta.totais.custo_total_estimado)}</b><span>custo acumulado em {nMeses} meses de {meta.ano}</span></div>
+    <div class="stat"><b>{compact(meta.totais.custo_total_estimado)}</b><span>total gasto com os {n} ministros e seus gabinetes em {nMeses} meses de {meta.ano}: {compact(meta.totais.remuneracao_bruta)} de remuneração dos ministros + {compact(meta.totais.gabinetes)} de gabinetes</span></div>
   </div>
 
   <div class="disclaimer">
