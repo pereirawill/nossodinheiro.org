@@ -20,7 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import duckdb
@@ -210,6 +210,7 @@ def run(ano: int, fonte: str, legislatura: int = C.LEGISLATURA_ATUAL, hoje: date
 
     meta = {
         "ano": ano, "fonte_ceap": fonte, "gerado_em": hoje.isoformat(),
+        "gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"),
         "meses_considerados": meses, "deputados": len(rows),
         "deputados_na_legislatura": con.execute("SELECT count(*) FROM deputados").fetchone()[0],
         "filtro_situacao": "Exercício" if status_raw.exists() else None,
