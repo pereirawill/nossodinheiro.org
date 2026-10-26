@@ -58,7 +58,7 @@ jobs:
           python -m etl.camara.transform --ano "$ANO" --fonte "$FONTE"
           python -m etl.camara.chart --ano "$ANO" --top 20 --por deputado
           python -m etl.camara.chart --ano "$ANO" --top 20 --por partido
-          cp data/public/*.json site/public/data/
+          mkdir -p site/public/data && cp data/public/*.json site/public/data/
 
       - name: Publicar Parquet como artefato (não vai pro git)
         uses: actions/upload-artifact@v4
