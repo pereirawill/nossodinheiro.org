@@ -1,0 +1,55 @@
+---
+import Base from "../../layouts/Base.astro";
+import SerieRanking from "../../components/SerieRanking.astro";
+import dados from "../../../public/data/rankings.json";
+type Indice = { id: string; titulo: string; descricao: string; fonte: string; fonte_tipo: string; url: string; unidade: string; brasil: { posicao: number; valor: number; ano: number; total: number };
+  serie: { ano: number; posicao: number; total: number; valor: number }[] };
+const indices = (dados.indices as Indice[]).filter((i) => i.serie.length >= 3);
+const quando = new Date(dados.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const fmtValor = (i: Indice, v: number) => {
+  if (i.id === "pib") return v >= 1e12 ? `US$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : `US$ ${(v / 1e9).toFixed(0)} bi`;
+  if (i.id === "pib_per_capita") return `US$ ${Math.round(v).toLocaleString("pt-BR")}`;
+  if (i.id === "idh") return v.toFixed(3).replace(".", ",");
+  if (i.id === "corrupcao") return `${Math.round(v)} pts`;
+  if (i.id === "educacao_pct_pib") return `${v.toFixed(1).replace(".", ",")}%`;
+  return v.toFixed(1).replace(".", ",");
+};
+const cor = (i: Indice) => ({ pib: "var(--s1)", pib_per_capita: "var(--s1)", idh: "var(--s2)", expectativa_vida: "var(--s2)", educacao_pct_pib: "var(--s5)",
+  corrupcao: "var(--s4)", homicidios: "var(--s3)", gini: "var(--s3)" } as Record<string, string>)[i.id] ?? "var(--s1)";
+const variacao = (i: Indice) => { const a = i.serie[0], b = i.serie[i.serie.length - 1]; const d = a.posicao - b.posicao; return d === 0 ? "mesma posição" : d > 0 ? `subiu ${d} posições` : `caiu ${-d} posições`; };
+---
+<Base title="Histórico: o Brasil nos rankings em 40 anos — Nosso Dinheiro" accent="var(--s5)">
+  <h1>O Brasil nos rankings, ano a ano</h1>
+  <p class="lede">
+    Como a posição do Brasil mudou desde os anos 1980 em cada índice. 1º é o melhor e fica no topo do gráfico. Passe o mouse
+    nos pontos para ver ano, posição, total de países e valor. A lista de hoje, com os 10 primeiros e os vizinhos do Brasil,
+    está em <a href="/rankings/">Rankings</a>.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fontes em cada gráfico · séries: Banco Mundial desde 1985, PNUD desde 1990, Transparência Internacional desde 2012</p>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>A posição de cada ano é entre os países com dado naquele ano, e esse total cresce com o tempo.</b> No PIB eram 168
+    países em 1985 e 204 em 2025: cair de posição pode ser em parte a entrada de países novos na base. Em indicadores que
+    poucos países publicam todo ano (Gini, homicídios), cada ano usa o dado mais recente de até dois anos antes. IDH: posição
+    calculada por nós a partir dos valores do PNUD; CPI: posição oficial de cada ano. <a href="/metodologia/">Metodologia</a>.</div>
+  </div>
+
+  {indices.map((i) => (
+    <section class="card hist" style={`--c:${cor(i)}`}>
+      <h2 style="margin-top:0">{i.titulo} <span class="var">· {variacao(i)} entre {i.serie[0].ano} e {i.serie[i.serie.length - 1].ano}</span></h2>
+      <p class="desc">{i.descricao}. <span class="unid">{i.unidade}</span></p>
+      <SerieRanking serie={i.serie} cor={cor(i)} fmt={(v: number) => fmtValor(i, v)} rotulo={i.titulo} />
+      <p class="src">Fonte: <a href={i.url} rel="noopener">{i.fonte}</a> · <span class={`tag ${i.fonte_tipo === "ONG" ? "ong" : ""}`}>{i.fonte_tipo}</span></p>
+    </section>
+  ))}
+</Base>
+<style>
+  .hist { border-top: 4px solid var(--c); margin-bottom: 14px; }
+  .hist h2 { border-left: 0; padding-left: 0; font-size: 20px; }
+  .hist h2 .var { font-weight: 400; color: var(--ink-2); font-size: 14px; }
+  .desc { color: var(--ink-2); font-size: 13.5px; margin: 4px 0 6px; }
+  .desc .unid { font-family: var(--mono); font-size: 12px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); }
+  .tag.ong { border-color: var(--s4); color: var(--s4); }
+</style>

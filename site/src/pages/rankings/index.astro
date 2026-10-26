@@ -1,7 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
 import Glossario from "../../components/Glossario.astro";
-import SerieRanking from "../../components/SerieRanking.astro";
 import dados from "../../../public/data/rankings.json";
 
 type Pais = { iso3: string; pais: string; valor: number; ano: number; posicao: number };
@@ -40,8 +39,8 @@ const pct = (i: Indice) => 100 - Math.round(((i.brasil.posicao - 1) / (i.total -
   <h1>Onde o Brasil está nos rankings do mundo</h1>
   <p class="lede">
     Posição do Brasil em índices internacionais: economia, desenvolvimento, educação, desigualdade, segurança e corrupção.
-    Cada cartão mostra a trajetória do Brasil desde os anos 1980 (quando a fonte tem série), os 10 primeiros e os vizinhos do
-    Brasil; a tabela completa abre embaixo. Em todos, 1º é o melhor.
+    Cada cartão mostra os 10 primeiros e os vizinhos do Brasil; a tabela completa abre embaixo. Em todos, 1º é o melhor.
+    A trajetória do Brasil nos últimos 40 anos, índice a índice, está em <a href="/rankings/historico/">Histórico</a>.
   </p>
   <p class="meta">atualizado em {fmt.format(quando)} · fontes em cada cartão · organismos oficiais (Banco Mundial, PNUD, UNODC) e, quando indicado, ONG (Transparência Internacional)</p>
 
@@ -49,9 +48,7 @@ const pct = (i: Indice) => 100 - Math.round(((i.brasil.posicao - 1) / (i.total -
     <div><b>Posição é entre os países com dado disponível, não entre todos os 193.</b> Em índices do Banco Mundial a posição é
     calculada por nós ordenando os países; no IDH e no CPI usamos a posição oficial do relatório. Quando os anos variam por país
     (ex.: homicídios), o cartão avisa e o ano de cada país aparece na tabela. Rankings de ONGs (Transparência Internacional)
-    fogem da regra "só órgãos públicos" e estão marcados. <b>No gráfico, a posição de cada ano é entre os países com dado
-    naquele ano</b>, e esse número cresce com o tempo (mais países passaram a publicar): subir ou descer pode refletir isso,
-    por isso a legenda mostra quantos países havia no início e no fim.</div>
+    fogem da regra "só órgãos públicos" e estão marcados.</div>
   </div>
 
   <div class="grade">
@@ -63,7 +60,6 @@ const pct = (i: Indice) => 100 - Math.round(((i.brasil.posicao - 1) / (i.total -
           <b>{ord(b.posicao)}</b>
           <span>de {b.total} países · {fmtValor(i, b.valor)} em {b.ano}<br />Brasil à frente de {pct(i)}% dos países listados</span>
         </div>
-        <SerieRanking serie={i.serie} cor={cor(i)} fmt={(v: number) => fmtValor(i, v)} rotulo={i.titulo} />
         <ol class="lista">
           {r.top.map((p) => (
             <li class={p.iso3 === "BRA" ? "bra" : ""}><span class="pos">{p.posicao}</span><span class="nome">{p.pais}</span><span class="val">{fmtValor(i, p.valor)}</span></li>
