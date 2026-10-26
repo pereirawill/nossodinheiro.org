@@ -17,15 +17,18 @@ CEAP_BULK_CSV = "https://www.camara.leg.br/cotas/Ano-{ano}.csv.zip"
 LEGISLATURA_ATUAL = 57  # 2023-02-01 a 2027-01-31
 
 # --- Subsídio (salário) -----------------------------------------------------
-# Decreto Legislativo 172/2022 escalonou o subsídio em 4 parcelas anuais
-# (fevereiro de cada ano). Valor bruto mensal, em R$.
-# Fonte: Câmara dos Deputados / Gazeta SP (03/03/2026) / NSC Total (03/03/2026).
+# Decreto Legislativo 172/2022, art. 1º, escalonou o subsídio em 4 parcelas. Valor bruto mensal, em R$.
+# Fonte primária: texto do DL 172/2022 (camara.leg.br/legin, lido em 26/10/2026) e FAQ oficial do Senado
+# "Quanto ganha um senador?". Vale igualmente para deputados e senadores (CF art. 49, VII).
+# Correção em 26/10/2026: a versão anterior (de notícias) tinha as datas deslocadas um ano.
 SUBSIDIO_MENSAL: list[tuple[date, float]] = [
-    (date(2023, 2, 1), 39_293.32),
-    (date(2024, 2, 1), 41_650.92),
-    (date(2025, 2, 1), 44_008.52),
-    (date(2026, 2, 1), 46_366.19),
+    (date(2023, 1, 1), 39_293.32),
+    (date(2023, 4, 1), 41_650.92),
+    (date(2024, 2, 1), 44_008.52),
+    (date(2025, 2, 1), 46_366.19),
 ]
+# Ajuda de custo no início e no fim do mandato: 1 subsídio (DL 172/2022, art. 1º, §1º). Não entra no custo anual.
+AJUDA_DE_CUSTO_SUBSIDIOS = 1
 # 13º subsídio + 1/3 de férias são pagos aos deputados (Lei 9.506/97 e atos da
 # Mesa). Modelamos como 13 + 1/3 subsídios/ano. Marcado como premissa na
 # metodologia até conferirmos a folha publicada na transparência da Câmara.

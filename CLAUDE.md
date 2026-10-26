@@ -33,7 +33,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   da API v2 respondia 200 com lista vazia em 26/10/2026 — registrado na metodologia). API v2 usada para
   `/deputados?idLegislatura=57` (dedupe por id: 648 na legislatura) e `/deputados/{id}` → `ultimoStatus`
   (filtro `situacao == "Exercício"` → 513).
-- Fórmula: subsídio (DL 172/2022, R$ 46.366,19 desde fev/2026, 13 + 1/3 por ano) + CEAP líquida (valor
+- Fórmula: subsídio (DL 172/2022, R$ 46.366,19 desde **fev/2025** — corrigido 26/10/2026, antes estava fev/2026; 13 + 1/3 por ano) + CEAP líquida (valor
   real, líquido de glosas) + verba de gabinete pelo **teto** (R$ 165.806,07/mês; gasto real não está na
   API). Auxílio-moradia fora do total. Constantes com fonte/data em `etl/camara/config.py`.
 - Resultado 2026 (10 meses): 513 deputados, CEAP R$ 135,6 mi, total R$ 1,25 bi, média R$ 243.528/mês.

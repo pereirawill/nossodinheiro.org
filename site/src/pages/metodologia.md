@@ -13,7 +13,7 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 
 ## Deputados — quanto custa um deputado federal
 
-- **Somamos:** subsídio (Decreto Legislativo 172/2022, 13 salários + ⅓ de férias por ano) + cota parlamentar
+- **Somamos:** subsídio (Decreto Legislativo 172/2022: R$ 46.366,19 desde fev/2025, 13 salários + ⅓ de férias por ano) + cota parlamentar
   realmente gasta, líquida de glosas (CSV anual da CEAP da Câmara) + verba de gabinete pelo **teto**
   (R$ 165.806,07/mês, igual para todos).
 - **Não somamos:** auxílio-moradia (não há lista pública de quem recebe), plano de saúde, previdência,

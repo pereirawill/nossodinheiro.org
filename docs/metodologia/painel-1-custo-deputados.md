@@ -38,13 +38,16 @@ custo_total_estimado(deputado, ano) =
 ```
 
 ### 3.1 Subsídio
-Valor bruto mensal, com reajuste em fevereiro de cada ano (DL 172/2022):
-R$ 39.293,32 (2023) → 41.650,92 (2024) → 44.008,52 (2025) → **46.366,19 (2026)**.
-Somamos mês a mês (janeiro de 2026 ainda usa o valor de 2025) e acrescentamos
-13º subsídio e 1/3 de férias, proporcionais aos meses considerados
-(`SUBSIDIOS_POR_ANO = 13 + 1/3`).
+Valor bruto mensal fixado pelo Decreto Legislativo 172/2022, art. 1º, em quatro parcelas:
+R$ 39.293,32 (1º/jan/2023) → 41.650,92 (1º/abr/2023) → 44.008,52 (1º/fev/2024) → **46.366,19 (desde 1º/fev/2025)**.
+Igual para deputados e senadores. Somamos mês a mês e acrescentamos 13º subsídio e 1/3 de férias,
+proporcionais aos meses considerados (`SUBSIDIOS_POR_ANO = 13 + 1/3`).
+**Correção (26/10/2026):** até esta data o `config.py` trazia as datas deslocadas um ano (46.366,19 só a partir
+de fev/2026), por ter sido montado a partir de notícias; o texto do decreto e o FAQ oficial do Senado confirmam
+fev/2025. O efeito era subestimar janeiro de cada ano. Fonte primária: `camara.leg.br/legin` (DL 172/2022).
 **Premissa a confirmar:** a incidência exata de 13º/férias deve ser conferida na folha
 publicada pela Câmara (transparência → remuneração). Até lá, está sinalizada como premissa.
+A ajuda de custo de início e fim de mandato (1 subsídio, art. 1º §1º) não entra no custo anual.
 
 ### 3.2 Cota parlamentar (CEAP)
 Soma de `valorLiquido` de todos os documentos do deputado no ano.

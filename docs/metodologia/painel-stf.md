@@ -34,7 +34,7 @@ custo_anual_projetado = custo_mensal_medio × 12                (ano corrente = 
 ```
 
 "Remuneração bruta após o teto constitucional somada com outras verbas" é o rótulo do STF: subsídio limitado
-ao teto (R$ 46.366,19 desde fev/2026, DL 172/2022 / Lei 14.520/2023) **mais** verbas indenizatórias e
+ao teto (R$ 46.366,19 desde fev/2025, DL 172/2022) **mais** verbas indenizatórias e
 eventuais (auxílio-alimentação, auxílio pré-escolar, retroativos, substituições). É por isso que o valor varia
 entre ministros e pode passar do teto. Não interpretamos nem separamos essas verbas: a fonte não as discrimina
 no CSV (a composição está em "Estrutura remuneratória" do mesmo portal).
