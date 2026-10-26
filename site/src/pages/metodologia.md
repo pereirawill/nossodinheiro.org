@@ -74,6 +74,15 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Não usamos a API do Portal da Transparência porque ela cobre só o Poder Executivo.
 - Completo: `docs/metodologia/painel-poderes.md`.
 
+## Rankings — onde o Brasil está
+
+- **O que é:** posição do Brasil em índices internacionais, com os 10 primeiros e os vizinhos. 1º é sempre o melhor.
+- **Fontes:** Banco Mundial (PIB, PIB per capita, expectativa de vida, Gini, gasto em educação), UNODC via Banco
+  Mundial (homicídios), PNUD (IDH, posição oficial) e Transparência Internacional (corrupção, posição oficial; é ONG e
+  está marcada como tal). Nos índices do Banco Mundial a posição é calculada por nós ordenando os países.
+- **Atenção:** "Xº de N" é entre os países com dado, não entre todos; o ano pode variar por país e aparece na tabela.
+- Completo: `docs/metodologia/painel-rankings.md`.
+
 ## Como conferir
 
 Cada página tem a fonte no topo, um aviso com as premissas e um glossário no fim. Todo número fixo (subsídio,

@@ -1,0 +1,112 @@
+---
+import Base from "../../layouts/Base.astro";
+import Glossario from "../../components/Glossario.astro";
+import dados from "../../../public/data/rankings.json";
+
+type Pais = { iso3: string; pais: string; valor: number; ano: number; posicao: number };
+type Indice = { id: string; titulo: string; descricao: string; fonte: string; fonte_tipo: string; url: string; unidade: string;
+  maior_melhor: boolean; ano_referencia: number; anos_misturados: boolean; total: number;
+  brasil: { posicao: number; valor: number; ano: number; total: number }; paises: Pais[] };
+const indices = dados.indices as Indice[];
+const quando = new Date(dados.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+
+const fmtValor = (i: Indice, v: number) => {
+  if (i.id === "pib") return v >= 1e12 ? `US$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : `US$ ${(v / 1e9).toFixed(0)} bi`;
+  if (i.id === "pib_per_capita") return `US$ ${Math.round(v).toLocaleString("pt-BR")}`;
+  if (i.id === "idh") return v.toFixed(3).replace(".", ",");
+  if (i.id === "corrupcao") return `${Math.round(v)} pts`;
+  if (i.id === "gini") return v.toFixed(1).replace(".", ",");
+  if (i.id === "homicidios") return v.toFixed(1).replace(".", ",");
+  if (i.id === "educacao_pct_pib") return `${v.toFixed(1).replace(".", ",")}%`;
+  return v.toFixed(1).replace(".", ",");
+};
+const ord = (n: number) => `${n}º`;
+// Recorte mostrado em cada cartão: 10 primeiros + vizinhos do Brasil (3 acima e 3 abaixo), sem repetir
+const recorte = (i: Indice) => {
+  const top = i.paises.slice(0, 10);
+  const idx = i.paises.findIndex((p) => p.iso3 === "BRA");
+  const viz = i.paises.slice(Math.max(10, idx - 3), idx + 4);
+  const corte = idx > 10 + 3;
+  return { top, viz, corte };
+};
+const cor = (i: Indice) => ({ pib: "var(--s1)", pib_per_capita: "var(--s1)", idh: "var(--s2)", expectativa_vida: "var(--s2)", educacao_pct_pib: "var(--s5)",
+  corrupcao: "var(--s4)", homicidios: "var(--s3)", gini: "var(--s3)" } as Record<string, string>)[i.id] ?? "var(--s1)";
+const pct = (i: Indice) => 100 - Math.round(((i.brasil.posicao - 1) / (i.total - 1)) * 100); // % de países atrás do Brasil
+---
+<Base title="Rankings: onde o Brasil está — Nosso Dinheiro" accent="var(--s5)">
+  <h1>Onde o Brasil está nos rankings do mundo</h1>
+  <p class="lede">
+    Posição do Brasil em índices internacionais: economia, desenvolvimento, educação, desigualdade, segurança e corrupção.
+    Cada cartão mostra os 10 primeiros e os vizinhos do Brasil; a tabela completa abre embaixo. Em todos, 1º é o melhor.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fontes em cada cartão · organismos oficiais (Banco Mundial, PNUD, UNODC) e, quando indicado, ONG (Transparência Internacional)</p>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Posição é entre os países com dado disponível, não entre todos os 193.</b> Em índices do Banco Mundial a posição é
+    calculada por nós ordenando os países; no IDH e no CPI usamos a posição oficial do relatório. Quando os anos variam por país
+    (ex.: homicídios), o cartão avisa e o ano de cada país aparece na tabela. Rankings de ONGs (Transparência Internacional)
+    fogem da regra "só órgãos públicos" e estão marcados.</div>
+  </div>
+
+  <div class="grade">
+    {indices.map((i) => { const r = recorte(i); const b = i.brasil; return (
+      <section class="card idx" style={`--c:${cor(i)}`}>
+        <h2 style="margin-top:0">{i.titulo}</h2>
+        <p class="desc">{i.descricao}. <span class="unid">{i.unidade}</span></p>
+        <div class="br">
+          <b>{ord(b.posicao)}</b>
+          <span>de {b.total} países · {fmtValor(i, b.valor)} em {b.ano}<br />Brasil à frente de {pct(i)}% dos países listados</span>
+        </div>
+        <ol class="lista">
+          {r.top.map((p) => (
+            <li class={p.iso3 === "BRA" ? "bra" : ""}><span class="pos">{p.posicao}</span><span class="nome">{p.pais}</span><span class="val">{fmtValor(i, p.valor)}</span></li>
+          ))}
+          {r.corte && <li class="corte">⋯</li>}
+          {r.viz.map((p) => (
+            <li class={p.iso3 === "BRA" ? "bra" : ""}><span class="pos">{p.posicao}</span><span class="nome">{p.pais}</span><span class="val">{fmtValor(i, p.valor)}</span></li>
+          ))}
+        </ol>
+        <p class="src">Fonte: <a href={i.url} rel="noopener">{i.fonte}</a> · <span class={`tag ${i.fonte_tipo === "ONG" ? "ong" : ""}`}>{i.fonte_tipo}</span>
+          {i.anos_misturados ? " · anos variam por país (último disponível)" : ` · ${i.ano_referencia}`}</p>
+        <details>
+          <summary>Tabela completa ({i.total} países)</summary>
+          <table>
+            <thead><tr><th>#</th><th>País</th><th class="num">Valor</th><th class="num">Ano</th></tr></thead>
+            <tbody>{i.paises.map((p) => (
+              <tr class={p.iso3 === "BRA" ? "bra" : ""}><td class="rank">{p.posicao}</td><td>{p.pais}</td><td class="num">{fmtValor(i, p.valor)}</td><td class="num">{p.ano}</td></tr>
+            ))}</tbody>
+          </table>
+        </details>
+      </section>
+    ); })}
+  </div>
+
+  <h2>Próximos índices</h2>
+  <div class="card"><p style="margin:0">Liberdade econômica (Heritage Foundation), liberdade política e civil (Freedom House), educação PISA (OCDE) e
+    paz (Global Peace Index) ainda não têm arquivo aberto e legível por máquina na fonte, ou exigem leitura manual; entram quando houver
+    forma de atualizar automaticamente com a fonte citada.</p></div>
+
+  <Glossario termos={["per_capita"]} />
+</Base>
+<style>
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .grade { grid-template-columns: 1fr; } }
+  .idx { border-top: 4px solid var(--c); }
+  .idx h2 { border-left: 0; padding-left: 0; font-size: 20px; }
+  .desc { color: var(--ink-2); font-size: 13.5px; margin: 4px 0 12px; }
+  .desc .unid { font-family: var(--mono); font-size: 12px; }
+  .br { display: flex; align-items: baseline; gap: 12px; margin: 0 0 12px; }
+  .br b { font-family: var(--display); font-weight: 800; font-size: clamp(2.6rem, 7vw, 4rem); line-height: .95; color: var(--c); }
+  .br span { font-size: 13px; color: var(--ink-2); }
+  .lista { list-style: none; margin: 0; padding: 0; font-size: 13.5px; }
+  .lista li { display: grid; grid-template-columns: 2.4em 1fr auto; gap: 8px; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .lista li.bra { background: color-mix(in srgb, var(--c) 12%, var(--card)); font-weight: 700; border-radius: 6px; }
+  .lista .pos { font-family: var(--mono); color: var(--ink-2); }
+  .lista .val { font-family: var(--mono); font-size: 12.5px; }
+  .lista .corte { text-align: center; color: var(--ink-2); border-bottom: 0; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); }
+  .tag.ong { border-color: var(--s4); color: var(--s4); }
+  details { margin-top: 10px; } details summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 600; }
+  details table { margin-top: 8px; font-size: 13px; } tr.bra td { background: color-mix(in srgb, var(--c) 12%, var(--card)); font-weight: 700; }
+</style>

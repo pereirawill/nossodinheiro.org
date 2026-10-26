@@ -69,6 +69,14 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   do GitHub, qualquer UA) → sem agendamento; atualização mensal manual: `make stf ANO=2026` + commit. `etl-stf.yml` só dispatch.
 - Site: `/stf/`. Metodologia: `docs/metodologia/painel-stf.md`. Próximo: STJ/TST/TSE/CNJ no mesmo molde.
 
+## Painel Rankings (NO AR, sem chave, mensal)
+- `etl/rankings/extract.py` → `rankings.json`: Banco Mundial API (PIB, PIB pc, expectativa, Gini, educação %PIB,
+  homicídios/UNODC), PNUD HDR 2025 CSV (IDH 2023, posição oficial), TI CPI 2025 xlsx (leitor xlsx próprio), nomes PT
+  pelo IBGE. Posição calculada por nós nos do BM; oficial no IDH/CPI. Workflow `etl-rankings.yml` (dia 1, 06:37 BRT).
+- Pendentes sem arquivo aberto: Heritage (liberdade econômica), Freedom House (sem planilha gratuita), PISA (SDMX
+  OCDE), Global Peace Index. Metodologia: `docs/metodologia/painel-rankings.md`.
+- Visual: `accent` por página (prop do `Base.astro`): deputados s1, senadores s3, STF s5, emendas s4, poderes s2, rankings s5.
+
 ## Benefícios (site)
 - `BeneficiosBox.astro` recolhível em cada painel (abaixo do aviso); `/beneficios/` compara as três casas + ex-presidentes (fora do menu).
 - `site/src/lib/beneficios.ts`: lista fixa por casa (deputados, senadores, STF) + ex-presidentes, cada linha com valor/
