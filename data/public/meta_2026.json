@@ -17,5 +17,8 @@
   "totais": [
     135635351.01,
     1249298288.97
-  ]
+  ],
+  "custo_mensal_medio_por_deputado": 243527.93,
+  "custo_anual_projetado_total": 1499399844.86,
+  "anual_e_projecao": true
 }
