@@ -44,6 +44,15 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   ministro; o custo dele fica subestimado. A folha de um mês sai no mês seguinte; a página informa até que mês há dados.
 - Completo: `docs/metodologia/painel-stf.md`.
 
+## Benefícios — o que cada um tem direito a receber
+
+- **O que é:** lista fixa, uma linha por benefício, com valor ou regra, se o uso por pessoa é publicado, se entra
+  no custo dos painéis, fonte e data de leitura. Benefício é regra, não transação: não há API.
+- **Fontes:** páginas oficiais de transparência e FAQs da Câmara e do Senado, contracheque detalhado dos ministros no
+  STF, Decreto Legislativo 172/2022 e os atos citados em cada linha. Boatos (ex.: "auxílio-paletó") entram só como
+  desmentidos pela própria casa.
+- Completo: `docs/metodologia/painel-beneficios.md`.
+
 ## Emendas — para onde vai o dinheiro das emendas
 
 - **O que é:** valor empenhado (reservado) e pago (saiu do caixa) das emendas de cada autor no ano; só

@@ -1,0 +1,81 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import { DEPUTADOS, SENADORES, STF, EX_PRESIDENTES, LIDO } from "../../lib/beneficios";
+import type { Beneficio } from "../../lib/beneficios";
+
+const lido = LIDO.split("-").reverse().join("/");
+const usoRotulo = { sim: "publicado por pessoa", parcial: "em parte", nao: "não publicado por pessoa" };
+const custoRotulo = { sim: "entra (gasto real)", teto: "entra pelo teto", nao: "não entra" };
+const grupos: { titulo: string; sub: string; painel: string; itens: Beneficio[] }[] = [
+  { titulo: "Deputado federal", sub: "513 em exercício", painel: "/", itens: DEPUTADOS },
+  { titulo: "Senador", sub: "81 em exercício", painel: "/senadores/", itens: SENADORES },
+  { titulo: "Ministro do STF", sub: "10 em atividade", painel: "/stf/", itens: STF },
+];
+---
+<Base title="Benefícios de deputados, senadores e ministros — Nosso Dinheiro">
+  <h1>O que cada um tem direito a receber</h1>
+  <p class="lede">
+    Tudo o que deputados, senadores e ministros do STF recebem além do salário, com o valor, a regra, quem usa e a
+    fonte de cada linha. Benefício é regra, não transação: não há API; esta lista vem das normas e das páginas de
+    transparência de cada casa, lida em {lido}.
+  </p>
+  <p class="meta">fontes: Câmara dos Deputados, Senado Federal, STF, Decreto Legislativo 172/2022 e atos citados em cada linha · última leitura {lido}</p>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Dentro da mesma casa, o valor é igual para todos.</b> As exceções são as que dependem de uso: quem ocupa
+    apartamento funcional não recebe auxílio-moradia, a cota varia com a distância do estado a Brasília, e no STF as
+    vantagens pessoais dependem da carreira anterior de cada ministro. A coluna "no custo" diz se a linha entra na
+    conta dos painéis <a href="/">Deputados</a>, <a href="/senadores/">Senadores</a> e <a href="/stf/">STF</a>.
+    O chamado "auxílio-paletó" não existe: a Câmara desmente; o que existe é a ajuda de custo de mudança (1 subsídio).</div>
+  </div>
+
+  {grupos.map((g) => (
+    <>
+      <h2>{g.titulo} <span class="sub">· {g.sub} · <a href={g.painel}>painel</a></span></h2>
+      <table class="beneficios">
+        <thead><tr><th>Benefício</th><th>Valor ou regra</th><th>Uso por pessoa</th><th>No custo</th><th>Fonte</th></tr></thead>
+        <tbody>
+          {g.itens.map((b) => (
+            <tr>
+              <td><strong>{b.item}</strong></td>
+              <td>{b.valor}</td>
+              <td><span class={`tag ${b.uso}`}>{usoRotulo[b.uso]}</span>{b.usoNota ? <small>{b.usoNota}</small> : null}</td>
+              <td><span class={`tag c-${b.noCusto ?? "nao"}`}>{custoRotulo[b.noCusto ?? "nao"]}</span></td>
+              <td class="fonte">{b.url ? <a href={b.url} rel="noopener">{b.fonte}</a> : b.fonte}<small>lido em {b.lido.split("-").reverse().join("/")}</small></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  ))}
+
+  <h2>Ex-presidentes da República</h2>
+  <div class="card">
+    <p style="margin:0 0 8px">{EX_PRESIDENTES.texto}</p>
+    <p class="src">Fonte: <a href={EX_PRESIDENTES.url} rel="noopener">{EX_PRESIDENTES.fonte}</a> · lido em {lido}</p>
+  </div>
+
+  <Glossario termos={["subsidio", "cota_parlamentar", "ceaps_senado", "verba_gabinete", "teto", "auxilio_moradia", "imovel_funcional", "gastos_nao_inclusos", "remuneracao_bruta", "teto_constitucional", "gabinete_stf", "ministro_aposentado"]} />
+</Base>
+<style>
+  h2 .sub { font-weight: 400; color: var(--ink-2); font-size: 14px; }
+  table.beneficios td { vertical-align: top; font-size: 13.5px; }
+  table.beneficios th:nth-child(1), table.beneficios td:nth-child(1) { width: 13%; }
+  table.beneficios th:nth-child(2), table.beneficios td:nth-child(2) { width: 44%; }
+  table.beneficios th:nth-child(3), table.beneficios td:nth-child(3) { width: 17%; }
+  table.beneficios th:nth-child(4), table.beneficios td:nth-child(4) { width: 10%; }
+  table.beneficios td.fonte { width: 16%; font-size: 12px; }
+  table.beneficios td.fonte a { color: var(--ink-2); }
+  table.beneficios small { display: block; color: var(--ink-2); font-size: 11.5px; margin-top: 3px; }
+  .tag { display: inline-block; white-space: nowrap; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); }
+  .tag.sim, .tag.c-sim { border-color: var(--s2); color: var(--s2); }
+  .tag.parcial, .tag.c-teto { border-color: var(--s4); color: var(--s4); }
+  @media (max-width: 720px) {
+    table.beneficios, table.beneficios thead, table.beneficios tbody, table.beneficios tr, table.beneficios td { display: block; }
+    table.beneficios thead { display: none; }
+    table.beneficios tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+    table.beneficios td { border: 0; padding: 3px 12px; max-width: none; }
+  }
+</style>
