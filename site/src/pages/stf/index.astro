@@ -71,14 +71,14 @@ const x = (v: number) => (v / max) * plotW;
 
   <h2>Todos os ministros</h2>
   <table>
-    <thead><tr><th>#</th><th>Ministro(a)</th><th>Lotação</th><th class="num"><Termo t="remuneracao_bruta">Remuneração</Termo> / mês</th><th class="num"><Termo t="gabinete_stf">Gabinete</Termo> / mês</th><th class="num">Pessoas ({MESES[meta.ultimo_mes - 1]})</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
+    <thead><tr><th>#</th><th>Ministro(a)</th><th>Lotação</th><th class="num"><Termo t="remuneracao_bruta">Remuneração</Termo> / mês</th><th class="num"><Termo t="gabinete_stf">Gabinete</Termo> / mês</th><th class="num"><Termo t="pessoas_gabinete">Pessoas ({MESES[meta.ultimo_mes - 1]})</Termo></th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
     <tbody>
       {rows.map((r, i) => (
-        <tr><td class="rank">{i + 1}</td><td>{r.nome_curto}</td><td>{r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
+        <tr><td class="rank">{i + 1}</td><td>{r.nome_curto}</td><td>{r.observacao ? <Termo t="gabinete_presidencia">{r.unidade.replace("GABINETE ", "").toLowerCase()}</Termo> : r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
             <td class="num">{brl0(r.remuneracao_mensal_media)}</td><td class="num">{brl0(r.gabinete_mensal_medio)}</td><td class="num">{r.gabinete_pessoas_ultimo_mes}</td>
             <td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
       ))}
     </tbody>
   </table>
-  <Glossario termos={["remuneracao_bruta", "teto_constitucional", "gabinete_stf", "ministro_aposentado", "projecao"]} />
+  <Glossario termos={["remuneracao_bruta", "teto_constitucional", "gabinete_stf", "pessoas_gabinete", "gabinete_presidencia", "ministro_aposentado", "projecao"]} />
 </Base>
