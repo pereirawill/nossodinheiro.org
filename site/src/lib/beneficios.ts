@@ -68,7 +68,8 @@ export const STF: Beneficio[] = [
     uso: "sim", usoNota: "contracheque (blocos P e S)", fonte: "STF, Remuneração; Informativo STF 1210 (abr/2026)", url: "https://www.stf.jus.br/arquivo/informativo/documento/informativo1210.htm", lido: LIDO, noCusto: "sim" },
   { item: "Gabinete", valor: "Equipe lotada no gabinete (assessores, analistas, técnicos, cedidos, juízes auxiliares), 30 a 37 pessoas por ministro em ago/2026, paga pela folha do STF.",
     uso: "sim", usoNota: "folha por lotação; painel STF", fonte: "STF, Remuneração (filtro por lotação)", url: "https://egesp-portal.stf.jus.br/transparencia/rendimento_folha", lido: LIDO, noCusto: "sim" },
-  { item: "Aposentadoria", valor: "Integral pela folha do próprio Tribunal; 16 ministros aposentados em ago/2026, R$ 992 mil no mês.", uso: "sim", usoNota: "painel STF (à parte)", fonte: "STF, Remuneração (situação \"Aposentado Ministro\")", url: "https://egesp-portal.stf.jus.br/transparencia/rendimento_folha", lido: LIDO, noCusto: "nao" },
+  { item: "Aposentadoria", valor: "Ministro aposentado continua sendo pago pelo próprio STF, não pelo INSS: recebe proventos iguais ao que ganhava na ativa (subsídio de ministro mais as vantagens pessoais que já tinha), reajustados junto com os da ativa para quem entrou no serviço público antes de 2003. A aposentadoria é compulsória aos 75 anos. Em ago/2026 eram 16 aposentados, R$ 992 mil no mês, cerca de R$ 62 mil cada, mais do que um ministro da ativa sem vantagens pessoais. Depois da morte, o cônjuge recebe pensão pela mesma folha.",
+    uso: "sim", usoNota: "contracheque por aposentado; painel STF mostra o total à parte", fonte: "CF art. 40 (EC 41/2003, integralidade e paridade para quem ingressou antes de 31/12/2003; EC 88/2015, compulsória aos 75); STF, Remuneração (situação \"Aposentado Ministro\")", url: "https://egesp-portal.stf.jus.br/transparencia/rendimento_folha", lido: LIDO, noCusto: "nao" },
 ];
 
 export const EX_PRESIDENTES = {
