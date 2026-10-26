@@ -1,32 +1,34 @@
 ---
 /**
- * Tabela de deputados + filtros estáticos (links) por UF e por partido. Zero JS: cada filtro é uma página
- * gerada no build (/deputados/uf/sp/, /deputados/partido/pt/).
+ * Tabela de parlamentares + filtros estáticos (links) por UF e por partido. Zero JS: cada filtro é uma página
+ * gerada no build (/deputados/uf/sp/, /senadores/partido/pt/).
  * Props: rows (já filtradas), todos (todas as linhas, p/ montar os links), proj (sufixo " (projeção)"),
- *        ufAtiva?, partidoAtivo?
+ *        ufAtiva?, partidoAtivo?, base? ("/deputados" | "/senadores"), raiz? ("/" | "/senadores/"),
+ *        rotuloNome? ("Deputado(a)" | "Senador(a)"), cotaKey? ("ceap" | "ceaps"), rotuloCota?.
  */
 import { slug } from "../lib/slug";
-const { rows, todos, proj = "", ufAtiva, partidoAtivo } = Astro.props;
+const { rows, todos, proj = "", ufAtiva, partidoAtivo, base = "/deputados", raiz = "/",
+        rotuloNome = "Deputado(a)", cotaKey = "ceap", rotuloCota = "Cota parlamentar" } = Astro.props;
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const ufs = [...new Set<string>(todos.map((r: any) => r.uf))].sort();
 const partidos = [...new Set<string>(todos.map((r: any) => r.partido))].sort();
 ---
 <div class="filtros">
   <div><span class="rotulo">Estado</span>
-    <a href="/" aria-current={!ufAtiva && !partidoAtivo ? "page" : undefined}>Todos</a>
-    {ufs.map((uf) => <a href={`/deputados/uf/${slug(uf)}/`} aria-current={ufAtiva === uf ? "page" : undefined}>{uf}</a>)}
+    <a href={raiz} aria-current={!ufAtiva && !partidoAtivo ? "page" : undefined}>Todos</a>
+    {ufs.map((uf) => <a href={`${base}/uf/${slug(uf)}/`} aria-current={ufAtiva === uf ? "page" : undefined}>{uf}</a>)}
   </div>
   <div><span class="rotulo">Partido</span>
-    {partidos.map((p) => <a href={`/deputados/partido/${slug(p)}/`} aria-current={partidoAtivo === p ? "page" : undefined}>{p}</a>)}
+    {partidos.map((p) => <a href={`${base}/partido/${slug(p)}/`} aria-current={partidoAtivo === p ? "page" : undefined}>{p}</a>)}
   </div>
 </div>
 <table>
-  <thead><tr><th>#</th><th>Deputado(a)</th><th>Partido · UF</th><th class="num">Cota parlamentar</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
+  <thead><tr><th>#</th><th>{rotuloNome}</th><th>Partido · UF</th><th class="num">{rotuloCota}</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
   <tbody>
     {rows.map((r: any, i: number) => (
       <tr><td class="rank">{i + 1}</td><td>{r.nome}</td>
-          <td><a href={`/deputados/partido/${slug(r.partido)}/`}>{r.partido}</a> · <a href={`/deputados/uf/${slug(r.uf)}/`}>{r.uf}</a></td>
-          <td class="num">{brl0(r.ceap)}</td><td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
+          <td><a href={`${base}/partido/${slug(r.partido)}/`}>{r.partido}</a> · <a href={`${base}/uf/${slug(r.uf)}/`}>{r.uf}</a></td>
+          <td class="num">{brl0(r[cotaKey])}</td><td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
     ))}
   </tbody>
 </table>

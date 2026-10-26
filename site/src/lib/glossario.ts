@@ -27,6 +27,11 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   teto: { rotulo: "Teto", texto: "Limite máximo permitido. Quando o gasto real não é publicado, usamos o teto e dizemos isso no rótulo." },
   projecao: { rotulo: "Projeção", texto: "Para o ano corrente, o custo anual é estimado: o que já foi gasto até o mês atual, projetado para 12 meses." },
 
+  // Senadores
+  ceaps_senado: { rotulo: "Cota CEAPS", texto: "Cota para Exercício da Atividade Parlamentar do Senado: reembolso de aluguel de escritório, locomoção e hospedagem, serviços de apoio, divulgação, passagens e material. Teto mensal varia por estado; aqui entra só o que foi reembolsado." },
+  gastos_nao_inclusos: { rotulo: "Gastos fora da cota", texto: "Despesas do senador que o Senado paga por fora da cota e publica por nome: diárias de viagens oficiais, passagens aéreas compradas pelo Senado, correios, material e impulsionamento em mídias sociais." },
+  imovel_funcional: { rotulo: "Imóvel funcional", texto: "Apartamento do Senado em Brasília cedido ao senador. Quem não ocupa pode receber auxílio-moradia. Nenhum dos dois entra no total porque o Senado não publica o custo por senador." },
+
   // Poderes
   maquina: { rotulo: "Manter a máquina", texto: "Despesas do 'Programa de Gestão e Manutenção' de cada Poder na Lei Orçamentária: salários, aposentadorias e pensões do órgão, prédios, custeio, equipamentos. É o que o Poder gasta para existir e funcionar." },
   politicas_publicas: { rotulo: "Políticas públicas", texto: "Programas finalísticos do orçamento: Previdência, SUS, Bolsa Família, educação, estradas. São serviços entregues à população, não custo de funcionamento do órgão." },

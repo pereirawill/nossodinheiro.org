@@ -1,0 +1,20 @@
+{
+ "ano": 2025,
+ "meses_considerados": 12,
+ "senadores": 81,
+ "gerado_em": "2026-10-26",
+ "gerado_em_utc": "2026-10-26T19:30+00:00",
+ "anual_e_projecao": false,
+ "fonte": "Senado Federal — Transparência, Recursos utilizados por senador (adm.senado.gov.br/adm-dadosabertos)",
+ "premissas": {
+  "subsidio_mensal_dez": 44008.52,
+  "subsidios_por_ano": 13.333333333333334,
+  "inclui_pessoal_gabinete": false,
+  "inclui_auxilio_moradia": false
+ },
+ "totais": {
+  "ceaps": 34057806.29,
+  "nao_inclusos": 14247518.15,
+  "custo_total_estimado": 95643560.71
+ }
+}

@@ -1,11 +1,22 @@
 ---
-/** Página de deputados filtrada por UF ou partido. Props: titulo, descricao, rows, todos, meta, ufAtiva?, partidoAtivo? */
+/** Página de parlamentares filtrada por UF ou partido.
+ * Props: titulo, descricao, rows, todos, meta, ufAtiva?, partidoAtivo?,
+ *        casa? ("deputados" | "senadores") — define base de links, rótulos, série do gráfico e glossário. */
 import Base from "../layouts/Base.astro";
 import Chart from "./CustoDeputadoChart.astro";
 import Tabela from "./TabelaDeputados.astro";
 import Termo from "./Termo.astro";
 import Glossario from "./Glossario.astro";
-const { titulo, descricao, rows, todos, meta, ufAtiva, partidoAtivo } = Astro.props;
+const { titulo, descricao, rows, todos, meta, ufAtiva, partidoAtivo, casa = "deputados" } = Astro.props;
+const sen = casa === "senadores";
+const cfg = sen
+  ? { base: "/senadores", raiz: "/senadores/", singular: "senador", plural: "senadores", rotuloNome: "Senador(a)", cotaKey: "ceaps",
+      rotuloCota: "Cota (CEAPS)", fonte: `Senado Federal (recursos utilizados, ${meta.ano})`,
+      series: [["subsidio", "var(--s1)", "Subsídio"], ["ceaps", "var(--s2)", "Cota CEAPS (gasto real)"], ["nao_inclusos", "var(--s4)", "Fora da cota: diárias, passagens, correios (gasto real)"]],
+      glossario: ["subsidio", "ceaps_senado", "gastos_nao_inclusos", "imovel_funcional", "projecao"] }
+  : { base: "/deputados", raiz: "/", singular: "deputado", plural: "deputados", rotuloNome: "Deputado(a)", cotaKey: "ceap",
+      rotuloCota: "Cota parlamentar", fonte: `Câmara dos Deputados (CEAP ${meta.ano})`, series: undefined,
+      glossario: ["subsidio", "cota_parlamentar", "glosa", "verba_gabinete", "teto", "projecao"] };
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
   v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
@@ -13,34 +24,39 @@ const n = rows.length;
 const totalEst = rows.reduce((s: number, r: any) => s + r.custo_total_estimado, 0);
 const mediaMes = n ? totalEst / n / meta.meses_considerados : 0;
 const anualTotal = rows.reduce((s: number, r: any) => s + (r.custo_anual_projetado ?? 0), 0);
-const totalCeap = rows.reduce((s: number, r: any) => s + r.ceap, 0);
+const totalCota = rows.reduce((s: number, r: any) => s + r[cfg.cotaKey], 0);
 const mediaGeral = todos.reduce((s: number, r: any) => s + r.custo_total_estimado, 0) / todos.length / meta.meses_considerados;
 const proj = meta.anual_e_projecao ? " (projeção)" : "";
 const ordenadas = [...rows].sort((a: any, b: any) => b.custo_total_estimado - a.custo_total_estimado);
 ---
 <Base title={`${titulo} — Nosso Dinheiro`}>
   <h1>{titulo}</h1>
-  <p class="lede">{descricao} <Termo t="subsidio">Subsídio</Termo>, <Termo t="cota_parlamentar">cota parlamentar</Termo> (gasto real) e <Termo t="verba_gabinete">verba de gabinete</Termo> (<Termo t="teto">teto</Termo>) nos {meta.meses_considerados} primeiros meses de {meta.ano}.</p>
-  <p class="meta">fonte: Câmara dos Deputados (CEAP {meta.ano}) · <a href="/">todos os {todos.length} deputados</a> · <a href="/metodologia/">metodologia</a></p>
+  <p class="lede">{descricao}
+    {sen
+      ? <><Termo t="subsidio">Subsídio</Termo>, <Termo t="ceaps_senado">cota CEAPS</Termo> e <Termo t="gastos_nao_inclusos">gastos fora da cota</Termo> (tudo gasto real) nos {meta.meses_considerados} primeiros meses de {meta.ano}. Sem o pessoal do gabinete.</>
+      : <><Termo t="subsidio">Subsídio</Termo>, <Termo t="cota_parlamentar">cota parlamentar</Termo> (gasto real) e <Termo t="verba_gabinete">verba de gabinete</Termo> (<Termo t="teto">teto</Termo>) nos {meta.meses_considerados} primeiros meses de {meta.ano}.</>}
+  </p>
+  <p class="meta">fonte: {cfg.fonte} · <a href={cfg.raiz}>todos os {todos.length} {cfg.plural}</a> · <a href="/metodologia/">metodologia</a></p>
 
   <div class="hero">
-    <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio de um deputado deste grupo, <strong>por mês</strong> · média geral {brl0(mediaGeral)}</span></div>
-    <div class="stat"><b>{n}</b><span>deputado{n === 1 ? "" : "s"} em exercício</span></div>
+    <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio de um {cfg.singular} deste grupo, <strong>por mês</strong> · média geral {brl0(mediaGeral)}</span></div>
+    <div class="stat"><b>{n}</b><span>{cfg.singular}{n === 1 ? "" : "es"} em exercício</span></div>
     <div class="stat"><b>{compact(anualTotal)}</b><span>o grupo <strong>por ano</strong>{proj}</span></div>
   </div>
   <div class="hero" style="margin-top:0">
-    <div class="stat"><b>{compact(totalCeap)}</b><span>cota parlamentar gasta em {meta.meses_considerados} meses</span></div>
+    <div class="stat"><b>{compact(totalCota)}</b><span>{cfg.rotuloCota.toLowerCase()} gasta em {meta.meses_considerados} meses</span></div>
     <div class="stat"><b>{compact(totalEst)}</b><span>custo total estimado em {meta.meses_considerados} meses</span></div>
   </div>
 
   {n > 1 && (
     <>
       <h2>Os que mais custaram</h2>
-      <div class="card"><Chart rows={rows} top={Math.min(20, n)} meses={meta.meses_considerados} /></div>
+      <div class="card"><Chart rows={rows} top={Math.min(20, n)} meses={meta.meses_considerados} series={cfg.series} rotulo={cfg.plural} /></div>
     </>
   )}
 
-  <h2>Deputados</h2>
-  <Tabela rows={ordenadas} todos={todos} proj={proj} ufAtiva={ufAtiva} partidoAtivo={partidoAtivo} />
-  <Glossario termos={["subsidio", "cota_parlamentar", "glosa", "verba_gabinete", "teto", "projecao"]} />
+  <h2>{cfg.plural[0].toUpperCase() + cfg.plural.slice(1)}</h2>
+  <Tabela rows={ordenadas} todos={todos} proj={proj} ufAtiva={ufAtiva} partidoAtivo={partidoAtivo}
+          base={cfg.base} raiz={cfg.raiz} rotuloNome={cfg.rotuloNome} cotaKey={cfg.cotaKey} rotuloCota={cfg.rotuloCota} />
+  <Glossario termos={cfg.glossario} />
 </Base>

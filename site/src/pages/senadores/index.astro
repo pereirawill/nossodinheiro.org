@@ -1,0 +1,70 @@
+---
+import Base from "../../layouts/Base.astro";
+import Chart from "../../components/CustoDeputadoChart.astro";
+import Tabela from "../../components/TabelaDeputados.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import rows from "../../../public/data/custo_senador_2026.json";
+import meta from "../../../public/data/meta_senado_2026.json";
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const n = rows.length;
+const totalCeaps = rows.reduce((s, r) => s + r.ceaps, 0);
+const totalFora = rows.reduce((s, r) => s + r.nao_inclusos, 0);
+const totalEst = rows.reduce((s, r) => s + r.custo_total_estimado, 0);
+const mediaMes = totalEst / n / meta.meses_considerados;
+const anualTotal = rows.reduce((s, r) => s + (r.custo_anual_projetado ?? 0), 0);
+const anualMedio = anualTotal / n;
+const proj = meta.anual_e_projecao ? " (projeção)" : "";
+const quando = new Date(meta.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const dataFmt = fmt.format(quando).replace(",", " às") + " (Brasília)";
+const moradia = rows.filter((r) => r.auxilio_moradia_utilizou).length;
+const imovel = rows.filter((r) => r.imovel_funcional_utilizou).length;
+const pessoal = rows.reduce((s, r) => s + (r.pessoal_gabinete ?? 0) + (r.pessoal_escritorios ?? 0), 0);
+const series = [
+  ["subsidio", "var(--s1)", "Subsídio"],
+  ["ceaps", "var(--s2)", "Cota CEAPS (gasto real)"],
+  ["nao_inclusos", "var(--s4)", "Fora da cota: diárias, passagens, correios (gasto real)"],
+] as const;
+---
+<Base title="Quanto custa um senador? — Nosso Dinheiro">
+  <h1>Quanto custa um senador?</h1>
+  <p class="lede">
+    <Termo t="subsidio">Subsídio</Termo>, <Termo t="ceaps_senado">cota CEAPS</Termo> e <Termo t="gastos_nao_inclusos">gastos fora da cota</Termo>
+    (diárias, passagens aéreas, correios) dos {n} senadores em exercício, nos {meta.meses_considerados} primeiros meses de {meta.ano}.
+    Tudo gasto real publicado pelo Senado. <strong>Não inclui</strong> o pessoal do gabinete.
+  </p>
+  <p class="meta">Dados atualizados em {dataFmt} · fonte: Senado Federal, "Recursos utilizados" por senador · atualização automática toda segunda-feira</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{brl0(mediaMes)}</b><span>custo médio de um senador, <strong>por mês</strong> (sem gabinete)</span></div>
+    <div class="stat"><b>{compact(anualMedio)}</b><span>custo de um senador <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
+    <div class="stat"><b>{compact(anualTotal)}</b><span>os {n} senadores <strong>por ano</strong>{proj ? <> (<Termo t="projecao">projeção</Termo>)</> : ""}</span></div>
+  </div>
+  <div class="hero" style="margin-top:0">
+    <div class="stat"><b>{compact(totalCeaps)}</b><span><Termo t="ceaps_senado">cota CEAPS</Termo> gasta por {n} senadores em {meta.meses_considerados} meses</span></div>
+    <div class="stat"><b>{compact(totalFora)}</b><span><Termo t="gastos_nao_inclusos">fora da cota</Termo>: diárias, passagens aéreas, correios, mídias sociais</span></div>
+    <div class="stat"><b>{pessoal.toLocaleString("pt-BR")}</b><span>pessoas lotadas nos gabinetes e escritórios de apoio ({Math.round(pessoal / n)} por senador) · custo não publicado por gabinete</span></div>
+  </div>
+
+  <div class="disclaimer">
+    <span aria-hidden="true">ⓘ</span>
+    <div><b>Por que o senador "custa menos" que o deputado aqui?</b> Para deputados somamos o teto da verba de gabinete
+    (R$ 165,8 mil/mês); para senadores o Senado não publica o custo do gabinete, só a quantidade de pessoas, e não o
+    estimamos. Compare só subsídio + cota. {moradia} senadores recebem auxílio-moradia e {imovel} ocupam
+    <Termo t="imovel_funcional">imóvel funcional</Termo>; nenhum dos dois entra no total.</div>
+  </div>
+
+  <h2>Os 20 que mais custaram</h2>
+  <div class="card">
+    <Chart rows={rows} top={20} meses={meta.meses_considerados} series={series} rotulo="senadores" />
+    <p class="src">Fonte: Senado Federal, Transparência → Recursos utilizados por senador (API adm-dadosabertos) · <a href="/metodologia/">metodologia</a></p>
+  </div>
+
+  <h2>Todos os senadores</h2>
+  <Tabela rows={rows} todos={rows} proj={proj} base="/senadores" raiz="/senadores/" rotuloNome="Senador(a)" cotaKey="ceaps" rotuloCota="Cota (CEAPS)" />
+  <Glossario termos={["subsidio", "ceaps_senado", "gastos_nao_inclusos", "imovel_funcional", "auxilio_moradia", "projecao"]} />
+</Base>
