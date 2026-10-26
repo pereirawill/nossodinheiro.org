@@ -40,6 +40,10 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   gabinete_presidencia: { rotulo: "Gabinete da Presidência", texto: "O ministro que preside o STF aparece na folha lotado no Gabinete da Presidência, uma unidade administrativa pequena. A equipe que julga os processos dele fica em outras lotações que o portal não separa, por isso o custo do presidente sai subestimado aqui." },
   ministro_aposentado: { rotulo: "Ministros aposentados", texto: "Ex-ministros do STF que seguem pagos pela folha do próprio Tribunal, com proventos iguais aos da ativa (subsídio mais vantagens pessoais). Aposentadoria compulsória aos 75 anos. Mostramos o total como informação; não entra no custo de nenhum ministro em atividade." },
 
+  // Presidência
+  cartao_corporativo: { rotulo: "Cartão corporativo (CPGF)", texto: "Cartão de Pagamento do Governo Federal: cartão de crédito em nome de servidores (portadores) para despesas pequenas e urgentes, como combustível, hospedagem e material. O Portal da Transparência publica cada transação com órgão, portador, fornecedor, data e valor." },
+  sigilo: { rotulo: "Sob sigilo", texto: "Transação que o governo publica só com o valor, sem portador nem fornecedor, por segurança do presidente, do vice e das famílias (Lei de Acesso à Informação, art. 23). Nós mostramos o total sigiloso e a parte que ele representa; não há como saber em que foi gasto." },
+
   // Poderes
   maquina: { rotulo: "Manter a máquina", texto: "Despesas do 'Programa de Gestão e Manutenção' de cada Poder na Lei Orçamentária: salários, aposentadorias e pensões do órgão, prédios, custeio, equipamentos. É o que o Poder gasta para existir e funcionar." },
   politicas_publicas: { rotulo: "Políticas públicas", texto: "Programas finalísticos do orçamento: Previdência, SUS, Bolsa Família, educação, estradas. São serviços entregues à população, não custo de funcionamento do órgão." },

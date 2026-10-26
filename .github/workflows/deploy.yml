@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths: ["site/**", ".github/workflows/deploy.yml"]
   workflow_run:                      # dispara após o ETL commitar dados novos
-    workflows: ["ETL Câmara — custo por deputado", "ETL Portal da Transparência — emendas e Poderes", "ETL Senado — custo por senador", "ETL STF — custo por ministro", "ETL Rankings — posição do Brasil"]
+    workflows: ["ETL Câmara — custo por deputado", "ETL Portal da Transparência — emendas e Poderes", "ETL Senado — custo por senador", "ETL STF — custo por ministro", "ETL Rankings — posição do Brasil", "ETL Presidência — cartão corporativo"]
     types: [completed]
   workflow_dispatch:
 

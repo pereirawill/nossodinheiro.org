@@ -74,6 +74,16 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Não usamos a API do Portal da Transparência porque ela cobre só o Poder Executivo.
 - Completo: `docs/metodologia/painel-poderes.md`.
 
+## Presidência — quanto gasta a Presidência
+
+- **O que é:** subsídio do presidente, vice e ministros (DL 172/2022), cartão corporativo da Presidência mês a mês com a
+  parte sob sigilo, e a despesa paga pelos órgãos da Presidência (SIOP). Não existe "gasto do presidente" como linha
+  publicada; "primeira-dama" não é cargo nem centro de custo.
+- **Fonte:** Portal da Transparência, download de dados do Cartão de Pagamento do Governo Federal (CPGF), órgão superior 20000.
+- **Atenção:** ~98% do cartão da Presidência é publicado sob sigilo (segurança, LAI art. 23); mostramos o valor e o percentual.
+  Só fornecedores pessoa jurídica são listados; CPF de pessoa física é mascarado.
+- Completo: `docs/metodologia/painel-presidencia.md`.
+
 ## Rankings — onde o Brasil está
 
 - **O que é:** posição do Brasil em índices internacionais, com os 10 primeiros e os vizinhos. 1º é sempre o melhor.

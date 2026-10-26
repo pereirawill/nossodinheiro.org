@@ -1,0 +1,104 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import c26 from "../../../public/data/presidencia_cpgf_2026.json";
+import c25 from "../../../public/data/presidencia_cpgf_2025.json";
+const mods = import.meta.glob("../../../public/data/poderes_orgaos_*.json", { eager: true, import: "default" });
+const orgaos = (mods["../../../public/data/poderes_orgaos_2025.json"] as any[] | undefined) ?? [];
+const presidenciaOrgaos = orgaos.filter((o) => o.cod_superior === "20000").sort((a, b) => b.pago - a.pago);
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const SUBSIDIO = 46366.19; // DL 172/2022, art. 1º — Presidente, Vice e Ministros de Estado (mesmo valor dos parlamentares)
+const quando = new Date(c26.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const t = c26.totais;
+const mediaMes = t.presidencia / t.meses_publicados;
+const maxMes = Math.max(1, ...c26.meses.map((m) => m.presidencia));
+const W = 920, L = 60, rowH = 26;
+---
+<Base title="Quanto custa a Presidência? — Nosso Dinheiro" accent="var(--s4)">
+  <h1>Quanto gasta a Presidência da República?</h1>
+  <p class="lede">
+    Salário do presidente, <Termo t="cartao_corporativo">cartão corporativo</Termo> da Presidência mês a mês (e quanto dele é
+    <Termo t="sigilo">sigiloso</Termo>), e a despesa paga pelos órgãos da Presidência. Tudo do que o governo publica; o que está sob
+    sigilo aparece como sigilo, com o valor.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fontes: Portal da Transparência (CGU), SIOP, Decreto Legislativo 172/2022 · cartão: {t.meses_publicados} meses de 2026 publicados</p>
+
+  <div class="hero">
+    <div class="stat big"><b>{compact(t.presidencia)}</b><span>cartão corporativo da Presidência em {t.meses_publicados} meses de 2026 · {brl0(mediaMes)} por mês</span></div>
+    <div class="stat"><b>{pct(t.pct_sigiloso)}</b><span>do valor está <Termo t="sigilo">sob sigilo</Termo> (segurança do presidente)</span></div>
+    <div class="stat"><b>{brl0(SUBSIDIO)}</b><span>subsídio mensal do presidente, do vice e de cada ministro de Estado (mesmo dos parlamentares)</span></div>
+  </div>
+  <div class="hero" style="margin-top:0">
+    <div class="stat"><b>{compact(c25.totais.presidencia)}</b><span>cartão da Presidência em 2025 (12 meses) · {pct(c25.totais.pct_sigiloso)} sob sigilo</span></div>
+    <div class="stat"><b>{compact(t.governo)}</b><span>cartão corporativo de todo o governo federal em {t.meses_publicados} meses de 2026 · Presidência = {pct(t.presidencia / t.governo)}</span></div>
+    <div class="stat"><b>{c26.portadores}</b><span>portadores identificados em 2026 (os demais estão sob sigilo)</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Não existe "gasto do presidente" como linha publicada.</b> O que o governo publica é o cartão corporativo por órgão e
+    transação, com as despesas de segurança do presidente e da família classificadas como sigilosas (LAI, art. 23): aparece o
+    valor, não o portador nem o fornecedor. É por isso que 98% do cartão da Presidência é "sob sigilo", e esse próprio número é
+    um dado. "Primeira-dama" não é cargo nem centro de custo; o que houver está dentro das despesas da Presidência.
+    Viagens e diárias da Presidência são o próximo bloco deste painel.</div>
+  </div>
+
+  <h2>Cartão corporativo da Presidência, mês a mês (2026)</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--neutro)"></i>Sob sigilo</span><span><i style="background:var(--s4)"></i>Identificado (portador e fornecedor públicos)</span></div>
+    <svg viewBox={`0 0 ${W} ${c26.meses.length * rowH + 10}`} width="100%" role="img" aria-label="Cartão corporativo da Presidência por mês">
+      {c26.meses.map((m, i) => (
+        <g transform={`translate(0 ${i * rowH + 5})`}>
+          <text x={L - 8} y="16" text-anchor="end" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{MESES[m.mes - 1]}</text>
+          <rect x={L} y="3" width={Math.max(1, (m.sigiloso / maxMes) * 700)} height="18" fill="var(--neutro)" rx="2" />
+          <rect x={L + (m.sigiloso / maxMes) * 700} y="3" width={Math.max(0, ((m.presidencia - m.sigiloso) / maxMes) * 700)} height="18" fill="var(--s4)" rx="2" />
+          <text x={L + (m.presidencia / maxMes) * 700 + 6} y="16" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(m.presidencia)} · {m.transacoes} transações</text>
+        </g>
+      ))}
+    </svg>
+    <p class="src">Fonte: Portal da Transparência, download de dados "Cartões de Pagamento do Governo Federal (CPGF)", órgão superior 20000 (Presidência da República, Vice-Presidência, Imprensa Nacional, EBC). O mês é o do extrato.</p>
+  </div>
+
+  <h2>Por tipo de transação e por órgão (2026)</h2>
+  <div class="grade2">
+    <table>
+      <thead><tr><th>Tipo</th><th class="num">Valor</th><th class="num">Transações</th></tr></thead>
+      <tbody>{c26.por_tipo.map((x) => (<tr><td>{x.tipo}</td><td class="num">{brl0(x.valor)}</td><td class="num">{x.transacoes}</td></tr>))}</tbody>
+    </table>
+    <table>
+      <thead><tr><th>Órgão</th><th class="num">Valor</th><th class="num">Sob sigilo</th></tr></thead>
+      <tbody>{c26.por_orgao.map((x) => (<tr><td>{x.orgao}</td><td class="num">{brl0(x.valor)}</td><td class="num">{x.sigiloso ? pct(x.sigiloso / x.valor) : "0%"}</td></tr>))}</tbody>
+    </table>
+  </div>
+
+  <h2>Fornecedores identificados (pessoa jurídica, 2026)</h2>
+  <table>
+    <thead><tr><th>#</th><th>Fornecedor</th><th>CNPJ</th><th class="num">Valor</th><th class="num">Transações</th></tr></thead>
+    <tbody>{c26.favorecidos.map((f, i) => (<tr><td class="rank">{i + 1}</td><td>{f.favorecido}</td><td class="mono">{f.doc}</td><td class="num">{brl0(f.valor)}</td><td class="num">{f.transacoes}</td></tr>))}</tbody>
+  </table>
+  <p class="src">Só a parte identificada do cartão ({compact(t.presidencia - t.sigiloso)} em 2026); favorecidos pessoa física não são listados aqui.</p>
+
+  {presidenciaOrgaos.length > 0 && (
+    <>
+      <h2>Despesa paga pelos órgãos da Presidência (2025)</h2>
+      <table>
+        <thead><tr><th>Unidade orçamentária</th><th class="num">Empenhado</th><th class="num">Pago</th></tr></thead>
+        <tbody>{presidenciaOrgaos.map((o) => (<tr><td>{o.orgao}</td><td class="num">{brl0(o.empenhado)}</td><td class="num">{brl0(o.pago)}</td></tr>))}</tbody>
+      </table>
+      <p class="src">Fonte: SIOP, execução orçamentária 2025, órgão 20000 (ver painel <a href="/poderes/">Poderes</a>). Inclui a estrutura da Presidência, não só o gabinete do presidente.</p>
+    </>
+  )}
+
+  <Glossario termos={["cartao_corporativo", "sigilo", "subsidio", "empenhado", "pago"]} />
+</Base>
+<style>
+  .grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .grade2 { grid-template-columns: 1fr; } }
+  td.mono { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+</style>

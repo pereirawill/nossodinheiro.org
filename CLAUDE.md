@@ -69,6 +69,14 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   do GitHub, qualquer UA) → sem agendamento; atualização mensal manual: `make stf ANO=2026` + commit. `etl-stf.yml` só dispatch.
 - Site: `/stf/`. Metodologia: `docs/metodologia/painel-stf.md`. Próximo: STJ/TST/TSE/CNJ no mesmo molde.
 
+## Painel Presidência (NO AR, sem chave, mensal dia 15)
+- `etl/presidencia/extract.py cpgf --ano`: ZIP mensal `portaldatransparencia.gov.br/download-de-dados/cpgf/AAAAMM`
+  (precisa de UA de navegador + Referer; mês não publicado = 403, pulado). Guarda órgão superior 20000 + total do governo
+  por mês. `viagens --ano` baixa o ZIP anual (~90 MB) e filtra 20000 — extrator pronto, sem página ainda.
+- `transform.py` → `presidencia_cpgf_<ano>.json` (meses, por órgão, por tipo, favorecidos PJ top 25, nº portadores, totais).
+  2026 jan–ago: R$ 10,47 mi, 98% sob sigilo. Página `/presidencia/` reaproveita `poderes_orgaos_2025` (órgão 20000).
+- Privacidade: CPF de favorecido PF mascarado no extrator; site não lista portadores nem favorecidos PF.
+
 ## Painel Rankings (NO AR, sem chave, mensal)
 - `etl/rankings/extract.py` → `rankings.json`: Banco Mundial API (PIB, PIB pc, expectativa, Gini, educação %PIB,
   homicídios/UNODC), PNUD HDR 2025 CSV (IDH 2023, posição oficial), TI CPI 2025 xlsx (leitor xlsx próprio), nomes PT

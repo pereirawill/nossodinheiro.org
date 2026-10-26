@@ -1,0 +1,51 @@
+name: ETL Presidência — cartão corporativo
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/etl-presidencia.yml", "etl/presidencia/**"]
+  schedule:
+    - cron: "7 10 15 * *"       # dia 15 de cada mês, 07:07 BRT (o CPGF do mês anterior sai na 1ª quinzena)
+  workflow_dispatch:
+    inputs:
+      ano:
+        description: "Ano de referência"
+        default: "2026"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etl-presidencia
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANO: ${{ github.event.inputs.ano || '2026' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+
+      - name: Extrair CPGF (download de dados do Portal, sem chave)
+        run: |
+          python -m etl.presidencia.extract cpgf --ano "$ANO"
+          python -m etl.presidencia.extract cpgf --ano $((ANO - 1))
+
+      - name: Transformar
+        run: |
+          python -m etl.presidencia.transform --ano "$ANO"
+          python -m etl.presidencia.transform --ano $((ANO - 1))
+          mkdir -p site/public/data && cp data/public/presidencia_cpgf_*.json site/public/data/
+
+      - name: Commitar dados agregados
+        run: |
+          git config user.name "etl-bot"; git config user.email "etl-bot@users.noreply.github.com"
+          git add data/public site/public/data
+          git diff --cached --quiet && echo "sem mudanças" && exit 0
+          git commit -m "data: presidência cpgf $ANO ($(date -u +%F))"
+          git pull --rebase origin main && git push
