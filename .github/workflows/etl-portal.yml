@@ -34,6 +34,7 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Chave presente?
+        if: env.ETAPA != 'poderes'   # poderes vem do SIOP (SPARQL público, sem chave)
         run: test -n "$PORTAL_TRANSPARENCIA_KEY" || { echo "::error::secret PORTAL_TRANSPARENCIA_KEY ausente"; exit 1; }
 
       - name: Inspecionar campos reais da API
@@ -52,7 +53,8 @@ jobs:
         if: env.ETAPA == 'emendas' || env.ETAPA == 'emendas-documentos'
         run: |
           python -m etl.portal_transparencia.extract_emendas emendas --ano "$ANO"
-          test -f data/parquet/deputados.parquet || python -m etl.camara.extract deputados && python -m etl.camara.transform --ano 2026 --fonte bulk || true
+          # join autor→deputado por nome: basta a lista da legislatura (sem CEAP)
+          test -f data/raw/deputados_leg57.jsonl.gz || python -m etl.camara.extract deputados
           python -m etl.portal_transparencia.transform_emendas --ano "$ANO"
 
       - name: Emendas (documentos — para onde foi)

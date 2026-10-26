@@ -14,6 +14,7 @@ const tres = poderes?.filter((p) => ["Legislativo", "Judiciário", "Executivo"].
 const maxP = Math.max(1, ...(poderes ?? []).map((p) => p.pago));
 const topOrgaos = [...orgaos].filter((o) => o.poder !== "Dívida/Transferências").sort((a, b) => b.pago - a.pago).slice(0, 25);
 const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
+const previdencia = orgaos.filter((o) => o.cod_superior === "33000").reduce((s, o) => s + o.pago, 0);
 ---
 <Base title="Quanto custa cada Poder? — Nosso Dinheiro">
   <h1>Quanto custa cada Poder da União?</h1>
@@ -21,13 +22,13 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
     Despesa <strong>paga</strong> em {ANO} por Poder e por órgão: Legislativo (Câmara, Senado, TCU), Judiciário
     (STF, STJ, Justiça Federal, Eleitoral, do Trabalho…) e Executivo (ministérios).
   </p>
-  <p class="meta">fonte: Portal da Transparência (CGU), despesa por órgão superior · valores pagos no ano</p>
+  <p class="meta">fonte: SIOP (Ministério do Planejamento e Orçamento), dados abertos da execução orçamentária da União · valores pagos no ano</p>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
-    <div><b>Isto é despesa paga, não "custo da máquina".</b> O Executivo paga Previdência (R$ 929 bi), SUS, Bolsa Família —
-    política pública, não custo de funcionar. O Ministério da Fazenda, por onde passam juros, amortização e transferências
-    a estados e municípios, fica em "Dívida/Transferências". A comparação honesta entre Poderes (pessoal + custeio +
-    investimento, por GND) é a fase 2 deste painel.</div>
+    <div><b>Isto é despesa paga, não "custo da máquina".</b> O Executivo paga Previdência{previdencia ? ` (${compact(previdencia)})` : ""}, SUS, Bolsa Família —
+    política pública, não custo de funcionar. Juros, amortização, refinanciamento e transferências constitucionais
+    a estados e municípios ficam em "Dívida/Transferências". A comparação honesta entre Poderes (pessoal + custeio +
+    investimento, por grupo de despesa) é a fase 2 deste painel.</div>
   </div>
 
   {poderes ? (
@@ -49,7 +50,7 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
             </g>
           ))}
         </svg>
-        <p class="src">Dívida/Transferências = encargos financeiros, transferências constitucionais e refinanciamento (órgãos 71000–75000).</p>
+        <p class="src">Dívida/Transferências = encargos financeiros e previdenciários da União, transferências a estados e municípios, operações oficiais de crédito e dívida pública (órgãos 71000–75000). Órgão = unidade orçamentária da LOA.</p>
       </div>
 
       <h2>Os 25 órgãos que mais gastaram</h2>

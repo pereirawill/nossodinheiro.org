@@ -45,33 +45,33 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Pendências: teto CEAP por UF (Ato da Mesa 43/2009), gasto real de gabinete, confirmar 13º/férias,
   subsídio proporcional p/ quem assumiu no meio do ano, passagens SIGEPA não aparecem no CSV (verificar).
 
-## Painel Poderes (página pronta, DADOS PARCIAIS — em debug)
-- `etl/portal_transparencia/extract_poderes.py`: `/despesas/por-orgao?ano=&orgaoSuperior=` (a API exige
-  um filtro além do ano). Itera `ORGAOS_SUPERIORES`; classifica em Legislativo/Judiciário/Executivo/
-  Funções essenciais/Dívida-Transferências. Fazenda (25000) e 71000–75000/90000 = Dívida/Transferências.
-- **BUG ABERTO**: só códigos 20000+ retornam dados; 01000 (Câmara), 02000, 03000, 10000–17000 (Judiciário),
-  29000, 34000 vêm vazios, com ou sem zeros à esquerda. Ver log do passo "Poderes (despesa por órgão)".
-  Hipóteses: a API usa outro código para esses órgãos (ex.: `codigoOrgaoSuperior` diferente do SIAFI) ou
-  filtro `orgao` em vez de `orgaoSuperior`. Testar: `GET /despesas/por-orgao?ano=2025&orgao=01101` (Câmara)
-  e listar `codigoOrgaoSuperior` distintos sem filtro de Poder.
-- Resultado parcial 2025: Executivo R$ 4,7 tri pago (Fazenda 2,66 tri = dívida; Previdência 929 bi).
-  **Não é "custo"** — rótulo no site já diz "despesa paga". Fase 2: CSV mensal de execução
-  (`download-de-dados/despesas-execucao/YYYYMM`) para separar por GND (pessoal/custeio/investimento).
+## Painel Poderes (NO AR, dados reais 2025 — todos os Poderes)
+- Fonte: **SIOP, SPARQL público** `https://www1.siop.planejamento.gov.br/sparql/`, grafo
+  `http://orcamento.dados.gov.br/<ano>/` (sem chave; 1 consulta agregada órgão × UO × GND, ~1.200 linhas, ~10 s).
+  `etl/portal_transparencia/extract_poderes.py` → `despesas_orgao_<ano>.jsonl.gz`; transform gera `poderes_`,
+  `poderes_orgaos_` (por unidade orçamentária) e `poderes_gnd_<ano>.json` (Poder × GND, ainda sem página).
+- **Por que não o Portal da Transparência**: `/despesas/por-orgao` é documentada no OpenAPI como "despesas dos
+  órgãos do Poder Executivo Federal" — Legislativo/Judiciário/MPU/DPU nunca vêm, com qualquer código. O CSV anual
+  "Orçamento da Despesa" do Portal tem a mesma cobertura. (Era o "bug" de 26/10/2026; resolvido trocando a fonte.)
+- 2025 pago: Executivo R$ 2,04 tri (sem dívida/transferências), Judiciário 63,9 bi, Legislativo 15,7 bi,
+  Funções essenciais 10,6 bi, Dívida/Transferências 2,92 tri (71000–75000 + 90000). Previdência 986 bi.
+- Classificação em `classificar()`; metodologia em `docs/metodologia/painel-poderes.md`. SIOP já tem grafo 2026.
+- Fase 2: mostrar GND no site (pessoal + custeio + investimento = "custo de funcionar").
 
-## Painel Emendas (página pronta, SEM DADOS — run falhou)
+## Painel Emendas (página pronta; ver estado do run 2025 abaixo)
 - `/emendas?ano=` funciona; campos confirmados: codigoEmenda, ano, tipoEmenda, autor, nomeAutor, numeroEmenda,
   localidadeDoGasto, funcao, subfuncao, valorEmpenhado/Liquidado/Pago, valorResto{Inscrito,Cancelado,Pago}
   (strings pt-BR "8.000,00"). `nomeAutor` pode ter sufixo "(EX-PARLAMENTAR …)" — transform corta no parêntese.
 - `/emendas/documentos` é **restrito (403)** para a chave comum → destino por município/favorecido virá do
   CSV "Emendas parlamentares" em download-de-dados (sem chave) ou TransfereGov. Ainda não implementado.
-- **BUG ABERTO**: run `etapa=emendas` falhou no passo "Emendas (lista)" — ver log. Suspeitos: o passo encadeia
-  `extract deputados && transform --ano 2026 --fonte bulk || true` para ter `deputados.parquet` (join por nome)
-  e isso roda o ETL da Câmara inteiro; ou erro no `transform_emendas` (SQL com `read_json` + columns).
+- Bug de 26/10/2026 corrigido: o passo rodava o transform da Câmara inteiro (exigia `ceap_bulk_2026`) para ter
+  `deputados.parquet`. Agora `transform_emendas` usa o parquet se existir, senão `deputados_leg57.jsonl.gz`
+  (só `extract deputados`, sem CEAP). Teste sintético em `tests/test_portal.py`.
 - Regras: emenda NÃO soma ao custo do deputado; "recebeu" = pago, "alocou" = empenhado; só individuais
   (RP6) têm autor único.
 
 ## Próximos passos combinados
-1. Corrigir os dois bugs acima e fazer `poderes` + `emendas` 2025 aparecerem no site.
+1. Conferir `emendas` 2025 no site; painel GND dos Poderes (fase 2).
 2. Página por deputado `/deputado/{id}` (foto, cota mês a mês, categorias, fornecedores, link da NF) — maior
    ganho de SEO e o link para os comentários do Instagram.
 3. Painel "No que gastaram" (categorias) e fornecedores em rede.
@@ -87,4 +87,4 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Todo número fixo em `config.py` com fonte e data; mudou lá → muda a metodologia na mesma PR.
 - Rótulo explícito do que é gasto real vs teto vs projeção. Ano corrente: `meses_considerados = mês atual`.
 - Commits: `feat|fix|ci|site|data: …`. O etl-bot commita só `data/public` e `site/public/data`.
-- Esta sessão não lê logs do Actions (proxy); no terminal use `gh run view <id> --log-failed`.
+- Logs do Actions: `gh run view <id> --log-failed`. Ambiente local: `.venv/` (python -m venv; `pip install -r requirements.txt`).

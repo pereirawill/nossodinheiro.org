@@ -29,6 +29,9 @@ from pathlib import Path
 
 import duckdb
 
+from ..camara import config as C
+from ..camara.transform import SQL_DEPUTADOS
+
 log = logging.getLogger("etl.portal.emendas.transform")
 RAW, PQ, PUB = Path("data/raw"), Path("data/parquet"), Path("data/public")
 
@@ -55,7 +58,7 @@ SQL_POR_AUTOR = """
 CREATE OR REPLACE TABLE por_autor AS
 WITH dep AS (
   SELECT id_deputado, nome, partido, uf, upper(strip_accents(nome)) AS nome_norm
-  FROM read_parquet('{dep}')
+  FROM deputados
 )
 SELECT e.autor, e.tipo,
        any_value(d.id_deputado) AS id_deputado, any_value(d.partido) AS partido, any_value(d.uf) AS uf,
@@ -93,7 +96,8 @@ def run(ano: int) -> None:
     PQ.mkdir(parents=True, exist_ok=True); PUB.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
     con.execute(SQL_EMENDAS.format(raw=RAW / f"emendas_{ano}.jsonl.gz"))
-    con.execute(SQL_POR_AUTOR.format(dep=PQ / "deputados.parquet"))
+    _carregar_deputados(con)
+    con.execute(SQL_POR_AUTOR)
     con.execute(f"COPY emendas TO '{PQ / f'emendas_{ano}.parquet'}' (FORMAT PARQUET)")
     _dump(con, "por_autor", PUB / f"emendas_por_autor_{ano}.json")
 
@@ -108,6 +112,19 @@ def run(ano: int) -> None:
         "count(*) FILTER (WHERE NOT match_deputado AND tipo ILIKE '%individual%') FROM por_autor").fetchone()
     log.info("%d autores; empenhado R$ %.2f bi; pago R$ %.2f bi; %d autores individuais sem match com deputado (senadores/homônimos?)",
              n, emp, pago, nomatch)
+
+
+def _carregar_deputados(con: duckdb.DuckDBPyConnection) -> None:
+    """Tabela `deputados` para o join por nome. Usa o parquet do ETL da Câmara se existir;
+    senão, só a lista bruta da legislatura (`extract deputados`) — não precisa do CSV da CEAP."""
+    pq = PQ / "deputados.parquet"
+    raw = RAW / f"deputados_leg{C.LEGISLATURA_ATUAL}.jsonl.gz"
+    if pq.exists():
+        con.execute(f"CREATE OR REPLACE TABLE deputados AS SELECT * FROM read_parquet('{pq}')")
+    elif raw.exists():
+        con.execute(SQL_DEPUTADOS.format(raw=raw))
+    else:
+        raise SystemExit(f"faltam {pq} e {raw}: rode `python -m etl.camara.extract deputados` antes")
 
 
 def _dump(con: duckdb.DuckDBPyConnection, table: str, out: Path) -> None:

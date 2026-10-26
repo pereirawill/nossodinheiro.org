@@ -1,43 +1,40 @@
 """
 Painel 5 — Quanto custa cada Poder (Legislativo, Judiciário, Executivo) — União.
 
-Fonte A (MVP, poucas linhas): API do Portal da Transparência
-    GET /api-de-dados/despesas/por-orgao?ano=YYYY&pagina=N
-    → por órgão superior/órgão: empenhado, liquidado, pago (strings pt-BR).
-    Cobre 2011+ e dá o "quanto custa" por órgão. NÃO traz GND.
+Fonte: SIOP (Sistema Integrado de Planejamento e Orçamento, Ministério do Planejamento e
+Orçamento), dados abertos da LOA e da execução orçamentária, endpoint SPARQL público:
+    https://www1.siop.planejamento.gov.br/sparql/   (grafo <http://orcamento.dados.gov.br/<ano>/>)
+    documentação: https://www1.siop.planejamento.gov.br/siopdoc/doku.php/acesso_publico:dados_abertos
+Sem chave. Uma consulta agregada por órgão × unidade orçamentária × GND devolve ~1.300 linhas
+com dotação (lei + créditos), empenhado, liquidado e pago. Cobre TODOS os Poderes.
 
-Fonte B (v2, separar "custo de funcionar" de "políticas"): CSV mensal de execução
-    https://portaldatransparencia.gov.br/download-de-dados/despesas-execucao/YYYYMM
-    → traz Função, GND (1 Pessoal, 3 Outras Correntes, 4 Investimentos, 2 Juros,
-      6 Amortização), Órgão. Arquivos grandes (centenas de MB/mês) — DuckDB lê o
-      ZIP direto; rodar só para anos fechados, 1x.
+Por que não a API do Portal da Transparência: `/despesas/por-orgao` é documentada como
+"Consulta as despesas dos órgãos do Poder Executivo Federal" (OpenAPI, 2026-10-26) — Câmara,
+Senado, TCU, tribunais, MPU e DPU nunca aparecem lá, com qualquer código. O CSV anual
+"Orçamento da Despesa" do Portal tem a mesma cobertura.
 
 Uso:
-    python -m etl.portal_transparencia.extract_poderes --ano 2025      # Fonte A
-    python -m etl.portal_transparencia.extract_poderes --ano 2025 --gnd # + Fonte B (lento)
+    python -m etl.portal_transparencia.extract_poderes --ano 2025 [--inspect]
 
-Saída: data/raw/despesas_orgao_<ano>.jsonl.gz ; data/raw/execucao/<ano><mm>.zip
+Saída: data/raw/despesas_orgao_<ano>.jsonl.gz
 """
 
 from __future__ import annotations
 
 import argparse
-import gzip
 import json
 import logging
-import os
-import sys
 from pathlib import Path
 
 import httpx
 
-from .extract_emendas import Client, write_jsonl  # mesmo cliente com throttle/429
+from .extract_emendas import write_jsonl
 
 log = logging.getLogger("etl.portal.poderes")
 RAW = Path("data/raw")
-EXEC_URL = "https://portaldatransparencia.gov.br/download-de-dados/despesas-execucao/{ano}{mes:02d}"
+SPARQL = "https://www1.siop.planejamento.gov.br/sparql/"
 
-# Código do órgão superior → Poder. Fonte: estrutura orçamentária da União (LOA).
+# Código do órgão orçamentário (LOA) → Poder.
 PODER_POR_ORGAO_SUPERIOR = {
     "01000": "Legislativo",  # Câmara dos Deputados
     "02000": "Legislativo",  # Senado Federal
@@ -50,95 +47,85 @@ PODER_POR_ORGAO_SUPERIOR = {
     "15000": "Judiciário",   # Justiça do Trabalho (TST + TRTs)
     "16000": "Judiciário",   # TJDFT
     "17000": "Judiciário",   # CNJ
-    "34000": "Funções essenciais",  # MPU
     "29000": "Funções essenciais",  # DPU
+    "34000": "Funções essenciais",  # MPU
+    "59000": "Funções essenciais",  # CNMP
 }
-# Qualquer outro código (20000+) = Executivo. Encargos Financeiros da União (71000),
-# Transferências (73000), Refinanciamento (75000), Operações Oficiais (74000) e
-# Reserva (90000) NÃO são "custo de um Poder" — ficam em "Dívida/Transferências".
-NAO_PODER = {"71000", "73000", "74000", "75000", "90000"}
-
-
-# Unidades por onde roda o serviço da dívida e as transferências obrigatórias, mesmo
-# dentro de um ministério: sem separação por GND, não dá para chamar isso de custo.
-ORGAOS_DIVIDA = {"25000"}  # Ministério da Fazenda (juros, amortização, refinanciamento, FPM/FPE…)
+# Qualquer outro código = Executivo, exceto os órgãos "sem Poder": Encargos Financeiros
+# (71000), Encargos Previdenciários (72000), Transferências a estados/municípios (73000),
+# Operações Oficiais de Crédito (74000), Dívida Pública Federal (75000), Reserva (90000).
+# Não são "custo de um Poder" — ficam em "Dívida/Transferências".
+NAO_PODER = {"71000", "72000", "73000", "74000", "75000", "90000"}
 
 
 def classificar(cod_superior: str) -> str:
     cod = str(cod_superior).zfill(5)
     if cod in PODER_POR_ORGAO_SUPERIOR:
         return PODER_POR_ORGAO_SUPERIOR[cod]
-    if cod in NAO_PODER or cod in ORGAOS_DIVIDA:
+    if cod in NAO_PODER:
         return "Dívida/Transferências"
     return "Executivo"
 
 
-# Órgãos superiores da União (códigos SIAFI). A API exige um filtro além do ano,
-# então iteramos por orgaoSuperior. Lista cobre os 3 Poderes + MPU/DPU + encargos.
-ORGAOS_SUPERIORES = [
-    "01000", "02000", "03000",                                   # Legislativo
-    "10000", "11000", "12000", "13000", "14000", "15000", "16000", "17000",  # Judiciário
-    "20000", "22000", "24000", "25000", "26000", "28000", "30000", "32000", "33000", "35000",
-    "36000", "37000", "38000", "39000", "41000", "42000", "44000", "49000", "51000", "52000",
-    "53000", "54000", "55000", "56000", "57000", "58000", "59000", "60000", "61000", "62000",
-    "63000", "64000", "65000", "66000", "67000", "68000", "69000", "70000",  # Executivo
-    "29000", "34000",                                            # DPU, MPU
-    "71000", "73000", "74000", "75000", "90000",                 # dívida/transferências/reserva
-]
+QUERY = """
+PREFIX loa: <http://vocab.e.gov.br/2013/09/loa#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome
+       (SUM(?emp) AS ?empenhado) (SUM(?liq) AS ?liquidado) (SUM(?pag) AS ?pago) (SUM(?dot) AS ?dotacao)
+FROM <http://orcamento.dados.gov.br/{ano}/>
+WHERE {{
+  ?i a loa:ItemDespesa ; loa:temUnidadeOrcamentaria ?u ; loa:temGND ?g ;
+     loa:valorEmpenhado ?emp ; loa:valorLiquidado ?liq ; loa:valorPago ?pag ; loa:valorLeiMaisCredito ?dot .
+  ?u loa:codigo ?cod_orgao ; rdfs:label ?orgao ; loa:temOrgao ?o .
+  ?o loa:codigo ?cod_superior ; rdfs:label ?orgao_superior .
+  ?g loa:codigo ?gnd ; rdfs:label ?gnd_nome .
+}}
+GROUP BY ?cod_superior ?orgao_superior ?cod_orgao ?orgao ?gnd ?gnd_nome
+ORDER BY ?cod_superior ?cod_orgao ?gnd
+"""
+NUMERICOS = ("empenhado", "liquidado", "pago", "dotacao")
 
 
-def extrair_por_orgao(c: Client, ano: int, inspect: bool = False) -> None:
-    def gen():
-        for cod in ORGAOS_SUPERIORES:
-            n = 0
-            # A API aceita o código com ou sem zeros à esquerda dependendo do órgão;
-            # tenta "01000" e, se vier vazio, "1000".
-            for variante in dict.fromkeys([cod, cod.lstrip("0")]):
-                for row in c.paginate("/despesas/por-orgao", {"ano": ano, "orgaoSuperior": variante}):
-                    row["poder"] = classificar(row.get("codigoOrgaoSuperior") or cod)
-                    n += 1
-                    if inspect and n == 1:
-                        print("campos:", sorted(row.keys())); print(json.dumps(row, ensure_ascii=False, indent=2))
-                    yield row
-                if n:
-                    break
-            log.info("orgaoSuperior=%s: %d linhas", cod, n)
-            if n == 0:
-                log.warning("orgaoSuperior=%s sem retorno (nenhuma variante) — conferir código", cod)
-            if inspect and n:
-                return
-    write_jsonl(RAW / f"despesas_orgao_{ano}.jsonl.gz", gen())
+def consultar(ano: int) -> list[dict]:
+    r = httpx.get(SPARQL, params={"query": QUERY.format(ano=ano)},
+                  headers={"accept": "application/sparql-results+json",
+                           "user-agent": "nossodinheiro-etl/0.1"}, timeout=180)
+    r.raise_for_status()
+    rows = []
+    for b in r.json()["results"]["bindings"]:
+        row = {k: v["value"] for k, v in b.items()}
+        for k in NUMERICOS:
+            row[k] = float(row.get(k, 0) or 0)
+        row["ano"] = ano
+        row["poder"] = classificar(row["cod_superior"])
+        rows.append(row)
+    return rows
 
 
-def baixar_execucao(ano: int) -> None:
-    out = RAW / "execucao"; out.mkdir(parents=True, exist_ok=True)
-    with httpx.Client(timeout=600, follow_redirects=True) as h:
-        for mes in range(1, 13):
-            dst = out / f"{ano}{mes:02d}.zip"
-            if dst.exists():
-                continue
-            url = EXEC_URL.format(ano=ano, mes=mes)
-            log.info("baixando %s", url)
-            with h.stream("GET", url) as r:
-                if r.status_code == 404:
-                    log.warning("mês %02d/%d ainda não publicado", mes, ano); break
-                r.raise_for_status()
-                with open(dst, "wb") as f:
-                    for chunk in r.iter_bytes(1 << 20):
-                        f.write(chunk)
+def extrair(ano: int, inspect: bool = False) -> None:
+    rows = consultar(ano)
+    if not rows:
+        raise SystemExit(f"SIOP devolveu 0 linhas para {ano} — grafo ainda não publicado?")
+    if inspect:
+        print("campos:", sorted(rows[0].keys())); print(json.dumps(rows[0], ensure_ascii=False, indent=2))
+    por_poder: dict[str, float] = {}
+    for row in rows:
+        por_poder[row["poder"]] = por_poder.get(row["poder"], 0) + row["pago"]
+    for poder, pago in sorted(por_poder.items(), key=lambda kv: -kv[1]):
+        log.info("%-22s pago R$ %10.2f bi", poder, pago / 1e9)
+    for poder in ("Legislativo", "Judiciário"):
+        if por_poder.get(poder, 0) <= 0:
+            raise SystemExit(f"{poder} sem despesa paga em {ano} — fonte mudou? Não gravar.")
+    write_jsonl(RAW / f"despesas_orgao_{ano}.jsonl.gz", iter(rows))
 
 
-def main(argv=None) -> None:
+def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     ap = argparse.ArgumentParser()
     ap.add_argument("--ano", type=int, required=True)
-    ap.add_argument("--gnd", action="store_true", help="também baixa os CSVs mensais de execução (GND)")
-    ap.add_argument("--inspect", action="store_true", help="só imprime os campos da 1ª linha")
+    ap.add_argument("--inspect", action="store_true", help="imprime a primeira linha")
     a = ap.parse_args(argv)
-    key = os.environ.get("PORTAL_TRANSPARENCIA_KEY") or sys.exit("defina PORTAL_TRANSPARENCIA_KEY")
-    extrair_por_orgao(Client(key), a.ano, inspect=a.inspect)
-    if a.gnd:
-        baixar_execucao(a.ano)
+    extrair(a.ano, a.inspect)
 
 
 if __name__ == "__main__":
