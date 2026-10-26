@@ -59,11 +59,16 @@ PODER_POR_ORGAO_SUPERIOR = {
 NAO_PODER = {"71000", "73000", "74000", "75000", "90000"}
 
 
+# Unidades por onde roda o serviço da dívida e as transferências obrigatórias, mesmo
+# dentro de um ministério: sem separação por GND, não dá para chamar isso de custo.
+ORGAOS_DIVIDA = {"25000"}  # Ministério da Fazenda (juros, amortização, refinanciamento, FPM/FPE…)
+
+
 def classificar(cod_superior: str) -> str:
     cod = str(cod_superior).zfill(5)
     if cod in PODER_POR_ORGAO_SUPERIOR:
         return PODER_POR_ORGAO_SUPERIOR[cod]
-    if cod in NAO_PODER:
+    if cod in NAO_PODER or cod in ORGAOS_DIVIDA:
         return "Dívida/Transferências"
     return "Executivo"
 

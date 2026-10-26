@@ -24,16 +24,17 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
   <p class="meta">fonte: Portal da Transparência (CGU), despesa por órgão superior · valores pagos no ano</p>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
-    <div><b>Custo ≠ orçamento.</b> O Executivo paga Previdência, SUS e Bolsa Família — isso é política pública, não custo
-    da máquina. A comparação honesta entre Poderes é pessoal + custeio + investimento (fase 2, por GND).
-    Juros e amortização da dívida e transferências a estados/municípios ficam fora dos três Poderes.</div>
+    <div><b>Isto é despesa paga, não "custo da máquina".</b> O Executivo paga Previdência (R$ 929 bi), SUS, Bolsa Família —
+    política pública, não custo de funcionar. O Ministério da Fazenda, por onde passam juros, amortização e transferências
+    a estados e municípios, fica em "Dívida/Transferências". A comparação honesta entre Poderes (pessoal + custeio +
+    investimento, por GND) é a fase 2 deste painel.</div>
   </div>
 
   {poderes ? (
     <>
       <div class="hero">
         {tres.map((p) => (
-          <div class="stat"><b>{compact(p.pago)}</b><span>{p.poder} · {p.orgaos} órgãos{p.pago_por_habitante ? ` · ${brl0(p.pago_por_habitante)}/habitante` : ""}</span></div>
+          <div class="stat"><b>{compact(p.pago)}</b><span>{p.poder} · despesa paga · {p.orgaos} órgãos{p.pago_por_habitante ? ` · ${brl0(p.pago_por_habitante)}/habitante` : ""}</span></div>
         ))}
       </div>
 
