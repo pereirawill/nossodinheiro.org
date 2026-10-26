@@ -61,17 +61,22 @@ FROM read_json('{raw}', format='newline_delimited', columns={{
 
 SQL_CEAP_BULK = """
 CREATE OR REPLACE TABLE ceap AS
-SELECT ideCadastro::INTEGER AS id_deputado, numAno::INTEGER AS ano, numMes::INTEGER AS mes,
+SELECT TRY_CAST(ideCadastro AS INTEGER) AS id_deputado, TRY_CAST(numAno AS INTEGER) AS ano,
+       TRY_CAST(numMes AS INTEGER) AS mes,
        txtDescricao AS tipo_despesa, txtFornecedor AS fornecedor,
-       txtCNPJCPF AS cnpj_cpf_fornecedor,
-       TRY_CAST(datEmissao AS DATE) AS data_documento,
-       TRY_CAST(replace(vlrDocumento::VARCHAR, ',', '.') AS DOUBLE) AS valor_documento,
-       TRY_CAST(replace(vlrGlosa::VARCHAR, ',', '.') AS DOUBLE)     AS valor_glosa,
-       TRY_CAST(replace(vlrLiquido::VARCHAR, ',', '.') AS DOUBLE)   AS valor_liquido,
+       regexp_replace(txtCNPJCPF, '[^0-9]', '', 'g') AS cnpj_cpf_fornecedor,
+       TRY_CAST(left(datEmissao, 10) AS DATE) AS data_documento,
+       TRY_CAST(replace(vlrDocumento, ',', '.') AS DOUBLE) AS valor_documento,
+       TRY_CAST(replace(vlrGlosa, ',', '.') AS DOUBLE)     AS valor_glosa,
+       TRY_CAST(replace(vlrLiquido, ',', '.') AS DOUBLE)   AS valor_liquido,
        urlDocumento AS url_documento
-FROM read_json_auto('{raw}', format='newline_delimited')
-WHERE ideCadastro IS NOT NULL AND ideCadastro::VARCHAR <> '';
--- Nota: o CSV traz a coluna `cpf` do parlamentar; ela NÃO é carregada de propósito.
+FROM read_json('{raw}', format='newline_delimited', columns={{
+    'ideCadastro':'VARCHAR','numAno':'VARCHAR','numMes':'VARCHAR','txtDescricao':'VARCHAR',
+    'txtFornecedor':'VARCHAR','txtCNPJCPF':'VARCHAR','datEmissao':'VARCHAR','vlrDocumento':'VARCHAR',
+    'vlrGlosa':'VARCHAR','vlrLiquido':'VARCHAR','urlDocumento':'VARCHAR'}}, ignore_errors=true)
+WHERE ideCadastro IS NOT NULL AND ideCadastro <> '';
+-- Linhas sem ideCadastro são lideranças partidárias/do governo (cota coletiva): ficam fora
+-- do custo individual. O CSV traz a coluna `cpf` do parlamentar; ela NÃO é carregada.
 """
 
 # Custo por deputado no ano = subsídio (fixo, 12 meses + 13º + 1/3 férias)
