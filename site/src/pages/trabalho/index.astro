@@ -38,7 +38,21 @@ const FATIAS_POP = [
   { nome: "Procurando trabalho (desocupados)", v: p.desocupada * 1e3, cor: "var(--s4)" },
   { nome: "Fora da força de trabalho: aposentados, estudantes, quem cuida da casa, quem desistiu de procurar", v: p.fora_forca * 1e3, cor: "var(--neutro)" },
 ];
-// Pizza 2: os benefícios que o INSS paga, por grupo
+// Pizza 2: a população inteira pelo vínculo com a previdência (partição real, sem sobreposição)
+const contrib = p.contribuintes * 1e3, naoContrib = p.nao_contribuintes * 1e3;
+const ocupadosPnad = contrib + naoContrib;                       // total de ocupados da mesma tabela
+const foraForca = p.fora_forca * 1e3, desocupados = p.desocupada * 1e3;
+const criancasPrev = popTotal - (ocupadosPnad + desocupados + foraForca);
+const FATIAS_PREV = [
+  { nome: "Trabalham e contribuem para a previdência", v: contrib, cor: "var(--s2)" },
+  { nome: "Trabalham e não contribuem (informais)", v: naoContrib, cor: "var(--s4)" },
+  { nome: "Procuram trabalho (desocupados)", v: desocupados, cor: "#d9a23b" },
+  { nome: "Fora da força de trabalho: aposentados, estudantes, quem cuida da casa", v: foraForca, cor: "var(--neutro)" },
+  { nome: "Crianças e adolescentes até 13 anos", v: criancasPrev, cor: "var(--s5)" },
+];
+const pctPop = (v: number) => `${((100 * v) / popTotal).toFixed(1).replace(".", ",")}%`;
+
+// Pizza 3: os benefícios que o INSS paga, por grupo
 const FATIAS_INSS = [
   { nome: "Aposentadorias, pensões e auxílios de quem contribuiu (RGPS)", v: inss.rgps, cor: "var(--s1)" },
   { nome: "BPC/LOAS: um salário mínimo a idosos e pessoas com deficiência de baixa renda, sem contribuição", v: inss.assistencial, cor: "var(--s3)" },
@@ -54,6 +68,7 @@ const pizza = (fatias: { nome: string; v: number; cor: string }[], total: number
 };
 const arcosPop = pizza(FATIAS_POP, popTotal);
 const arcosInss = pizza(FATIAS_INSS, inss.total);
+const arcosPrev = pizza(FATIAS_PREV, popTotal);
 
 const barraPop = [
   { nome: "Ocupados", v: p.ocupada, cor: "var(--s2)" }, { nome: "Desocupados (procurando)", v: p.desocupada, cor: "var(--s4)" },
@@ -66,6 +81,11 @@ const faixas = (cempre?.faixas ?? []) as { faixa: string; empresas: number; pess
 const cempreTotal = cempre?.total ?? { empresas: 0, pessoas: 0 };
 const maxEmpresas = Math.max(...faixas.map((f) => f.empresas), 1);
 const maxPessoas = Math.max(...faixas.map((f) => f.pessoas), 1);
+const portes = (cempre?.portes ?? []) as { porte: string; empresas: number; pessoas: number }[];
+const CORES_PORTE: Record<string, string> = { Micro: "var(--s2)", Pequena: "var(--s5)", "Média": "var(--s4)", Grande: "var(--s1)" };
+const somaPortesEmp = portes.reduce((a, p) => a + p.empresas, 0) || 1;
+const somaPortesPes = portes.reduce((a, p) => a + p.pessoas, 0) || 1;
+const grande = portes.find((p) => p.porte === "Grande");
 const micro = faixas.find((f) => f.faixa === "0 a 4");
 const gigantes = faixas.find((f) => f.faixa === "500 ou mais");
 
@@ -120,6 +140,31 @@ const empresasBarras = [
       {miMil(p.ocupada)} ocupados (trimestre móvel, tabela 6318) e mais abaixo {miMil(p.ocupados)} (trimestre fechado, tabela 4097):
       são recortes de tempo diferentes da mesma pesquisa. "Fora da força de trabalho" junta
       quem não trabalha nem procura: aposentados, estudantes, quem cuida da casa e quem desistiu de procurar.
+    </p>
+  </div>
+
+  <h2>Quem sustenta a previdência: {mi(contrib)} de contribuintes</h2>
+  <div class="card pizza">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label="População por vínculo com a previdência">
+      {arcosPrev.map((a) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {mi(a.v)} ({pctPop(a.v)})</title></path>)}
+      <circle cx="100" cy="100" r="46" fill="var(--card)" />
+      <text x="100" y="92" text-anchor="middle" font-size="10" fill="var(--ink-2)">contribuem</text>
+      <text x="100" y="108" text-anchor="middle" font-size="13" font-weight="700" fill="var(--s2)">{pctPop(contrib)}</text>
+      <text x="100" y="122" text-anchor="middle" font-size="9" fill="var(--ink-2)">da população</text>
+    </svg>
+    <table>
+      <thead><tr><th>Situação diante da previdência</th><th class="num">Pessoas</th><th class="num">% do país</th></tr></thead>
+      <tbody>{arcosPrev.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{mi(a.v)}</td><td class="num">{pctPop(a.v)}</td></tr>))}
+        <tr class="grupo"><td><b>População total ({d.populacao.ano})</b></td><td class="num"><b>{mi(popTotal)}</b></td><td class="num">100%</td></tr></tbody>
+    </table>
+    <p class="src" style="grid-column:1/-1">
+      <b>Cada pessoa aparece uma vez só.</b> "Contribuem" é quem a PNAD registra como contribuinte de instituto de previdência em
+      algum trabalho — carteira assinada, servidor, autônomo que recolhe, MEI. De cada 10 pessoas ocupadas,
+      {" "}{(10 * contrib / ocupadosPnad).toFixed(1).replace(".", ",")} contribuem. Os {mi(naoContrib)} que trabalham sem contribuir
+      não geram direito a aposentadoria nem a auxílio enquanto estiverem assim. Entre os {mi(foraForca)} fora da força de trabalho
+      estão os aposentados — <b>que já contribuíram</b> —, estudantes, pessoas que cuidam da casa e quem desistiu de procurar emprego;
+      a PNAD não separa esse grupo por fonte de renda nesta tabela. Fontes: IBGE, PNAD Contínua ({d.pnad.periodo}, tabelas 5947 e 6318)
+      e estimativa de população de {d.populacao.ano}; as crianças saem da diferença entre as duas pesquisas, então são aproximadas.
     </p>
   </div>
 
@@ -193,8 +238,39 @@ const empresasBarras = [
       <div class="hero" style="margin-top:0">
         <div class="stat big"><b>{pct(micro!.empresas, cempreTotal.empresas)}</b><span>das {mi(cempreTotal.empresas)} de empresas e organizações do país têm <b class="inline">até 4 pessoas</b> trabalhando, contando os donos</span></div>
         <div class="stat"><b>{num(gigantes!.empresas)}</b><span>empresas têm 500 pessoas ou mais — {pct(gigantes!.empresas, cempreTotal.empresas)} do total</span></div>
-        <div class="stat"><b>{pct(gigantes!.pessoas, cempreTotal.pessoas)}</b><span>de todo o pessoal ocupado nessas empresas está justamente nessas maiores: {mi(gigantes!.pessoas)} de pessoas</span></div>
+        <div class="stat"><b>{grande ? pct(grande.pessoas, somaPortesPes) : pct(gigantes!.pessoas, cempreTotal.pessoas)}</b><span>de todo o pessoal ocupado está nas <b class="inline">grandes</b> empresas, que são {grande ? pct(grande.empresas, somaPortesEmp) : "0,1%"} do total</span></div>
       </div>
+      {portes.length > 0 && <>
+        <h3 style="margin:18px 0 6px">Micro, pequenas, médias e grandes</h3>
+        <p class="explica">
+          Não existe uma única definição de porte no Brasil. A <b>lei</b> (Lei Complementar 123/2006) classifica por
+          <b>faturamento</b> — é o critério do MEI, da microempresa e da empresa de pequeno porte, que aparece no quadro do Mapa de
+          Empresas acima. Já as <b>estatísticas</b> costumam classificar por <b>número de pessoas ocupadas</b>, com cortes diferentes
+          para indústria e para comércio e serviços. É esse segundo critério que dá para aplicar aos dados do IBGE, e é o que está aqui.
+        </p>
+        <svg viewBox={`0 0 ${W} ${portes.length * 46 + 26}`} width="100%" role="img" aria-label="Empresas e pessoal ocupado por porte">
+          <text x="330" y="14" text-anchor="end" font-size="11.5" fill="var(--ink-2)">das empresas</text>
+          <text x="560" y="14" font-size="11.5" fill="var(--ink-2)">do pessoal ocupado</text>
+          {portes.map((p, i) => (<g transform={`translate(0 ${i * 46 + 24})`}>
+            <text x="150" y="14" text-anchor="end" font-size="13" font-weight="700" fill="var(--ink)">{p.porte}</text>
+            <text x="330" y="16" text-anchor="end" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{pct(p.empresas, somaPortesEmp)} · {num(p.empresas)}</text>
+            <rect x="340" y="2" width={Math.max(2, (p.empresas / somaPortesEmp) * 160)} height="18" fill={CORES_PORTE[p.porte]} rx="2" />
+            <rect x="560" y="2" width={Math.max(2, (p.pessoas / somaPortesPes) * 210)} height="18" fill={CORES_PORTE[p.porte]} rx="2" opacity=".75" />
+            <text x={566 + (p.pessoas / somaPortesPes) * 210} y="16" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{pct(p.pessoas, somaPortesPes)} · {miMil(p.pessoas / 1e3)}</text>
+            <text x="150" y="32" text-anchor="end" font-size="10.5" fill="var(--ink-2)">{p.porte === "Micro" ? "ind. até 19 · com./serv. até 9"
+              : p.porte === "Pequena" ? "ind. 20–99 · com./serv. 10–49"
+              : p.porte === "Média" ? "ind. 100–499 · com./serv. 50–99" : "ind. 500+ · com./serv. 100+"}</text>
+          </g>))}
+        </svg>
+        <p class="src">
+          Critério por pessoal ocupado do <b>Sebrae</b>, aplicado por nós a cada seção da CNAE: indústria, construção, eletricidade e
+          saneamento usam o corte alto; agricultura, comércio e serviços usam o baixo. <b>Não é classificação legal</b> — a lei usa
+          faturamento, e uma empresa pode ser "de pequeno porte" na lei e "média" aqui, ou o contrário. A soma por porte fica
+          {" "}{num(Math.abs(cempreTotal.pessoas - somaPortesPes))} pessoas abaixo do total porque algumas linhas do cadastro não
+          entram na divisão por seção de atividade.
+        </p>
+        <h3 style="margin:22px 0 6px">E pelas faixas do IBGE, sem rótulo de porte</h3>
+      </>}
       <table>
         <thead><tr><th><Termo t="faixa_pessoal">Pessoas na empresa</Termo></th><th class="num">Empresas</th><th class="num">% das empresas</th><th class="num">Pessoal ocupado</th><th class="num">% do pessoal</th><th class="num">Salário médio</th></tr></thead>
         <tbody>{faixas.map((f) => (<tr>

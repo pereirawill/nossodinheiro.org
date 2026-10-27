@@ -193,6 +193,13 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `etl/trabalho/extract.py`: IBGE SIDRA (6318, 4097, 6381), Mapa de Empresas (xlsx do gov.br/memp, aba NJ × porte), BEPS
   tabela 14 (xls via xlrd; anos como texto a partir de 2016; células mescladas). Saída `trabalho.json`; página `/trabalho/`.
   Pendentes: Bolsa Família (API do Portal por município ou CSV de 330 MB), optantes do Simples.
+- 27/10 (tarde): **CEMPRE** (SIDRA 7528) entrou no `trabalho.json` — empresas, pessoal e salário médio por faixa de pessoal ocupado,
+  mais `portes` (micro/pequena/média/grande pelo critério **Sebrae por pessoal ocupado**, aplicado seção a seção da CNAE: corte alto
+  em indústria/construção, baixo em comércio/serviços). A lei (LC 123) classifica por faturamento — a página diz que são critérios
+  diferentes. 2024: 94,2% micro, 0,4% grandes com 47,3% do pessoal.
+- 27/10 (tarde): pizza **"quem sustenta a previdência"** (SIDRA 5947): 68,4 mi contribuem (31,9% da população), 34,6 mi trabalham sem
+  contribuir, 5,8 mi procuram, 66,4 mi fora da força, 39,0 mi crianças. Partição real; não serve para "X sustentam Y" (aposentado
+  já contribuiu) e a página diz isso.
 - Home usa "trilhões/bilhões/milhões" por extenso (pedido de 26/10); demais páginas mantêm "tri/bi/mi".
 - 27/10: duas pizzas novas — **população total** (crianças ≤13 por diferença IBGE−PNAD, ocupados, desocupados, fora da força;
   partição real) e **benefícios do INSS** por grupo. Avisos: as duas pizzas não se somam (benefício ≠ pessoa; aposentado pode

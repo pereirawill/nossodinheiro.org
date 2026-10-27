@@ -7,6 +7,7 @@ quantas empresas e MEIs existem; quantos benefícios o INSS paga. Tudo de fontes
 Fontes:
 - IBGE, PNAD Contínua trimestral, API SIDRA (`apisidra.ibge.gov.br`):
     tabela 6318 (pessoas de 14+ por condição na força de trabalho: total, força de trabalho, ocupada, desocupada, fora),
+    tabela 5947 (ocupados que contribuem e que não contribuem para a previdência — é a "força de trabalho contribuinte"),
     tabela 4097 (ocupados por posição na ocupação: empregado privado com/sem carteira, doméstico, setor público, militar/
     estatutário, empregador, conta própria, familiar auxiliar), tabela 6381 (taxa de desocupação). Valores em mil pessoas.
 - IBGE, Cadastro Central de Empresas (CEMPRE), tabela 7528 do SIDRA: quantas empresas há em cada faixa de pessoal ocupado
@@ -38,7 +39,22 @@ UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit
 SIDRA = "https://apisidra.ibge.gov.br/values/t/{t}/n1/all/v/{v}/p/last%201{extra}?formato=json"
 SIDRA_POP = "https://apisidra.ibge.gov.br/values/t/6579/n1/all/v/9324/p/last%201?formato=json"  # população total estimada
 # CEMPRE (Cadastro Central de Empresas), tabela 7528: empresas, pessoal ocupado e salário médio por faixa de pessoal ocupado
-SIDRA_CEMPRE = "https://apisidra.ibge.gov.br/values/t/7528/n1/all/v/{v}/p/last%201/c319/all/c12762/0/c2703/0?formato=json"
+SIDRA_CEMPRE = "https://apisidra.ibge.gov.br/values/t/7528/n1/all/v/{v}/p/last%201/c319/all/c12762/{secao}/c2703/0?formato=json"
+# Seções da CNAE 2.0 na classificação 12762 da tabela 7528, agrupadas como o critério de porte por pessoal ocupado pede:
+# na indústria e na construção os cortes são mais altos que no comércio e nos serviços.
+SECOES_INDUSTRIA = {116880: "B Indústrias extrativas", 116910: "C Indústrias de transformação", 117296: "D Eletricidade e gás",
+                    117307: "E Água, esgoto e resíduos", 117329: "F Construção"}
+SECOES_COMERCIO_SERVICOS = {116830: "A Agricultura e pecuária", 117363: "G Comércio e reparação", 117484: "H Transporte e correio",
+                            117543: "I Alojamento e alimentação", 117555: "J Informação e comunicação", 117608: "K Atividades financeiras",
+                            117666: "L Atividades imobiliárias", 117673: "M Atividades profissionais e técnicas",
+                            117714: "N Atividades administrativas", 117774: "O Administração pública", 117788: "P Educação",
+                            117810: "Q Saúde e serviços sociais", 117838: "R Artes, cultura e esporte", 117861: "S Outros serviços",
+                            117888: "T Serviços domésticos", 117892: "U Organismos internacionais"}
+# Critério por número de pessoas ocupadas (Sebrae; não é lei — a lei classifica por faturamento).
+PORTE_INDUSTRIA = {"0 a 4": "Micro", "5 a 9": "Micro", "10 a 19": "Micro", "20 a 29": "Pequena", "30 a 49": "Pequena",
+                   "50 a 99": "Pequena", "100 a 249": "Média", "250 a 499": "Média", "500 ou mais": "Grande"}
+PORTE_COMERCIO = {"0 a 4": "Micro", "5 a 9": "Micro", "10 a 19": "Pequena", "20 a 29": "Pequena", "30 a 49": "Pequena",
+                  "50 a 99": "Média", "100 a 249": "Grande", "250 a 499": "Grande", "500 ou mais": "Grande"}
 MEMP = "https://www.gov.br/memp/pt-br/acesso-a-informacao/dados-abertos/repositorio-de-dados-abertos"
 BEPS = "https://www.gov.br/previdencia/pt-br/assuntos/previdencia-social/Dados-estatisticos-previdencia-social-e-inss/boletins-da-previdencia-social"
 
@@ -54,6 +70,7 @@ CHAVES_4097 = {
     "Conta própria": "conta_propria",
     "Trabalhador familiar auxiliar": "familiar_auxiliar",
 }
+CHAVES_5947 = {"Contribuintes": "contribuintes", "Não contribuintes": "nao_contribuintes"}
 CHAVES_6318 = {"Total": "pop_14_mais", "Força de trabalho": "forca_trabalho", "Força de trabalho - ocupada": "ocupada", "Força de trabalho - desocupada": "desocupada", "Fora da força de trabalho": "fora_forca"}
 
 
@@ -63,12 +80,27 @@ def populacao_total(c: httpx.Client) -> dict:
     return {"ano": r["D3N"], "pessoas": int(r["V"])}
 
 
+def _porte(c: httpx.Client, var: int, secoes: dict[int, str], tabela: dict[str, str]) -> dict[str, float]:
+    """Soma o indicador por porte, aplicando o corte de pessoal ocupado certo para o grupo de setores."""
+    codigos = ",".join(str(k) for k in secoes)
+    out: dict[str, float] = {}
+    for r in c.get(SIDRA_CEMPRE.format(v=var, secao=codigos)).json()[1:]:
+        porte = tabela.get(r["D4N"].strip())
+        try:
+            valor = float(r["V"])
+        except (TypeError, ValueError):
+            continue
+        if porte:
+            out[porte] = out.get(porte, 0.0) + valor
+    return out
+
+
 def cempre(c: httpx.Client) -> dict:
     """Quantas empresas há em cada faixa de tamanho e quanta gente trabalha em cada uma (IBGE, CEMPRE, tabela 7528)."""
     faixas: dict[str, dict] = {}
     ano = None
     for chave, var in (("empresas", 2585), ("pessoas", 707), ("assalariados", 708), ("salario_medio", 10143)):
-        for r in c.get(SIDRA_CEMPRE.format(v=var)).json()[1:]:
+        for r in c.get(SIDRA_CEMPRE.format(v=var, secao=0)).json()[1:]:
             faixa, valor = r["D4N"].strip(), r["V"]
             ano = r["D3N"]
             try:
@@ -77,7 +109,19 @@ def cempre(c: httpx.Client) -> dict:
                 faixas.setdefault(faixa, {"faixa": faixa})[chave] = None
     ordem = ["0 a 4", "5 a 9", "10 a 19", "20 a 29", "30 a 49", "50 a 99", "100 a 249", "250 a 499", "500 ou mais"]
     total = faixas.get("Total", {})
+    # porte: soma indústria+construção (corte alto) com comércio+serviços (corte baixo), cada um com a sua régua
+    portes: dict[str, dict] = {}
+    for chave, var in (("empresas", 2585), ("pessoas", 707)):
+        for secoes, tabela in ((SECOES_INDUSTRIA, PORTE_INDUSTRIA), (SECOES_COMERCIO_SERVICOS, PORTE_COMERCIO)):
+            for porte, valor in _porte(c, var, secoes, tabela).items():
+                portes.setdefault(porte, {"porte": porte})
+                portes[porte][chave] = portes[porte].get(chave, 0.0) + valor
+    ordem_porte = ["Micro", "Pequena", "Média", "Grande"]
     return {"ano": ano, "total": total, "faixas": [faixas[f] for f in ordem if f in faixas],
+            "portes": [portes[p] for p in ordem_porte if p in portes],
+            "criterio_porte": "Sebrae, por número de pessoas ocupadas: na indústria e na construção, micro até 19, pequena 20 a 99, "
+                              "média 100 a 499 e grande 500 ou mais; no comércio e nos serviços, micro até 9, pequena 10 a 49, "
+                              "média 50 a 99 e grande 100 ou mais. Não é a classificação da lei, que usa faturamento.",
             "fonte": "IBGE, Cadastro Central de Empresas (CEMPRE), tabela 7528 do SIDRA"}
 
 
@@ -93,9 +137,13 @@ def pnad(c: httpx.Client) -> dict:
         k = CHAVES_6318.get(r["D4N"].strip())
         if k:
             out["mil"][k] = float(r["V"]); out["periodo_movel"] = r["D3N"]
+    for r in c.get(SIDRA.format(t=5947, v=4090, extra="/c12027/all")).json()[1:]:
+        k = CHAVES_5947.get(r["D4N"].strip())
+        if k:
+            out["mil"][k] = float(r["V"])
     d = c.get(SIDRA.format(t=6381, v=4099, extra="")).json()
     out["taxa_desocupacao"] = float(d[1]["V"])
-    out["fonte"] = "IBGE, PNAD Contínua (tabelas SIDRA 4097, 6318, 6381)"
+    out["fonte"] = "IBGE, PNAD Contínua (tabelas SIDRA 4097, 5947, 6318, 6381)"
     return out
 
 
