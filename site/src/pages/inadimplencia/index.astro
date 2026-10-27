@@ -20,6 +20,7 @@ const modPJ = d.modalidades.filter((m) => m.cliente === "PJ" && m.carteira > 1e9
 const ORDEM = ["Sem rendimento", "Até 1 salário mínimo", "Mais de 1 a 2 salários mínimos", "Mais de 2 a 3 salários mínimos", "Mais de 3 a 5 salários mínimos", "Mais de 5 a 10 salários mínimos", "Mais de 10 a 20 salários mínimos", "Acima de 20 salários mínimos", "Indisponível"];
 const portePF = d.porte.filter((p) => p.cliente === "PF").sort((a, b) => ORDEM.indexOf(a.porte) - ORDEM.indexOf(b.porte));
 const portePJ = d.porte.filter((p) => p.cliente === "PJ").sort((a, b) => b.carteira - a.carteira);
+const ocupacoes = [...(d.ocupacao ?? [])].sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
 const W = 920;
 const maxUf = Math.max(...ufs.map((u) => u.pct_pf ?? 0));
 // série
@@ -100,6 +101,20 @@ const rotulo = (m: string) => `${MESES[+m.slice(5) - 1]}/${m.slice(2, 4)}`;
         <tbody>{portePJ.map((p) => (<tr><td>{p.porte}</td><td class="num">{bi(p.carteira)}</td><td class="num">{pct(p.pct)}</td></tr>))}</tbody></table>
     </div>
     <p class="src" style="grid-column:1/-1">Faixa de renda é a informada pelo tomador à instituição (campo "porte" do SCR); "Indisponível" = instituição não informou.</p>
+  </div>
+
+  <h2>Por ocupação de quem tomou o crédito (pessoas físicas, {ref})</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Ocupação informada ao banco</th><th class="num">Carteira</th><th class="num">Inadimplência</th></tr></thead>
+      <tbody>{ocupacoes.map((o) => (<tr><td>{o.ocupacao}</td><td class="num">{bi(o.carteira)}</td><td class="num"><b>{pct(o.pct)}</b></td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      <b>Não há recorte por idade.</b> O Banco Central não publica a inadimplência por faixa etária; o mais próximo é a ocupação
+      declarada pelo tomador, que inclui "aposentado/pensionista" — o grupo com acesso ao crédito consignado, de juro menor e
+      desconto em folha, o que ajuda a explicar a inadimplência mais baixa. "Outros" reúne quem não se encaixa nas categorias do
+      cadastro. Fonte: Banco Central, SCR.data, {ref}.
+    </p>
   </div>
 
   <h2>Evolução mensal</h2>

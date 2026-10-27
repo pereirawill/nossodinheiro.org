@@ -29,6 +29,32 @@ const R = 86, C = 100; let ang = -Math.PI / 2;
 const arcos = posicoes.map((x) => { const v = p[x.k]; const fr = v / ocupados; const a0 = ang; ang += fr * 2 * Math.PI;
   const x0 = C + R * Math.cos(a0), y0 = C + R * Math.sin(a0), x1 = C + R * Math.cos(ang), y1 = C + R * Math.sin(ang);
   return { ...x, v, fr, d: `M${C},${C} L${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` }; });
+// Pizza 1: todos os brasileiros, numa divisão que não se sobrepõe (o IBGE estima o total; a PNAD conta só quem tem 14+)
+const popTotal = d.populacao.pessoas;
+const criancas = popTotal - p.pop_14_mais * 1e3;
+const FATIAS_POP = [
+  { nome: "Crianças e adolescentes até 13 anos", v: criancas, cor: "var(--s5)" },
+  { nome: "Trabalhando (ocupados de 14 anos ou mais)", v: p.ocupada * 1e3, cor: "var(--s2)" },
+  { nome: "Procurando trabalho (desocupados)", v: p.desocupada * 1e3, cor: "var(--s4)" },
+  { nome: "Fora da força de trabalho: aposentados, estudantes, quem cuida da casa, quem desistiu de procurar", v: p.fora_forca * 1e3, cor: "var(--neutro)" },
+];
+// Pizza 2: os benefícios que o INSS paga, por grupo
+const FATIAS_INSS = [
+  { nome: "Aposentadorias, pensões e auxílios de quem contribuiu (RGPS)", v: inss.rgps, cor: "var(--s1)" },
+  { nome: "BPC/LOAS: um salário mínimo a idosos e pessoas com deficiência de baixa renda, sem contribuição", v: inss.assistencial, cor: "var(--s3)" },
+  ...(inss.ble ? [{ nome: "Pensões de legislação especial", v: inss.ble, cor: "var(--s4)" }] : []),
+];
+const pizza = (fatias: { nome: string; v: number; cor: string }[], total: number) => {
+  let a = -Math.PI / 2;
+  return fatias.map((f) => {
+    const fr = f.v / total, a0 = a; a += fr * 2 * Math.PI;
+    const x0 = 100 + 86 * Math.cos(a0), y0 = 100 + 86 * Math.sin(a0), x1 = 100 + 86 * Math.cos(a), y1 = 100 + 86 * Math.sin(a);
+    return { ...f, fr, d: `M100,100 L${x0.toFixed(2)},${y0.toFixed(2)} A86,86 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` };
+  });
+};
+const arcosPop = pizza(FATIAS_POP, popTotal);
+const arcosInss = pizza(FATIAS_INSS, inss.total);
+
 const barraPop = [
   { nome: "Ocupados", v: p.ocupada, cor: "var(--s2)" }, { nome: "Desocupados (procurando)", v: p.desocupada, cor: "var(--s4)" },
   { nome: "Fora da força de trabalho (estudantes, aposentados, donas de casa, desalentados…)", v: p.fora_forca, cor: "var(--neutro)" },
@@ -64,6 +90,49 @@ const empresasBarras = [
     <div><b>Os grupos se sobrepõem; não dá para somar "quem sustenta" e "quem recebe".</b> Um MEI pode ser também empregado; um
     aposentado pode trabalhar; uma pessoa pode receber dois benefícios do INSS; a PNAD conta pessoas (amostra trimestral do IBGE) e o
     Mapa de Empresas conta CNPJs. Bolsa Família e optantes do Simples ainda não estão aqui (ver pendências na metodologia).</div>
+  </div>
+
+  <h2>Os {mi(popTotal)} de brasileiros: quem trabalha, quem procura, quem está fora</h2>
+  <div class="card pizza">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label="População total por situação">
+      {arcosPop.map((a) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {mi(a.v)} ({(a.fr * 100).toFixed(1).replace(".", ",")}%)</title></path>)}
+      <circle cx="100" cy="100" r="46" fill="var(--card)" />
+      <text x="100" y="96" text-anchor="middle" font-size="10" fill="var(--ink-2)">brasileiros</text>
+      <text x="100" y="112" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{mi(popTotal)}</text>
+    </svg>
+    <table>
+      <thead><tr><th>Situação</th><th class="num">Pessoas</th><th class="num">%</th></tr></thead>
+      <tbody>{arcosPop.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{mi(a.v)}</td><td class="num">{(a.fr * 100).toFixed(1).replace(".", ",")}%</td></tr>))}</tbody>
+    </table>
+    <p class="src" style="grid-column:1/-1">
+      Esta divisão <b>não se sobrepõe</b>: cada pessoa aparece uma vez só. Fontes: IBGE, estimativa da população total de {d.populacao.ano}
+      ({num(popTotal)}) e PNAD Contínua ({d.pnad.periodo_movel}) para quem tem 14 anos ou mais. As crianças até 13 anos saem da diferença
+      entre os dois — as duas pesquisas têm bases um pouco diferentes, então esse número é aproximado. Aqui aparecem
+      {miMil(p.ocupada)} ocupados (trimestre móvel, tabela 6318) e mais abaixo {miMil(p.ocupados)} (trimestre fechado, tabela 4097):
+      são recortes de tempo diferentes da mesma pesquisa. "Fora da força de trabalho" junta
+      quem não trabalha nem procura: aposentados, estudantes, quem cuida da casa e quem desistiu de procurar.
+    </p>
+  </div>
+
+  <h2>Os {mi(inss.total)} de benefícios que o INSS paga por mês</h2>
+  <div class="card pizza">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label="Benefícios do INSS por grupo">
+      {arcosInss.map((a) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {mi(a.v)}</title></path>)}
+      <circle cx="100" cy="100" r="46" fill="var(--card)" />
+      <text x="100" y="96" text-anchor="middle" font-size="10" fill="var(--ink-2)">benefícios</text>
+      <text x="100" y="112" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{mi(inss.total)}</text>
+    </svg>
+    <table>
+      <thead><tr><th>Grupo</th><th class="num">Benefícios</th><th class="num">%</th></tr></thead>
+      <tbody>{arcosInss.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{num(a.v)}</td><td class="num">{(a.fr * 100).toFixed(1).replace(".", ",")}%</td></tr>))}</tbody>
+    </table>
+    <p class="src" style="grid-column:1/-1">
+      <b>INSS não é só aposentadoria</b>: o instituto paga aposentadorias, pensões por morte, auxílios por incapacidade,
+      salário-maternidade e ainda opera o BPC, que é assistência social e não exige contribuição. <b>São benefícios, não pessoas</b>:
+      alguém pode receber dois (uma aposentadoria e uma pensão), e quem recebe pode estar trabalhando — por isso esta pizza não pode ser
+      somada à de cima. Não inclui aposentados de regimes próprios (servidores da União, dos estados e dos municípios).
+      Fonte: Boletim Estatístico da Previdência Social, tabela 14 ({inss.mes.toLowerCase()}/{inss.ano}).
+    </p>
   </div>
 
   <h2>Brasileiros com 14 anos ou mais: {miMil(p.pop_14_mais)}</h2>

@@ -116,7 +116,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   Roubo/furto/estupro/intervenção só por UF. dados.mj.gov.br não resolve DNS; gov.br/mj é a fonte.
 - **Inadimplência** `etl/credito/extract.py` → `credito.json`, `/inadimplencia/`: BCB `bcb.gov.br/pda/desig/scrdata_<ano>.zip` (ano
   corrente + anterior, ~300 MB; CSV mensal, DuckDB), inadimplência = >90 dias ÷ carteira ativa, por UF/cliente/modalidade/porte;
-  série 24 meses. Sem dado municipal (só UF; "sub-região" do BCB é codificada).
+  série 24 meses. Sem dado municipal (só UF; "sub-região" do BCB é codificada). **Sem faixa etária** (pedido de 27/10): o SCR não
+  publica idade; o recorte mais próximo é `cnae_ocupacao` (PF), que inclui "Aposentado/pensionista" — virou tabela na página.
 - `openpyxl` entrou em requirements. Glossário ganhou 14 termos (rendimento_habitual … modalidade_credito).
 
 ## Painel Inflação (NO AR, sem chave, mensal dia 12; feito 27/10/2026)
@@ -171,6 +172,9 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   tabela 14 (xls via xlrd; anos como texto a partir de 2016; células mescladas). Saída `trabalho.json`; página `/trabalho/`.
   Pendentes: Bolsa Família (API do Portal por município ou CSV de 330 MB), optantes do Simples.
 - Home usa "trilhões/bilhões/milhões" por extenso (pedido de 26/10); demais páginas mantêm "tri/bi/mi".
+- 27/10: duas pizzas novas — **população total** (crianças ≤13 por diferença IBGE−PNAD, ocupados, desocupados, fora da força;
+  partição real) e **benefícios do INSS** por grupo. Avisos: as duas pizzas não se somam (benefício ≠ pessoa; aposentado pode
+  trabalhar) e 6318 × 4097 dão 103,5 e 103,1 mi por usarem trimestre móvel × fechado. `populacao` entrou no `trabalho.json` (SIDRA 6579).
 
 ## Painel Rankings (NO AR, sem chave, mensal)
 - `etl/rankings/extract.py` → `rankings.json`: Banco Mundial API (PIB, PIB pc, expectativa, Gini, educação %PIB,

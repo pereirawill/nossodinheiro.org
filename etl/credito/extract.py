@@ -81,10 +81,15 @@ def agregar(csvs: list[Path]) -> dict:
                    for cli, m, ca, p in q(f"select cliente, modalidade, sum(carteira_ativa), {pct} from scr where data_base={{ult}} group by 1,2 order by 1, 3 desc")]
     porte = [{"cliente": cli, "porte": po.strip(), "carteira": round(ca, 2), "pct": p}
              for cli, po, ca, p in q(f"select cliente, porte, sum(carteira_ativa), {pct} from scr where data_base={{ult}} group by 1,2 order by 1, 3 desc")]
+    # ocupação só existe para pessoa física (na PJ a mesma coluna traz o CNAE). O SCR não publica faixa etária;
+    # "Aposentado/pensionista" é o recorte mais próximo de idade que o Banco Central divulga.
+    ocupacao = [{"ocupacao": oc.strip(), "carteira": round(ca, 2), "pct": p, "operacoes": None}
+                for oc, ca, p in q(f"select cnae_ocupacao, sum(carteira_ativa), {pct} from scr where data_base={{ult}} and cliente='PF' group by 1 order by 2 desc")]
     serie = [{"mes": str(m)[:7], "pct_pf": pf, "pct_pj": pj} for m, pf, pj in
              q("select data_base, round(100*sum(carteira_inadimplencia) filter (where cliente='PF')/nullif(sum(carteira_ativa) filter (where cliente='PF'),0), 2),"
                " round(100*sum(carteira_inadimplencia) filter (where cliente='PJ')/nullif(sum(carteira_ativa) filter (where cliente='PJ'),0), 2) from scr group by 1 order by 1")]
-    return {"referencia": ult_s[:7], "brasil": brasil, "por_uf": sorted(por_uf.values(), key=lambda d: d["uf"]), "modalidades": modalidades, "porte": porte, "serie": serie}
+    return {"referencia": ult_s[:7], "brasil": brasil, "por_uf": sorted(por_uf.values(), key=lambda d: d["uf"]), "modalidades": modalidades,
+            "porte": porte, "ocupacao": ocupacao, "serie": serie}
 
 
 def run() -> Path:

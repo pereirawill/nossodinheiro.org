@@ -33,6 +33,7 @@ log = logging.getLogger("etl.trabalho")
 PUB = Path("data/public")
 UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
 SIDRA = "https://apisidra.ibge.gov.br/values/t/{t}/n1/all/v/{v}/p/last%201{extra}?formato=json"
+SIDRA_POP = "https://apisidra.ibge.gov.br/values/t/6579/n1/all/v/9324/p/last%201?formato=json"  # população total estimada
 MEMP = "https://www.gov.br/memp/pt-br/acesso-a-informacao/dados-abertos/repositorio-de-dados-abertos"
 BEPS = "https://www.gov.br/previdencia/pt-br/assuntos/previdencia-social/Dados-estatisticos-previdencia-social-e-inss/boletins-da-previdencia-social"
 
@@ -49,6 +50,12 @@ CHAVES_4097 = {
     "Trabalhador familiar auxiliar": "familiar_auxiliar",
 }
 CHAVES_6318 = {"Total": "pop_14_mais", "Força de trabalho": "forca_trabalho", "Força de trabalho - ocupada": "ocupada", "Força de trabalho - desocupada": "desocupada", "Fora da força de trabalho": "fora_forca"}
+
+
+def populacao_total(c: httpx.Client) -> dict:
+    """População total estimada pelo IBGE — a PNAD só conta quem tem 14 anos ou mais."""
+    r = c.get(SIDRA_POP).json()[1]
+    return {"ano": r["D3N"], "pessoas": int(r["V"])}
 
 
 def pnad(c: httpx.Client) -> dict:
@@ -138,7 +145,8 @@ def beps(c: httpx.Client) -> dict:
 def run() -> Path:
     PUB.mkdir(parents=True, exist_ok=True)
     with httpx.Client(headers=UA, timeout=180, follow_redirects=True) as c:
-        dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "pnad": pnad(c), "empresas": mapa_empresas(c), "inss": beps(c),
+        dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "populacao": populacao_total(c),
+                 "pnad": pnad(c), "empresas": mapa_empresas(c), "inss": beps(c),
                  "pendentes": ["Bolsa Família (famílias e valor por mês): API do Portal da Transparência por município, ainda não carregada",
                                "Optantes do Simples Nacional (ME/EPP): sem arquivo aberto localizado na Receita; o Mapa de Empresas traz o porte, não a opção"]}
     for k, mn in (("ocupados", 50_000), ("pop_14_mais", 100_000)):
