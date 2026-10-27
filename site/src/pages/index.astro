@@ -22,7 +22,8 @@ import renda from "../../public/data/renda.json";
 import educacao from "../../public/data/educacao.json";
 import seguranca from "../../public/data/seguranca.json";
 import credito from "../../public/data/credito.json";
-import saudeDados from "../../public/data/saude.json";  // "saude" já é usado abaixo para a função 10 da União
+import saudeDados from "../../public/data/saude.json";
+import inflacao from "../../public/data/inflacao.json";  // "saude" já é usado abaixo para a função 10 da União
 
 const ANO = 2025;
 const rendaPub = (renda.posicoes as any[]).find((p) => p.chave === "publico")?.valor ?? 0;
@@ -151,6 +152,7 @@ const resumo = [
     <a class="card tile" href="/estados/"><b>{compact(somaF("pago_legislativa") + somaF("pago_judiciaria"))}</b><span>Assembleias, TCEs e Tribunais de Justiça dos estados em {ANO}</span></a>
     <a class="card tile" href="/municipios/"><b>{compact(metaMun.totais.pago_legislativo)}</b><span>Câmaras Municipais em {ANO} · {metaMun.totais.vereadores.toLocaleString("pt-BR")} vereadores</span></a>
     <a class="card tile" href="/emendas/"><b>R$ 47,1 bi</b><span>empenhados em emendas parlamentares em 2025 · veja por autor</span></a>
+    <a class="card tile" href="/inflacao/"><b>{String(inflacao.doze_meses[inflacao.ultimo_mes]).replace(".", ",")}%</b><span>de alta de preços em 12 meses (IPCA) · por grupo de gasto, por região e comparado com a meta do Banco Central</span></a>
     <a class="card tile" href="/impostos/"><b>{compact(arrec.total)}</b><span>arrecadação federal em {arrec.meses} meses de {arrec.ano}, por base de incidência e por estado</span></a>
     <a class="card tile" href="/rankings/"><b>{idh ? `${idh.posicao}º` : "—"}</b><span>posição do Brasil no IDH entre {idh?.total} países · 10 rankings e o histórico de 40 anos</span></a>
   </div>

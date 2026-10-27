@@ -179,6 +179,16 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   pode ser pouco registro.
 - Completo: `docs/metodologia/painel-seguranca.md`.
 
+## Inflação — o IPCA desde 1979
+
+- **O que é:** a alta de preços no mês, no ano e em 12 meses; a série mensal desde 1996; o resultado de cada ano comparado com a
+  meta do Banco Central desde 1999; o que subiu mais em cada grupo de gasto, com o peso de cada um na cesta; a variação em cada
+  uma das 16 áreas pesquisadas; e quanto os preços subiram desde 1995, 2000, 2010 e 2020.
+- **Fontes:** IBGE (IPCA e INPC) e Banco Central (meta definida pelo Conselho Monetário Nacional).
+- **Atenção:** nenhum índice é "a sua inflação" — o IPCA é a cesta média de quem ganha de 1 a 40 salários mínimos nas 16 áreas
+  pesquisadas. A comparação com a meta usa só o valor central, sem a margem de tolerância. Não existe IPCA por estado.
+- Completo: `docs/metodologia/painel-inflacao.md`.
+
 ## Saúde — gasto público, planos e indicadores
 
 - **O que é:** o que União, governos estaduais e prefeituras pagaram na função Saúde; quantos brasileiros têm plano de saúde e
@@ -223,6 +233,7 @@ sempre só PDF ou metodologia diferente.
 | Ocorrências policiais (Sinesp VDE) | MJSP | 2015 | anuários do Fórum Brasileiro de Segurança Pública (ONG) e DATASUS/SIM para mortes |
 | Inadimplência (SCR.data) | Banco Central | 2012 (v2 desde 2023; aqui 24 meses) | séries do SGS desde 2011 |
 | Cobertura de planos de saúde | ANS | 2014 (aqui a competência mais recente) | cadastro de beneficiários desde 2000, sem série pronta por município |
+| IPCA (inflação) | IBGE | dez/1979 (por grupo e região, 2020) | índices anteriores com outra metodologia e outras moedas |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 
 ## Como conferir

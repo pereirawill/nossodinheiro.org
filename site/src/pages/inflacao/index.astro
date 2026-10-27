@@ -1,0 +1,155 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/inflacao.json";
+
+const pct = (v: number | null | undefined, c = 2) => v == null ? "—" : `${v.toFixed(c).replace(".", ",")}%`;
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const indice = d.indice as Record<string, number>;
+const doze = d.doze_meses as Record<string, number>;
+const anual = d.anual as Record<string, number>;
+const metas = d.meta_bcb as Record<string, number>;
+const ultimo = d.ultimo_mes, anoAtual = ultimo.slice(0, 4);
+const mesPorExtenso = `${MESES[+ultimo.slice(4) - 1]} de ${anoAtual}`;
+const ipca12 = doze[ultimo], ipcaAno = anual[anoAtual], metaAno = metas[anoAtual];
+const inpc12 = (d.inpc_doze_meses as Record<string, number>)[ultimo];
+
+// série de 12 meses a partir de 1996 (antes, a hiperinflação deixa o gráfico ilegível)
+const meses12 = Object.keys(doze).filter((p) => p >= "199601").sort();
+const SW = 920, SH = 240, padL = 44, padB = 24;
+const maxD = Math.max(...meses12.map((p) => doze[p]));
+const sx = (i: number) => padL + (i * (SW - padL - 10)) / (meses12.length - 1);
+const sy = (v: number) => 8 + (SH - padB - 8) * (1 - v / maxD);
+
+// anos fechados desde 1999 (início do regime de metas) com meta e realizado
+const anos = Object.keys(anual).filter((a) => a >= "1999" && (a !== anoAtual || !d.parcial_ano_corrente)).sort();
+const anosGraf = Object.keys(anual).filter((a) => a >= "1999").sort();
+const maxA = Math.max(...anosGraf.map((a) => Math.max(anual[a] ?? 0, metas[a] ?? 0)));
+const BW = 920, BH = 230;
+const bx = (i: number) => padL + (i * (BW - padL - 14)) / (anosGraf.length - 1);
+const by = (v: number) => 8 + (BH - padB - 8) * (1 - v / maxA);
+const larguraBarra = Math.max(8, (BW - padL - 14) / anosGraf.length - 5);
+
+const grupos = [...d.grupos].sort((a, b) => (b.doze ?? 0) - (a.doze ?? 0));
+const maxG = Math.max(...grupos.map((g) => Math.abs(g.doze ?? 0)));
+const regioes = d.regioes as any[];
+
+// quanto os preços subiram desde cada ano (índice de dezembro)
+const equivalente = (ano: string) => {
+  const base = indice[`${ano}12`];
+  return base ? indice[ultimo] / base : null;
+};
+const ANOS_REF = ["1995", "2000", "2005", "2010", "2015", "2020", "2024"].filter((a) => indice[`${a}12`]);
+const desde1980 = indice[ultimo] / indice["198012"];
+const CORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "#59a14f", "#9c755f", "#b07aa1", "var(--neutro)"];
+const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
+---
+<Base title="Inflação: o IPCA desde 1979 — Nosso Dinheiro" accent="var(--s4)" description="Quanto os preços subiram no Brasil: IPCA no mês, no ano e em 12 meses, por grupo de gasto e por região, com a meta do Banco Central e a série desde 1979.">
+  <h1>Quanto os preços sobem no Brasil</h1>
+  <p class="lede">
+    O <Termo t="ipca">IPCA</Termo>, o índice oficial de inflação, no último mês publicado, no ano e em 12 meses; o que subiu mais
+    em cada grupo de gasto (comida, transporte, moradia…); como varia entre as regiões; e a comparação com a
+    <Termo t="meta_inflacao">meta do Banco Central</Termo> desde 1999. Tudo direto do IBGE e do Banco Central.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · IBGE, IPCA de {mesPorExtenso} · meta: Banco Central (CMN) · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{pct(ipca12)}</b><span>é a alta de preços dos últimos 12 meses até {mesPorExtenso}; no ano, {pct(ipcaAno)}; no mês, {pct(d.mensal[ultimo])}</span></div>
+    <div class="stat"><b>{pct(metaAno, 1)}</b><span>é a meta de inflação para {anoAtual} definida pelo Conselho Monetário Nacional. O realizado em 12 meses está {ipca12 > metaAno ? "acima" : "abaixo"} dela</span></div>
+    <div class="stat"><b>{pct(inpc12)}</b><span>é o <Termo t="inpc">INPC</Termo> em 12 meses, o índice das famílias de renda mais baixa (até 5 salários mínimos)</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Nenhum índice é "a sua inflação".</b> O IPCA mede o preço de uma cesta média das famílias que ganham de 1 a 40 salários
+    mínimos nas 16 áreas pesquisadas pelo IBGE. Quem gasta mais com comida e transporte sente mais que a média quando esses itens
+    sobem; quem tem carro próprio ou escola particular tem outra cesta. O peso de cada grupo está na tabela abaixo.</div>
+  </div>
+
+  <h2>Inflação em 12 meses, mês a mês, desde 1996</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="IPCA acumulado em 12 meses desde 1996">
+      {[5, 10, 15, 20].filter((v) => v < maxD).map((v) => (<g><line x1={padL} x2={SW - 10} y1={sy(v)} y2={sy(v)} stroke="var(--line)" /><text x={padL - 6} y={sy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}%</text></g>))}
+      <polyline points={meses12.map((p, i) => `${sx(i).toFixed(1)},${sy(doze[p]).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s4)" stroke-width="2" />
+      {meses12.filter((p) => p.endsWith("12") && +p.slice(0, 4) % 4 === 0).map((p) => <text x={sx(meses12.indexOf(p))} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{p.slice(0, 4)}</text>)}
+    </svg>
+    <p class="src">Fonte: IBGE, IPCA (SIDRA 1737), variação acumulada em 12 meses. A série do IBGE começa em dezembro de 1979, mas o gráfico começa em 1996: antes do Plano Real a inflação chegava a milhares por cento ao ano e achataria todo o resto.</p>
+  </div>
+
+  <h2>Ano a ano: o que a inflação foi e qual era a meta</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${BW} ${BH}`} width="100%" role="img" aria-label="IPCA por ano e meta do Banco Central desde 1999">
+      {[4, 8, 12].filter((v) => v < maxA).map((v) => (<g><line x1={padL} x2={BW - 10} y1={by(v)} y2={by(v)} stroke="var(--line)" /><text x={padL - 6} y={by(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}%</text></g>))}
+      {anosGraf.map((a, i) => (<g>
+        <rect x={bx(i) - larguraBarra / 2} y={by(anual[a] ?? 0)} width={larguraBarra} height={Math.max(1, BH - padB - by(anual[a] ?? 0))}
+          fill={a === anoAtual && d.parcial_ano_corrente ? "var(--neutro)" : (metas[a] != null && (anual[a] ?? 0) > metas[a] ? "var(--s4)" : "var(--s2)")} rx="1">
+          <title>{a}: IPCA {pct(anual[a])}{metas[a] != null ? `, meta ${pct(metas[a], 1)}` : ""}</title></rect>
+        {metas[a] != null && <line x1={bx(i) - larguraBarra / 2 - 2} x2={bx(i) + larguraBarra / 2 + 2} y1={by(metas[a])} y2={by(metas[a])} stroke="var(--ink)" stroke-width="2" />}
+        {(+a % 3 === 0 || a === anosGraf[anosGraf.length - 1]) && <text x={bx(i)} y={BH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a.slice(2)}</text>}
+      </g>))}
+    </svg>
+    <div class="legend">
+      <span><i style="background:var(--s2)"></i>Ano em que a inflação ficou abaixo da meta</span>
+      <span><i style="background:var(--s4)"></i>Ano em que ficou acima</span>
+      <span><i style="background:var(--ink);height:3px;margin-top:4px"></i>Meta do Conselho Monetário Nacional</span>
+      {d.parcial_ano_corrente && <span><i style="background:var(--neutro)"></i>{anoAtual}: parcial, até {mesPorExtenso}</span>}
+    </div>
+    <p class="src">Fontes: IBGE (IPCA acumulado no ano, dezembro de cada ano) e Banco Central (SGS série 13521, meta definida pelo Conselho Monetário Nacional). A meta tem uma margem de tolerância que não está no gráfico; anos "acima" e "abaixo" comparam só com o valor central.</p>
+  </div>
+
+  <h2>O que subiu mais em 12 meses, por grupo de gasto</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${grupos.length * 30 + 10}`} width="100%" role="img" aria-label="IPCA em 12 meses por grupo de gasto">
+      {grupos.map((g, i) => (<g transform={`translate(0 ${i * 30 + 5})`}>
+        <text x="240" y="18" text-anchor="end" font-size="12.5" fill="var(--ink)">{g.nome}</text>
+        <rect x="250" y="4" width={Math.max(1, (Math.abs(g.doze ?? 0) / maxG) * 360)} height="20" fill={CORES[i % CORES.length]} rx="2" />
+        <text x={256 + (Math.abs(g.doze ?? 0) / maxG) * 360} y="18" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{pct(g.doze)} em 12 meses · peso {pct(g.peso, 1)} da cesta</text>
+      </g>))}
+    </svg>
+    <table style="margin-top:12px">
+      <thead><tr><th>Grupo de gasto</th><th class="num">No mês</th><th class="num">No ano</th><th class="num">12 meses</th><th class="num">Peso na cesta</th></tr></thead>
+      <tbody>{grupos.map((g) => (<tr><td>{g.nome}</td><td class="num">{pct(g.mes)}</td><td class="num">{pct(g.ano)}</td><td class="num"><b>{pct(g.doze)}</b></td><td class="num">{pct(g.peso, 1)}</td></tr>))}
+        <tr><td><b>Índice geral</b></td><td class="num">{pct(d.mensal[ultimo])}</td><td class="num">{pct(ipcaAno)}</td><td class="num"><b>{pct(ipca12)}</b></td><td class="num">{pct(pesoTotal, 1)}</td></tr></tbody>
+    </table>
+    <p class="src">Fonte: IBGE, IPCA por grupo (SIDRA 7060), {mesPorExtenso}. O <Termo t="peso_ipca">peso</Termo> é quanto o grupo representa no gasto da família média pesquisada; por isso um item pequeno que sobe muito mexe pouco no índice geral.</p>
+  </div>
+
+  <h2>Onde os preços subiram mais ({mesPorExtenso})</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Região pesquisada</th><th>Tipo</th><th class="num">No ano</th><th class="num">12 meses</th></tr></thead>
+      <tbody>{regioes.map((r) => (<tr><td>{r.nome}</td><td class="tipo">{r.tipo}</td><td class="num">{pct(r.ano)}</td><td class="num"><b>{pct(r.doze)}</b></td></tr>))}</tbody>
+    </table>
+    <p class="src">Fonte: IBGE, IPCA por região (SIDRA 7060). O IPCA é calculado em 16 áreas: 10 regiões metropolitanas e 6 municípios. O índice nacional é a média ponderada delas pelo peso de cada área no consumo — não existe IPCA de cada estado.</p>
+  </div>
+
+  <h2>Quanto os preços subiram desde…</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Dezembro de</th><th class="num">Preços multiplicados por</th><th class="num">R$ 100 daquela época valem hoje</th><th class="num">R$ 100 de hoje valiam</th></tr></thead>
+      <tbody>{ANOS_REF.map((a) => { const f = equivalente(a)!; return (<tr><td>{a}</td><td class="num">{f.toFixed(2).replace(".", ",")}×</td><td class="num">{brl(100 * f)}</td><td class="num">{brl(100 / f)}</td></tr>); })}</tbody>
+    </table>
+    <p class="src">Calculado com o número-índice do IPCA (IBGE, SIDRA 1737), de dezembro do ano até {mesPorExtenso}. De dezembro de 1980 até hoje os preços foram multiplicados por {Math.round(desde1980).toLocaleString("pt-BR")} — o país trocou de moeda cinco vezes no caminho, então o número serve para mostrar a escala da hiperinflação, não para converter dinheiro antigo.</p>
+  </div>
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>Nos 12 meses até {mesPorExtenso}, os preços subiram {pct(ipca12)}. A meta para {anoAtual} é {pct(metaAno, 1)}.</li>
+      <li>O grupo que mais subiu foi {grupos[0].nome.toLowerCase()} ({pct(grupos[0].doze)} em 12 meses) e o que menos subiu, {grupos[grupos.length - 1].nome.toLowerCase()} ({pct(grupos[grupos.length - 1].doze)}). O que mais pesa na cesta é {[...grupos].sort((a, b) => (b.peso ?? 0) - (a.peso ?? 0))[0].nome.toLowerCase()} ({pct([...grupos].sort((a, b) => (b.peso ?? 0) - (a.peso ?? 0))[0].peso, 1)} do gasto da família média).</li>
+      <li>Entre as áreas pesquisadas, a maior alta em 12 meses foi em {regioes[0].nome} ({pct(regioes[0].doze)}) e a menor em {regioes[regioes.length - 1].nome} ({pct(regioes[regioes.length - 1].doze)}).</li>
+      <li>Desde 1999, quando começou o regime de metas, a inflação fechou acima do valor central da meta em {anos.filter((a) => metas[a] != null && anual[a] > metas[a]).length} dos {anos.filter((a) => metas[a] != null).length} anos fechados — sem contar a margem de tolerância, que o Conselho Monetário Nacional define em torno do valor central.</li>
+      <li>R$ 100 de dezembro de 2000 compram hoje o mesmo que {brl(100 / equivalente("2000")!)} compravam lá atrás; para comprar o que R$ 100 compravam em 2000, hoje são precisos {brl(100 * equivalente("2000")!)}.</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>
+  </div>
+
+  <Glossario termos={["ipca", "inpc", "meta_inflacao", "peso_ipca"]} />
+</Base>
+<style>
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+  td.tipo { color: var(--ink-2); font-size: 12.5px; }
+</style>

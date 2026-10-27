@@ -21,7 +21,7 @@ Workflows (`.github/workflows/`):
 - `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
-- `etl-{renda,seguranca,credito,saude}.yml` — mensais (dias 7, 9, 10, 11); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
+- `etl-{renda,seguranca,credito,saude,inflacao}.yml` — mensais (dias 7, 9, 10, 11, 12); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 Secrets existentes: os dois da Cloudflare + `PORTAL_TRANSPARENCIA_KEY`. Workflow permissions = read/write.
 
 Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026` (FONTE=bulk padrão),
@@ -32,7 +32,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Impostos, Trabalho, Renda, Educação, Segurança, Saúde, Inadimplência, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Impostos, Inflação, Trabalho, Renda, Educação, Segurança, Saúde, Inadimplência, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -118,6 +118,21 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   corrente + anterior, ~300 MB; CSV mensal, DuckDB), inadimplência = >90 dias ÷ carteira ativa, por UF/cliente/modalidade/porte;
   série 24 meses. Sem dado municipal (só UF; "sub-região" do BCB é codificada).
 - `openpyxl` entrou em requirements. Glossário ganhou 14 termos (rendimento_habitual … modalidade_credito).
+
+## Painel Inflação (NO AR, sem chave, mensal dia 12; feito 27/10/2026)
+- `etl/inflacao/extract.py` → `inflacao.json`, `/inflacao/` (menu depois de Impostos). SIDRA 1737 (IPCA desde dez/1979: índice,
+  mês, ano, 12 meses), 7060 (9 grupos + peso; e 16 áreas via N7/N6), 7063 (INPC), BCB SGS 13521 (meta do CMN desde 1999).
+  Códigos dos grupos fixos em `GRUPOS` (API de metadados do IBGE dá timeout no GitHub). Set/2026: 4,58% em 12 meses, meta 3,0%.
+- Gráfico começa em 1996 (antes, hiperinflação achata tudo); comparação com a meta usa só o **valor central** (sem banda) e diz isso.
+- Tabela "quanto os preços subiram desde…" usa o número-índice; avisa que houve cinco trocas de moeda. **Sem mapa**: não existe
+  IPCA por estado (só 16 áreas). Pendências: IPCA-15, subitens, Selic (SGS 432 deu 502), IGP-M (FGV é paga).
+
+## Componente MapaBrasil (feito 27/10/2026)
+- `site/src/lib/mapa-uf.ts` (105 KB, 27 paths + centroide) gerado por `python -m etl.mapa.gerar` das malhas do IBGE (API v2,
+  resolução 2), projeção equirretangular, contornos simplificados. `MapaBrasil.astro`: coroplético sem JS, escala sequencial
+  `color-mix` sobre a cor da página, rótulo UF + valor (estados pequenos com fio para fora, offsets em `FORA`), `<title>` por estado.
+- Em uso: Segurança (homicídios/100 mil), Saúde (% com plano), Renda (renda por morador), Inadimplência (% PF), Educação (IDEB AI),
+  Estados (despesa por habitante). Regerar o TS só quando o IBGE publicar malha nova.
 
 ## Painel Saúde (NO AR, sem chave, mensal dia 11; feito 27/10/2026)
 - `etl/saude/extract.py` → `saude.json`, `/saude/` (no menu logo depois de Segurança). Só busca o que faltava: **ANS** PDA 047
