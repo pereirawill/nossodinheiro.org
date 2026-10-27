@@ -20,14 +20,19 @@ const min = Math.min(...nums), max = Math.max(...nums);
 const t = (v: number) => (max === min ? 0.5 : (v - min) / (max - min));
 const tom = (v: number | null | undefined) =>
   typeof v !== "number" ? "var(--card)" : `color-mix(in srgb, ${cor} ${(12 + t(v) * 80).toFixed(0)}%, var(--card))`;
-// estados pequenos demais para o rótulo caber dentro: o texto vai para fora, com um fio ligando
-const FORA: Record<string, [number, number]> = {
-  DF: [120, -18], SE: [95, 0], AL: [110, -22], PB: [105, -16], RN: [100, -30], PE: [120, 8], RJ: [95, 42], ES: [105, 10],
-};
+// Estados pequenos demais para o rótulo caber dentro. Os do Nordeste ficam colados na borda direita do mapa, então o rótulo
+// vai para uma coluna à direita (y fixo, para não se sobreporem), com um fio ligando ao estado. O DF recebe só um deslocamento
+// curto, porque tem espaço em volta. A coluna exige uma folga na largura do viewBox (FOLGA).
+const COLUNA: Record<string, number> = { RN: 250, PB: 330, PE: 410, AL: 490, SE: 570, ES: 660, RJ: 740 };
+const FORA: Record<string, [number, number]> = { DF: [64, -48] };
+const FOLGA = 230;
+const [vx, vy, vw, vh] = MAPA_VIEWBOX.split(" ").map(Number);
+const viewBox = `${vx} ${vy} ${vw + FOLGA} ${vh}`;
+const xColuna = vw + 24;
 const escala = [0, 0.25, 0.5, 0.75, 1];
 ---
 <figure class="mapa">
-  <svg viewBox={MAPA_VIEWBOX} role="img" aria-label={titulo}>
+  <svg viewBox={viewBox} role="img" aria-label={titulo}>
     {MAPA_UF.map((e) => {
       const v = valores[e.uf];
       return (<g>
@@ -38,12 +43,14 @@ const escala = [0, 0.25, 0.5, 0.75, 1];
     })}
     {MAPA_UF.map((e) => {
       const v = valores[e.uf];
+      const naColuna = COLUNA[e.uf] !== undefined;
       const off = FORA[e.uf];
-      const x = e.cx + (off ? off[0] : 0), y = e.cy + (off ? off[1] : 0);
+      const x = naColuna ? xColuna : e.cx + (off ? off[0] : 0);
+      const y = naColuna ? COLUNA[e.uf] : e.cy + (off ? off[1] : 0);
       return (<g class="rotulo">
-        {off && <line x1={e.cx} y1={e.cy} x2={x - 12} y2={y - 4} stroke="var(--ink-2)" stroke-width="1.2" />}
-        <text x={x} y={y} text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">{e.uf}</text>
-        <text x={x} y={y + 20} text-anchor="middle" font-size="18" fill="var(--ink-2)">{typeof v === "number" ? formato(v) : "—"}</text>
+        {(naColuna || off) && <line x1={e.cx} y1={e.cy} x2={naColuna ? x - 8 : x - 12} y2={naColuna ? y - 6 : y - 4} stroke="var(--ink-2)" stroke-width="1.2" />}
+        <text x={x} y={y} text-anchor={naColuna ? "start" : "middle"} font-size="20" font-weight="700" fill="var(--ink)">{e.uf}</text>
+        <text x={naColuna ? x + 46 : x} y={naColuna ? y : y + 20} text-anchor="start" font-size="18" fill="var(--ink-2)">{typeof v === "number" ? formato(v) : "—"}</text>
       </g>);
     })}
   </svg>
@@ -56,7 +63,7 @@ const escala = [0, 0.25, 0.5, 0.75, 1];
 </figure>
 <style>
   .mapa { margin: 0; }
-  .mapa svg { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; }
+  .mapa svg { width: 100%; max-width: 660px; height: auto; display: block; margin: 0 auto; }
   .mapa .rotulo text { font-family: var(--mono); paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
   figcaption { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; color: var(--ink-2); margin-top: 6px; }
   .esc { display: inline-flex; }

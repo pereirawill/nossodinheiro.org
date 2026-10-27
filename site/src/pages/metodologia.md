@@ -179,6 +179,17 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   pode ser pouco registro.
 - Completo: `docs/metodologia/painel-seguranca.md`.
 
+## Punições e sanções — o que foi punido
+
+- **O que é:** empresas e pessoas impedidas de contratar com o poder público (CEIS), empresas punidas pela Lei Anticorrupção e o
+  total das multas (CNEP), acordos de leniência da CGU e servidores federais expulsos (CEAF) — por estado do órgão que puniu,
+  por ano, por órgão e pelo artigo citado na decisão. No fim, o Índice de Percepção da Corrupção, para o recorte mundial.
+- **Fontes:** Portal da Transparência (CEIS, CNEP, CEAF e leniência). O índice internacional é da Transparência Internacional,
+  uma ONG, e mede percepção — está rotulado como tal e separado dos registros oficiais.
+- **Atenção:** isto não mede corrupção, mede o que foi **punido e registrado**; mais sanções num estado pode significar mais
+  fiscalização. O estado é o do órgão que puniu, não o da empresa. Não publicamos nomes nem CPF de pessoas.
+- Completo: `docs/metodologia/painel-corrupcao.md`.
+
 ## Inflação — o IPCA desde 1979
 
 - **O que é:** a alta de preços no mês, no ano e em 12 meses; a série mensal desde 1996; o resultado de cada ano comparado com a
@@ -234,6 +245,7 @@ sempre só PDF ou metodologia diferente.
 | Inadimplência (SCR.data) | Banco Central | 2012 (v2 desde 2023; aqui 24 meses) | séries do SGS desde 2011 |
 | Cobertura de planos de saúde | ANS | 2014 (aqui a competência mais recente) | cadastro de beneficiários desde 2000, sem série pronta por município |
 | IPCA (inflação) | IBGE | dez/1979 (por grupo e região, 2020) | índices anteriores com outra metodologia e outras moedas |
+| Punições e sanções (CEIS, CNEP, CEAF) | Portal da Transparência | o cadastro traz a sanção pela data de início; os registros mais antigos são dos anos 2000 | processos em papel, sem cadastro nacional |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 
 ## Como conferir

@@ -21,7 +21,7 @@ Workflows (`.github/workflows/`):
 - `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
-- `etl-{renda,seguranca,credito,saude,inflacao}.yml` — mensais (dias 7, 9, 10, 11, 12); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
+- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao}.yml` — mensais (dias 7, 9, 10, 11, 12, 13); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 Secrets existentes: os dois da Cloudflare + `PORTAL_TRANSPARENCIA_KEY`. Workflow permissions = read/write.
 
 Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026` (FONTE=bulk padrão),
@@ -32,7 +32,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Impostos, Inflação, Trabalho, Renda, Educação, Segurança, Saúde, Inadimplência, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Impostos, Inflação, Trabalho, Renda, Educação, Segurança, Saúde, Inadimplência, Punições, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -127,12 +127,24 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Tabela "quanto os preços subiram desde…" usa o número-índice; avisa que houve cinco trocas de moeda. **Sem mapa**: não existe
   IPCA por estado (só 16 áreas). Pendências: IPCA-15, subitens, Selic (SGS 432 deu 502), IGP-M (FGV é paga).
 
+## Painel Punições/Corrupção (NO AR, sem chave, mensal dia 13; feito 27/10/2026)
+- `etl/corrupcao/extract.py` → `corrupcao.json`, `/corrupcao/` (menu: "Punições", depois de Inadimplência). Portal da Transparência
+  `download-de-dados/{ceis,cnep,ceaf,acordos-leniencia}/AAAAMMDD` (ZIP+CSV latin-1, UA+referer, tenta 8 dias para trás; o ZIP de
+  leniência tem 2 CSVs → escolher "Acordos"). Cabeçalhos com travessão cp1252 `\x96` → normalizados na leitura.
+- **Privacidade**: CEIS/CNEP trazem CPF em claro → só contagens no JSON; nomes apenas de órgãos e da razão social nos acordos.
+- Out/2026: CEIS 23.811 sanções (estadual 9.863, federal 8.509, municipal 5.289; 857 sem UF), CNEP 1.858 com R$ 3,95 bi de multas,
+  CEAF 4.044 expulsões (só federal), 152 acordos de leniência. UF = do **órgão sancionador**, não da empresa; ano = início da sanção.
+  Fundamentos do CEAF se sobrepõem (uma decisão cita vários artigos). CPI da Transparência Internacional vem de `rankings.json`.
+- Pendências: valor devolvido nos acordos (texto livre), CEPIM (403), lista do TCU, improbidade na Justiça estadual.
+
 ## Componente MapaBrasil (feito 27/10/2026)
 - `site/src/lib/mapa-uf.ts` (105 KB, 27 paths + centroide) gerado por `python -m etl.mapa.gerar` das malhas do IBGE (API v2,
   resolução 2), projeção equirretangular, contornos simplificados. `MapaBrasil.astro`: coroplético sem JS, escala sequencial
   `color-mix` sobre a cor da página, rótulo UF + valor (estados pequenos com fio para fora, offsets em `FORA`), `<title>` por estado.
 - Em uso: Segurança (homicídios/100 mil), Saúde (% com plano), Renda (renda por morador), Inadimplência (% PF), Educação (IDEB AI),
-  Estados (despesa por habitante). Regerar o TS só quando o IBGE publicar malha nova.
+  Estados (despesa por habitante), Punições (sanções do CEIS). Regerar o TS só quando o IBGE publicar malha nova.
+- Rótulo dos estados pequenos do Nordeste (RN, PB, PE, AL, SE) + ES e RJ vai para uma **coluna à direita** (dict `COLUNA`, y fixo)
+  com fio de ligação; o viewBox ganha `FOLGA` de 230px. Antes ficavam fora do viewBox e sumiam (corrigido em 27/10/2026).
 
 ## Painel Saúde (NO AR, sem chave, mensal dia 11; feito 27/10/2026)
 - `etl/saude/extract.py` → `saude.json`, `/saude/` (no menu logo depois de Segurança). Só busca o que faltava: **ANS** PDA 047
