@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/credito.json";
 
 const tri = (v: number) => `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri`;
@@ -52,6 +53,10 @@ const rotulo = (m: string) => `${MESES[+m.slice(5) - 1]}/${m.slice(2, 4)}`;
 
   <h2>Por estado: pessoas físicas e empresas ({ref})</h2>
   <div class="card">
+    <MapaBrasil valores={Object.fromEntries(d.por_uf.map((u) => [u.uf, u.pct_pf]))} formato={(v) => pct(v)}
+      titulo={`Inadimplência das pessoas físicas em cada estado, ${ref}`} legenda="do crédito a pessoas físicas vencido há mais de 90 dias" melhorMenor={true} />
+  </div>
+  <div class="card" style="margin-top:14px">
     <svg viewBox={`0 0 ${W} ${ufs.length * 22 + 10}`} width="100%" role="img" aria-label="Inadimplência de pessoas físicas por estado">
       {ufs.map((u, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
         <text x="150" y="14" text-anchor="end" font-size="12" fill="var(--ink)">{u.nome}</text>

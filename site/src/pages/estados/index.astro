@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
 import estados from "../../../public/data/estados_2025.json";
 import meta from "../../../public/data/municipios_meta_2025.json";
 
@@ -48,6 +49,10 @@ const W = 920;
 
   <h2>Assembleia + Tribunal de Contas, por habitante</h2>
   <div class="card">
+    <MapaBrasil valores={Object.fromEntries(rows.map((e) => [e.uf, e.populacao ? (e.pago_total || 0) / e.populacao : null]))} formato={(v) => brl0(v)}
+      titulo={`Despesa paga por habitante em cada estado, ${meta.ano}`} legenda={`pagos por habitante pelo governo estadual em ${meta.ano}`} />
+  </div>
+  <div class="card" style="margin-top:14px">
     <svg viewBox={`0 0 ${W} ${legis.length * 22 + 10}`} width="100%" role="img" aria-label="Despesa legislativa estadual por habitante">
       {legis.map((x, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
         <text x="40" y="15" text-anchor="end" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{x.uf}</text>

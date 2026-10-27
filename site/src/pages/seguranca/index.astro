@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/seguranca.json";
 
 const num = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR");
@@ -53,6 +54,10 @@ const compacto = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1).replace("."
 
   <h2>Por estado: vítimas por 100 mil habitantes ({d.ano})</h2>
   <div class="card">
+    <MapaBrasil valores={Object.fromEntries(estados.map((e) => [e.uf, e.taxa_homicidio]))} formato={(v) => t1(v)}
+      titulo={`Vítimas de homicídio doloso por 100 mil habitantes em cada estado, ${d.ano}`} legenda="vítimas por 100 mil habitantes" melhorMenor={true} />
+  </div>
+  <div class="card" style="margin-top:14px">
     <svg viewBox={`0 0 ${W} ${estados.length * 22 + 10}`} width="100%" role="img" aria-label="Taxa de homicídio doloso por estado">
       {estados.map((e, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
         <text x="150" y="14" text-anchor="end" font-size="12" fill="var(--ink)">{e.nome}</text>

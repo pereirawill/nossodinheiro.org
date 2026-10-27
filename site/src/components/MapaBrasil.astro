@@ -1,0 +1,65 @@
+---
+/**
+ * Mapa do Brasil por estado (coroplético), sem JS. Props:
+ *   valores   — { UF: número | null }
+ *   formato   — função que formata o número para o rótulo/dica (padrão: pt-BR)
+ *   titulo    — descrição do mapa (acessibilidade)
+ *   legenda   — o que a cor mede, ex.: "vítimas por 100 mil habitantes"
+ *   cor       — cor base da escala (padrão: a cor da página)
+ *   melhorMenor — true quando o valor menor é o "melhor"; só muda o texto da legenda, não a cor
+ * A escala é sequencial do claro (menor) ao forte (maior); não há juízo de bom/ruim na cor.
+ * Os contornos vêm de `src/lib/mapa-uf.ts`, gerado das malhas do IBGE por `python -m etl.mapa.gerar`.
+ */
+import { MAPA_UF, MAPA_VIEWBOX } from "../lib/mapa-uf";
+
+const { valores, formato = (v: number) => v.toLocaleString("pt-BR"), titulo, legenda, cor = "var(--accent)", melhorMenor = false } =
+  Astro.props as { valores: Record<string, number | null | undefined>; formato?: (v: number) => string; titulo: string; legenda: string; cor?: string; melhorMenor?: boolean };
+
+const nums = Object.values(valores).filter((v): v is number => typeof v === "number");
+const min = Math.min(...nums), max = Math.max(...nums);
+const t = (v: number) => (max === min ? 0.5 : (v - min) / (max - min));
+const tom = (v: number | null | undefined) =>
+  typeof v !== "number" ? "var(--card)" : `color-mix(in srgb, ${cor} ${(12 + t(v) * 80).toFixed(0)}%, var(--card))`;
+// estados pequenos demais para o rótulo caber dentro: o texto vai para fora, com um fio ligando
+const FORA: Record<string, [number, number]> = {
+  DF: [120, -18], SE: [95, 0], AL: [110, -22], PB: [105, -16], RN: [100, -30], PE: [120, 8], RJ: [95, 42], ES: [105, 10],
+};
+const escala = [0, 0.25, 0.5, 0.75, 1];
+---
+<figure class="mapa">
+  <svg viewBox={MAPA_VIEWBOX} role="img" aria-label={titulo}>
+    {MAPA_UF.map((e) => {
+      const v = valores[e.uf];
+      return (<g>
+        <path d={e.d} fill={tom(v)} stroke="var(--card)" stroke-width="1.5">
+          <title>{e.nome}: {typeof v === "number" ? formato(v) : "sem dado"}</title>
+        </path>
+      </g>);
+    })}
+    {MAPA_UF.map((e) => {
+      const v = valores[e.uf];
+      const off = FORA[e.uf];
+      const x = e.cx + (off ? off[0] : 0), y = e.cy + (off ? off[1] : 0);
+      return (<g class="rotulo">
+        {off && <line x1={e.cx} y1={e.cy} x2={x - 12} y2={y - 4} stroke="var(--ink-2)" stroke-width="1.2" />}
+        <text x={x} y={y} text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">{e.uf}</text>
+        <text x={x} y={y + 20} text-anchor="middle" font-size="18" fill="var(--ink-2)">{typeof v === "number" ? formato(v) : "—"}</text>
+      </g>);
+    })}
+  </svg>
+  <figcaption>
+    <span class="esc">
+      {escala.map((f) => <i style={`background:color-mix(in srgb, ${cor} ${(12 + f * 80).toFixed(0)}%, var(--card))`}></i>)}
+    </span>
+    <span class="lim">{formato(min)} {melhorMenor ? "(menor)" : ""} → {formato(max)} {melhorMenor ? "(maior)" : ""} · {legenda}</span>
+  </figcaption>
+</figure>
+<style>
+  .mapa { margin: 0; }
+  .mapa svg { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; }
+  .mapa .rotulo text { font-family: var(--mono); paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
+  figcaption { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+  .esc { display: inline-flex; }
+  .esc i { width: 26px; height: 10px; display: block; border: 1px solid var(--line); border-right: 0; }
+  .esc i:last-child { border-right: 1px solid var(--line); }
+</style>

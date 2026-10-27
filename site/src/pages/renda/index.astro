@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/renda.json";
 
 const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -125,6 +126,10 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
 
   <h2>Por estado: público × privado, renda por pessoa e desigualdade ({d.ano})</h2>
   <div class="card">
+    <MapaBrasil valores={Object.fromEntries(d.por_uf.map((u) => [u.uf, u.renda_domiciliar_pc]))} formato={(v) => brl0(v)}
+      titulo={`Renda do domicílio por morador em cada estado, ${d.ano}`} legenda="de renda do domicílio por morador, em média" />
+  </div>
+  <div class="card" style="margin-top:14px">
     <table>
       <thead><tr><th>Estado</th><th class="num">Setor público</th><th class="num">Privado c/ carteira</th><th class="num">Público ÷ privado</th><th class="num">Conta própria</th><th class="num">Renda por pessoa</th><th class="num"><Termo t="gini">Gini</Termo></th><th class="num">10% mais ricos têm</th><th class="num">1% mais rico tem</th></tr></thead>
       <tbody>{ufs.map((u) => (<tr><td>{u.nome}</td><td class="num">{brl0(u.publico)}</td><td class="num">{brl0(u.privado_com_carteira)}</td><td class="num">{x(u.publico, u.privado_com_carteira)}</td>

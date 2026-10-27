@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/educacao.json";
 import municipiosBase from "../../../public/data/municipios_2025.json";
 
@@ -58,6 +59,10 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
 
   <h2>Por estado: IDEB {ano} por etapa e rede</h2>
   <div class="card">
+    <MapaBrasil valores={Object.fromEntries(estados.map((e) => [e.uf, val(e.ai, "total")]))} formato={(v) => n1(v)}
+      titulo={`IDEB dos anos iniciais em cada estado, ${ano}`} legenda={`IDEB dos anos iniciais (todas as redes), ${ano}`} />
+  </div>
+  <div class="card" style="margin-top:14px">
     <table>
       <thead><tr><th>Estado</th>
         <th class="num">Anos iniciais</th><th class="num">pública</th><th class="num">privada</th><th class="num">Δ vs. edição anterior</th>
