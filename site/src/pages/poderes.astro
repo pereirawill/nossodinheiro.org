@@ -38,7 +38,7 @@ const maxP = Math.max(1, ...(poderes ?? []).map((p) => p.pago));
 const topOrgaos = [...orgaos].filter((o) => o.poder !== "Dívida/Transferências").sort((a, b) => b.pago - a.pago).slice(0, 25);
 const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
 ---
-<Base title="Quanto custa cada Poder? — Nosso Dinheiro" accent="var(--s2)">
+<Base title="Quanto custa cada Poder da União? — Nosso Dinheiro" description="Despesa paga por Legislativo, Judiciário e Executivo, órgão por órgão. Fonte: Portal da Transparência." accent="var(--s2)">
   <h1>Quanto custa manter cada Poder da União?</h1>
   <p class="lede">
     O que Legislativo, Judiciário e Executivo gastaram em {ANO} para <Termo t="maquina"><strong>manter a própria máquina</strong></Termo>
