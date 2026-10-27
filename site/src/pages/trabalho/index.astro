@@ -63,6 +63,8 @@ const RENDA_COR: Record<string, string> = { trabalho: "var(--s2)", aposentadoria
 const itensRenda = RENDA_ORDEM.map((k) => (rendaTipos?.itens ?? []).find((i: any) => i.chave === k)).filter(Boolean) as { chave: string; pessoas: number }[];
 const qualquerRenda = (rendaTipos?.itens ?? []).find((i: any) => i.chave === "qualquer_renda")?.pessoas ?? 0;
 const maxRenda = Math.max(...itensRenda.map((i) => i.pessoas), 1);
+const somaRenda = itensRenda.reduce((a, i) => a + i.pessoas, 0);       // soma das barras: quem tem duas fontes conta duas vezes
+const sobreposicao = somaRenda - qualquerRenda;                        // aparições a mais do que pessoas
 const aposentados = itensRenda.find((i) => i.chave === "aposentadoria_pensao");
 const auxilio = itensRenda.find((i) => i.chave === "programas_sociais");
 
@@ -188,9 +190,11 @@ const empresasBarras = [
     <h2>De onde vem a renda de cada um ({rendaTipos.ano})</h2>
     <div class="card">
       <p class="explica">
-        A pizza acima divide o país sem sobreposição. Já aqui os grupos <b>se sobrepõem de propósito</b>: muita gente recebe de mais
-        de uma fonte — trabalha e recebe aposentadoria, ou trabalha e recebe Bolsa Família. É assim que dá para responder quantos
-        são os aposentados e quantos recebem auxílio do governo, sem inventar divisões que a pesquisa não faz.
+        A pizza acima divide o país sem sobreposição: cada pessoa num lugar só. Aqui é outra coisa — cada barra responde "quantas
+        pessoas recebem deste tipo de renda", medida sobre a população inteira, e <b>a mesma pessoa pode estar em duas barras</b>
+        (quem trabalha e recebe aposentadoria, ou trabalha e recebe Bolsa Família). Por isso estas barras <b>não formam uma pizza</b>
+        e não devem ser somadas para dar 100%. É assim que dá para dizer quantos são os aposentados e quantos recebem auxílio do
+        governo, sem inventar divisões que a pesquisa não faz.
       </p>
       <svg viewBox={`0 0 ${W} ${itensRenda.length * 30 + 10}`} width="100%" role="img" aria-label="Pessoas por tipo de renda recebida">
         {itensRenda.map((i, k) => (<g transform={`translate(0 ${k * 30 + 5})`}>
@@ -200,8 +204,14 @@ const empresasBarras = [
         </g>))}
       </svg>
       <p class="src">
-        {mi(qualquerRenda)} de brasileiros têm alguma renda própria — os demais dependem da renda de quem mora com eles.
-        <b>{mi(aposentados!.pessoas)} recebem aposentadoria ou pensão</b> e <b>{mi(auxilio!.pessoas)} recebem programas sociais</b>{" "}(Bolsa Família, BPC e outros). Parte dessas pessoas também trabalha, por isso a soma das barras passa do total.
+        {mi(qualquerRenda)} de brasileiros ({pctPop(qualquerRenda)} do país) têm alguma renda própria; os demais dependem de quem mora
+        com eles. <b>{mi(aposentados!.pessoas)} recebem aposentadoria ou pensão</b> e <b>{mi(auxilio!.pessoas)} recebem programas
+        sociais</b>{" "}(Bolsa Família, BPC e outros).
+      </p>
+      <p class="src">
+        <b>Conferindo a conta:</b> as seis barras somam {mi(somaRenda)}, contra {mi(qualquerRenda)} de pessoas com renda — a diferença,
+        {" "}{mi(sobreposicao)}, é gente que aparece em mais de uma barra por receber de mais de uma fonte. Sobre a população inteira,
+        as barras somam {pctPop(somaRenda)}; não passam de 100% porque cada uma é medida sobre o país todo, não é fatia de um bolo.
         Fonte: {rendaTipos.fonte}. É pesquisa domiciliar: conta <b>pessoas</b>, diferente dos {mi(inss.total)} de <b>benefícios</b>{" "}do INSS logo abaixo, em que quem recebe dois aparece duas vezes.
       </p>
     </div>
