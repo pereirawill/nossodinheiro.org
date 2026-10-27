@@ -271,6 +271,15 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - 2025 pago: Executivo R$ 2,04 tri (sem dívida/transferências), Judiciário 63,9 bi, Legislativo 15,7 bi,
   Funções essenciais 10,6 bi, Dívida/Transferências 2,92 tri (71000–75000 + 90000). Previdência 986 bi.
 - Classificação em `classificar()`; metodologia em `docs/metodologia/painel-poderes.md`. SIOP já tem grafo 2026.
+- 27/10 (pedido do dono, a partir do painel "Despesas Públicas do Governo Federal" do Portal): a página abre com
+  **orçamento atualizado × empenhado × pago** do ano fechado e do ano em curso (`dotacao` e `liquidado` entraram no
+  `SQL_PODERES` do transform; `poderes_*_2026.json` gerados). 2026: dotação 6,53 tri, empenhado 5,53, pago 4,94 (3,05 de
+  dívida/transferências → 1,89 tri sem elas). 2025: 5,84 / 5,38 / 5,05 (2,92 → 2,13 tri). O texto explica por que o total
+  passa do PIB (refinanciamento + transferências contadas duas vezes) e que o PIB dos rankings está **em dólares**
+  (US$ 2,28 tri) — era a dúvida do dono. **Divergência não explicada com o Portal** (6,43 e 4,76 tri lá; Siafi × SIOP,
+  1,6% e 3,8%; não é a reserva de contingência, que são 13,1 bi) declarada na página e na metodologia §7.
+- A página usa `new Date().getFullYear()` para o ano em curso: se o JSON do ano não existir, a coluna simplesmente não
+  aparece. Gerar com `python -m etl.portal_transparencia.extract_poderes --ano <ano>` + `transform_poderes --ano <ano> --populacao 212600000`.
 - Página mostra **"Manter a máquina" × políticas públicas**: categoria = Programa de Gestão e Manutenção da LOA
   (0031–0035) vs finalísticos vs 09xx encargos especiais; subcategoria por GND/ação (ativos, aposentados, custeio,
   investimento) em `poderes_categoria_<ano>.json`. 2025: máquina Executivo 309 bi, Judiciário 62,3 bi, Legislativo

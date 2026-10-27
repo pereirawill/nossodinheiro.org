@@ -75,3 +75,28 @@ Ainda não exibido no site (fase 2 do painel).
 
 Judiciário e Legislativo **estaduais e municipais** (TJs, Assembleias, Câmaras Municipais) são orçamento
 dos entes; fonte prevista: SICONFI (função 01 Legislativa e 02 Judiciária). Remuneração de magistrados: CNJ.
+
+## 7. Orçamento inteiro da União: autorizado, empenhado e pago (27/10/2026)
+
+A página abre com o quadro das três etapas da despesa, para o ano fechado e para o ano em curso, lidos do mesmo grafo
+do SIOP (`valorLeiMaisCredito` = orçamento atualizado, isto é lei mais créditos adicionais; `valorEmpenhado`; `valorPago`).
+
+| Etapa | 2025 (fechado) | 2026 (em curso, parcial) |
+|---|---|---|
+| Orçamento atualizado | R$ 5,84 tri | R$ 6,53 tri |
+| Empenhado | R$ 5,38 tri | R$ 5,53 tri |
+| Pago | R$ 5,05 tri | R$ 4,94 tri |
+| do qual dívida e transferências | R$ 2,92 tri | R$ 3,05 tri |
+| **Pago sem dívida nem transferências** | **R$ 2,13 tri** | **R$ 1,89 tri** |
+
+**Por que o total passa do PIB.** O refinanciamento da dívida (título novo pagando título vencido) e as transferências
+constitucionais a estados e municípios passam pelo orçamento da União e são gastas de novo nos orçamentos dos entes. O
+número comparável ao PIB é o pago **sem** essas duas coisas: R$ 2,13 tri em 2025, 18% do PIB de 2024 (R$ 11,74 tri).
+A página compara com o **ano fechado**, nunca com o parcial, e avisa que o PIB dos rankings internacionais está em dólares
+(US$ 2,28 tri em 2024), não em reais — foi essa a confusão que motivou o quadro.
+
+**Divergência com o Portal da Transparência (pendência).** O painel "Despesas Públicas do Governo Federal" do Portal
+mostrava, em 27/10/2026, R$ 6,43 tri de orçamento atualizado e R$ 4,76 tri pagos em 2026, contra R$ 6,53 tri e R$ 4,94 tri
+no SIOP. A diferença é de 1,6% no orçamento e 3,8% no pago. O Portal lê o Siafi; o SIOP tem data de atualização própria.
+Testamos a hipótese de ser a reserva de contingência (órgão 90000) e não é: são R$ 13,1 bi. **Não explicamos a diferença
+ainda**, está declarada na página e nada foi ajustado para fechar a conta.

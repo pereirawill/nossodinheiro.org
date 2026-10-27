@@ -2,11 +2,15 @@
 import Base from "../layouts/Base.astro";
 import Termo from "../components/Termo.astro";
 import Glossario from "../components/Glossario.astro";
+import imp from "../../public/data/impostos.json";
 const ANO = 2025;
 const mods = import.meta.glob("../../public/data/poderes_*.json", { eager: true, import: "default" });
 const poderes = (mods[`../../public/data/poderes_${ANO}.json`] as any[] | undefined) ?? null;
 const orgaos = (mods[`../../public/data/poderes_orgaos_${ANO}.json`] as any[] | undefined) ?? [];
 const categorias = (mods[`../../public/data/poderes_categoria_${ANO}.json`] as any[] | undefined) ?? [];
+// Execução do ano corrente (parcial), para o quadro "orçamento atualizado × empenhado × pago".
+const ANO_EXEC = new Date().getFullYear();
+const execAtual = (mods[`../../public/data/poderes_${ANO_EXEC}.json`] as any[] | undefined) ?? null;
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
@@ -34,6 +38,23 @@ const maxMaquina = Math.max(1, ...resumo.map((r) => r.maquina));
 const tres = resumo.filter((r) => ["Executivo", "Judiciário", "Legislativo"].includes(r.poder));
 const previdencia = orgaos.filter((o) => o.cod_superior === "33000").reduce((s, o) => s + o.pago, 0);
 
+// --- orçamento inteiro da União: dotação atualizada, empenhado e pago -------------------------------------
+const somaCol = (arr: any[] | null, k: string) => (arr ?? []).reduce((t, x) => t + (x[k] ?? 0), 0);
+const etapas = [
+  { rotulo: "Orçamento atualizado da despesa", termo: "dotacao", chave: "dotacao" },
+  { rotulo: "Empenhado", termo: "empenhado", chave: "empenhado" },
+  { rotulo: "Pago", termo: "pago", chave: "pago" },
+];
+const dividaDe = (arr: any[] | null, k: string) => (arr ?? []).filter((x) => x.poder === "Dívida/Transferências").reduce((t, x) => t + (x[k] ?? 0), 0);
+const pibSerie = (imp as any).carga?.serie ?? {};
+const anoPib = Object.keys(pibSerie).sort().pop();
+const pib = anoPib ? pibSerie[anoPib].pib * 1e9 : 0;          // a série do estudo vem em R$ milhões de milhão (bilhões)
+const pagoTotal = somaCol(execAtual ?? poderes, "pago");
+const pagoDivida = dividaDe(execAtual ?? poderes, "pago");
+const pagoSemDivida = pagoTotal - pagoDivida;
+// Para comparar com o PIB usamos só o ANO FECHADO: o ano em curso é despesa parcial contra PIB de 12 meses.
+const fechadoSemDivida = somaCol(poderes, "pago") - dividaDe(poderes, "pago");
+
 const maxP = Math.max(1, ...(poderes ?? []).map((p) => p.pago));
 const topOrgaos = [...orgaos].filter((o) => o.poder !== "Dívida/Transferências").sort((a, b) => b.pago - a.pago).slice(0, 25);
 const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
@@ -52,6 +73,44 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
     (pessoal ativo, aposentadorias e pensões do órgão, custeio, investimento). Tudo fora dele é programa finalístico
     (política pública) ou encargo especial (sentenças judiciais, por exemplo). Juros, amortização e transferências a
     estados e municípios ficam fora, em "Dívida/Transferências". <a href="/metodologia/">Metodologia</a>.</div>
+  </div>
+
+
+  <h2>O orçamento inteiro da União, do autorizado ao pago</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Etapa</th>{execAtual && <th class="num">{ANO_EXEC} (ano em curso)</th>}<th class="num">{ANO} (ano fechado)</th></tr></thead>
+      <tbody>
+        {etapas.map((e) => (<tr>
+          <td><Termo t={e.termo}>{e.rotulo}</Termo></td>
+          {execAtual && <td class="num"><b>{compact(somaCol(execAtual, e.chave))}</b></td>}
+          <td class="num">{compact(somaCol(poderes, e.chave))}</td></tr>))}
+        <tr><td class="sub">do pago, dívida e transferências a estados e municípios</td>
+          {execAtual && <td class="num">{compact(dividaDe(execAtual, "pago"))}</td>}
+          <td class="num">{compact(dividaDe(poderes, "pago"))}</td></tr>
+        <tr class="destaque"><td>Pago sem dívida nem transferências</td>
+          {execAtual && <td class="num"><b>{compact(somaCol(execAtual, "pago") - dividaDe(execAtual, "pago"))}</b></td>}
+          <td class="num">{compact(somaCol(poderes, "pago") - dividaDe(poderes, "pago"))}</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      <b>Por que o número é maior que o PIB brasileiro.</b> Mais da metade do orçamento da União é
+      {" "}<Termo t="divida_transferencias">dívida e transferência</Termo>: o Tesouro emite título novo para pagar título que
+      venceu (refinanciamento), e o mesmo dinheiro passa duas vezes pelo orçamento; e repassa aos estados e municípios
+      recursos que eles tornam a gastar nos orçamentos deles. Tirando essas duas coisas, a União pagou
+      {" "}<b>{compact(fechadoSemDivida)}</b> em {ANO}, o último ano fechado{pib ? <>, o equivalente a {pct(fechadoSemDivida, pib)} do PIB de {anoPib} ({compact(pib)}), que é o último com valor fechado no estudo da Receita</> : null}.{execAtual ? <> Em {ANO_EXEC} o pago sem dívida nem transferências vai em {compact(pagoSemDivida)}, com o ano ainda em curso.</> : null}
+      {" "}Cuidado também com a unidade: o PIB que aparece em rankings internacionais costuma estar <b>em dólares</b> (US$ 2,28
+      trilhões em 2024, no painel <a href="/rankings/">Rankings</a>), e não em reais.
+    </p>
+    <p class="src">
+      Fonte: SIOP, execução orçamentária da União, grafo de {execAtual ? ANO_EXEC : ANO}. O ano em curso é <b>parcial</b>:
+      o orçamento é do ano inteiro e o pago vai até a última atualização do SIOP. O painel "Despesas Públicas do Governo
+      Federal" do Portal da Transparência publica os mesmos conceitos com números próximos, porém não idênticos (R$ 6,43
+      trilhões de orçamento atualizado e R$ 4,76 trilhões pagos quando consultado em 27/10/2026, contra
+      {" "}{compact(somaCol(execAtual ?? poderes, "dotacao"))} e {compact(pagoTotal)} aqui): são sistemas diferentes, o
+      Portal lê o Siafi e o SIOP tem data de atualização própria. A diferença, de 2% a 4%, está registrada como pendência
+      na <a href="/metodologia/">metodologia</a>; não a explicamos ainda e não ajustamos nada para fechar a conta.
+    </p>
   </div>
 
   {poderes && resumo.length ? (

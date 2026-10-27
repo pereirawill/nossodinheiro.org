@@ -60,6 +60,7 @@ FROM itens GROUP BY ALL ORDER BY pago DESC;
 SQL_PODERES = """
 CREATE OR REPLACE TABLE poderes AS
 SELECT poder, round(sum(pago),2) AS pago, round(sum(empenhado),2) AS empenhado,
+       round(sum(dotacao),2) AS dotacao, round(sum(liquidado),2) AS liquidado,
        count(DISTINCT cod_orgao) AS orgaos,
        CASE WHEN {pop} > 0 THEN round(sum(pago)/{pop}, 2) END AS pago_por_habitante
 FROM orgaos GROUP BY poder ORDER BY pago DESC;
