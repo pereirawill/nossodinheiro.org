@@ -126,7 +126,9 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   POPULACAO do arquivo vem zerada → taxa usa SIDRA 6579) e **IBGE** (7362 projeção de esperança de vida/mortalidade infantil,
   3834 MI observada até 2016, ODS 6695/6696/6694 de menores de 5 anos, neonatal e materna).
 - O **dinheiro** não é rebaixado: a página importa `poderes_funcao_2025` (função 10 da União), `estados_2025` e `municipios_2025`
-  (pago_saude). **Nunca somar os três níveis** — repasse fundo a fundo reaparece embaixo; aviso explícito na página.
+  (pago_saude). **Nunca somar os três níveis nem estado+prefeituras por habitante** — repasse fundo a fundo reaparece embaixo
+  (a tabela por estado tem duas colunas "por habitante" separadas, ordenada por nome). Cobertura de plano é **piso** ("no mínimo"),
+  porque a ANS conta vínculos. Ids do ano da tabela 7362 fixos em `ANOS_7362` (a API de metadados do IBGE dá timeout no GitHub).
 - 2026: 53,1 mi de vínculos de plano (24,8% da população) → 75,2% só no SUS; União R$ 216,0 bi, estados R$ 193,0 bi, prefeituras
   R$ 313,6 bi (2025); esperança de vida 78,0 anos (projeção). Pendências: SIOPS (recursos próprios), CNES/leitos (API do MS
   recusa conexão), atenção básica, filas.

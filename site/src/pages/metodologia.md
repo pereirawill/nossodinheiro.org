@@ -188,7 +188,8 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   IBGE (projeção da população e indicadores dos ODS, estes a partir do Sistema de Informações sobre Mortalidade do
   Ministério da Saúde) para os indicadores.
 - **Atenção:** os gastos dos três níveis **não podem ser somados** — o repasse federal reaparece na despesa de quem recebeu.
-  A ANS conta vínculos de plano, não pessoas. Esperança de vida e mortalidade infantil do ano corrente são projeção do IBGE.
+  A ANS conta vínculos de plano, não pessoas — por isso "quem depende só do SUS" é um piso, escrito como "no mínimo".
+  Esperança de vida e mortalidade infantil do ano corrente são projeção do IBGE.
 - Completo: `docs/metodologia/painel-saude.md`.
 
 ## Inadimplência — crédito em atraso por estado

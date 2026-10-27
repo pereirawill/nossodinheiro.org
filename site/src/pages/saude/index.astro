@@ -42,13 +42,15 @@ const linhas = (estados as any[]).map((e) => {
   const plano = planoPorUf.get(e.uf);
   const gastoEstado = e.pago_saude || 0, gastoMun = munPorUf.get(e.uf) || 0;
   return { uf: e.uf, nome: e.nome, populacao: e.populacao, gastoEstado, gastoMun,
-    porHab: e.populacao ? (gastoEstado + gastoMun) / e.populacao : null,
+    habEstado: e.populacao ? gastoEstado / e.populacao : null, habMun: e.populacao ? gastoMun / e.populacao : null,
     taxaPlano: plano?.taxa ?? null, ev: ev[e.nome], mi: miProj[e.nome], m5: m5[e.nome], neo: neo[e.nome], mat: mat[e.nome] };
 });
 const porPlano = [...d.planos.por_uf].sort((a, b) => (b.taxa ?? 0) - (a.taxa ?? 0));
 const maxPlano = Math.max(...porPlano.map((u) => u.taxa ?? 0));
 const porEv = [...linhas].filter((l) => l.ev != null).sort((a, b) => (b.ev ?? 0) - (a.ev ?? 0));
-const porHabOrd = [...linhas].filter((l) => l.porHab != null).sort((a, b) => (b.porHab ?? 0) - (a.porHab ?? 0));
+const porHabEstado = [...linhas].filter((l) => l.habEstado != null).sort((a, b) => (b.habEstado ?? 0) - (a.habEstado ?? 0));
+const porHabMun = [...linhas].filter((l) => (l.habMun ?? 0) > 0).sort((a, b) => (b.habMun ?? 0) - (a.habMun ?? 0));  // sem o DF, que não tem municípios
+const porNome = [...linhas].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 const capitais = d.planos.capitais as any[];
 
 // ---- série: mortalidade infantil observada (até 2016) e menores de 5 anos (até 2023)
@@ -73,7 +75,7 @@ const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
   <p class="meta">atualizado em {fmt.format(quando)} · despesa: SIOP (União) e SICONFI/Tesouro (estados e prefeituras), {ANO} · planos: ANS, {d.planos.referencia} · indicadores: IBGE · <a href="/metodologia/">metodologia</a></p>
 
   <div class="hero">
-    <div class="stat big"><b>{semPlano.toFixed(1).replace(".", ",")}%</b><span>dos brasileiros não têm plano de saúde e contam só com o SUS ({d.planos.referencia}): {mi(popBR - d.planos.brasil.beneficiarios)} de pessoas</span></div>
+    <div class="stat big"><b>{semPlano.toFixed(1).replace(".", ",")}%</b><span>dos brasileiros, <b class="inline">no mínimo</b>, não têm plano de saúde e contam só com o SUS ({d.planos.referencia}): cerca de {mi(popBR - d.planos.brasil.beneficiarios)} de pessoas. É um piso porque a ANS conta <Termo t="cobertura_planos">vínculos, não pessoas</Termo></span></div>
     <div class="stat"><b>{compact(uniao)}</b><span>pagos pela União na função Saúde em {ANO}; estados pagaram {compact(estadual)} e as prefeituras {compact(munSaude)} — <Termo t="repasse_saude">valores que se sobrepõem</Termo></span></div>
     <div class="stat"><b>{n1(d.indicadores.projecao.esperanca_vida_brasil)} anos</b><span>é a <Termo t="esperanca_vida">esperança de vida</Termo> de quem nasce no Brasil (<Termo t="projecao_ibge">projeção do IBGE</Termo> para {d.indicadores.projecao.ano}); vai de {n1(porEv[porEv.length - 1]?.ev)} no {porEv[porEv.length - 1]?.nome} a {n1(porEv[0]?.ev)} em {porEv[0]?.nome}</span></div>
   </div>
@@ -103,7 +105,7 @@ const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
       {porPlano.map((u, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
         <text x="150" y="14" text-anchor="end" font-size="12" fill="var(--ink)">{u.nome}</text>
         <rect x="160" y="2" width={Math.max(1, ((u.taxa ?? 0) / maxPlano) * 520)} height="16" fill="var(--s2)" rx="2" />
-        <text x={166 + ((u.taxa ?? 0) / maxPlano) * 520} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1(u.taxa)}% com plano · {num(u.populacao! - u.beneficiarios)} só no SUS</text>
+        <text x={166 + ((u.taxa ?? 0) / maxPlano) * 520} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1(u.taxa)}% com plano · ~{mi(u.populacao! - u.beneficiarios)} só no SUS</text>
       </g>))}
     </svg>
     <p class="src">Fonte: <Termo t="cobertura_planos">ANS, taxa de cobertura de planos de saúde</Termo> (dados abertos, competência {d.planos.referencia}), beneficiários de planos de assistência médica, sobre a população estimada pelo IBGE ({d.ano_populacao}). São vínculos, não pessoas: quem tem dois planos conta duas vezes. Planos exclusivamente odontológicos ({mi(d.planos.brasil.odontologico)} de vínculos no país) ficam fora da conta.</p>
@@ -121,14 +123,16 @@ const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
   <h2>Cada estado: dinheiro e resultado</h2>
   <div class="card largo">
     <table>
-      <thead><tr><th>Estado</th><th class="num">Governo estadual</th><th class="num">Prefeituras</th><th class="num">Por habitante</th><th class="num">Com plano</th>
+      <thead><tr><th>Estado</th><th class="num">Governo estadual</th><th class="num">por habitante</th><th class="num">Prefeituras</th><th class="num">por habitante</th><th class="num">Com plano</th>
         <th class="num">Vive até</th><th class="num">Até 1 ano</th><th class="num">Até 5 anos</th><th class="num">Neonatal</th><th class="num">Materna</th></tr></thead>
-      <tbody>{porHabOrd.map((l) => (<tr><td>{l.nome}</td><td class="num">{compact(l.gastoEstado)}</td><td class="num">{compact(l.gastoMun)}</td><td class="num"><b>{brl0(l.porHab)}</b></td>
+      <tbody>{porNome.map((l) => (<tr><td>{l.nome}</td><td class="num">{compact(l.gastoEstado)}</td><td class="num"><b>{brl0(l.habEstado)}</b></td><td class="num">{l.gastoMun > 0 ? compact(l.gastoMun) : "—"}</td><td class="num"><b>{l.gastoMun > 0 ? brl0(l.habMun) : "—"}</b></td>
         <td class="num">{n1(l.taxaPlano)}%</td><td class="num">{n1(l.ev)}</td><td class="num">{n1(l.mi)}</td><td class="num">{n1(l.m5)}</td><td class="num">{n1(l.neo)}</td><td class="num">{num(l.mat)}</td></tr>))}</tbody>
     </table>
     <p class="src">
-      <b>Governo estadual</b> e <b>prefeituras</b>: despesa paga na função Saúde em {ANO} (SIOP/SICONFI) — o repasse federal está dentro das duas.
-      <b>Por habitante</b> soma as duas e divide pela população. <b>Vive até</b> é a esperança de vida em anos; <b>Até 1 ano</b> é a mortalidade infantil.
+      <b>Governo estadual</b> e <b>prefeituras</b>: despesa paga na função Saúde em {ANO} (SIOP/SICONFI), cada uma dividida pela população do estado.
+      <b>Não somamos as duas</b>: o estado também repassa dinheiro aos fundos municipais de saúde, e esse valor aparece nas duas colunas.
+      <b>Vive até</b> é a esperança de vida em anos; <b>Até 1 ano</b> é a mortalidade infantil. O Distrito Federal não tem municípios:
+      tudo está na coluna do governo distrital, por isso a de prefeituras fica vazia. Ordenado por nome; clique no cabeçalho para ordenar por qualquer coluna.
       Esperança de vida (anos) e mortalidade infantil (por mil nascidos vivos) são <Termo t="projecao_ibge">projeção do IBGE</Termo> para {d.indicadores.projecao.ano}.
       <Termo t="mortalidade_menores5">Até 5 anos</Termo> ({d.indicadores.menores5.ano}) e <Termo t="mortalidade_neonatal">neonatal</Termo> ({d.indicadores.neonatal.ano}) vêm por mil nascidos vivos;
       <Termo t="mortalidade_materna">materna</Termo> ({d.indicadores.materna.ano}), por 100 mil nascidos vivos. Fonte dos três: IBGE, indicadores dos Objetivos de Desenvolvimento
@@ -154,9 +158,9 @@ const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
   <h2>O que os números dizem</h2>
   <div class="card">
     <ul class="conclusoes">
-      <li>{semPlano.toFixed(1).replace(".", ",")}% da população não tem plano de saúde e depende só do SUS. A cobertura vai de {n1(porPlano[porPlano.length - 1].taxa)}% em {porPlano[porPlano.length - 1].nome} a {n1(porPlano[0].taxa)}% em {porPlano[0].nome}.</li>
+      <li>Pelo menos {semPlano.toFixed(1).replace(".", ",")}% da população não tem plano de saúde e depende só do SUS. A cobertura vai de {n1(porPlano[porPlano.length - 1].taxa)}% em {porPlano[porPlano.length - 1].nome} a {n1(porPlano[0].taxa)}% em {porPlano[0].nome}.</li>
       <li>Em {ANO}, a União pagou {compact(uniao)} na função Saúde, os estados {compact(estadual)} e as prefeituras {compact(munSaude)}. Como o repasse federal reaparece na conta de quem recebeu, os três não se somam.</li>
-      <li>Somando governo estadual e prefeituras, o gasto por habitante vai de {brl0(porHabOrd[porHabOrd.length - 1].porHab)} ({porHabOrd[porHabOrd.length - 1].nome}) a {brl0(porHabOrd[0].porHab)} ({porHabOrd[0].nome}).</li>
+      <li>Por habitante, o governo estadual gasta de {brl0(porHabEstado[porHabEstado.length - 1].habEstado)} ({porHabEstado[porHabEstado.length - 1].nome}) a {brl0(porHabEstado[0].habEstado)} ({porHabEstado[0].nome}); as prefeituras, de {brl0(porHabMun[porHabMun.length - 1].habMun)} ({porHabMun[porHabMun.length - 1].nome}) a {brl0(porHabMun[0].habMun)} ({porHabMun[0].nome}). As duas colunas não se somam.</li>
       <li>A esperança de vida projetada para {d.indicadores.projecao.ano} varia {n1((porEv[0].ev ?? 0) - (porEv[porEv.length - 1].ev ?? 0))} anos entre o estado onde se vive mais ({porEv[0].nome}) e onde se vive menos ({porEv[porEv.length - 1].nome}).</li>
       <li>De 2000 a {d.indicadores.menores5.ano}, a morte de crianças até 5 anos caiu de {n1(serieM5[anos[0]])} para {n1(d.indicadores.menores5.brasil)} por mil nascidos vivos. A mortalidade materna ({d.indicadores.materna.ano}) é de {num(d.indicadores.materna.brasil)} por 100 mil nascidos vivos.</li>
     </ul>
@@ -167,6 +171,7 @@ const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
 </Base>
 <style>
   .largo { overflow-x: auto; }
+  .stat b.inline { display: inline; font-family: inherit; font-size: inherit; color: var(--ink); }
   td .uf { color: var(--ink-2); font-size: 12px; font-family: var(--mono); margin-left: 4px; }
   .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
 </style>

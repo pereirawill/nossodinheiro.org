@@ -22,8 +22,11 @@ Este ETL baixa só o que ainda não existia no projeto (ANS e indicadores do IBG
   do SUS) e reaparece na despesa deles. A página mostra os três separados e diz isso no aviso; não existe "total do país" aqui.
   Separar recursos próprios de repasse exigiria o SIOPS, ainda não integrado (pendência 1).
 - **Beneficiário não é pessoa.** A ANS conta vínculos: quem tem dois planos conta duas vezes, e a própria agência admite taxa
-  acima de 100% em alguns municípios. "Quem depende só do SUS" = população − beneficiários de planos de assistência médica,
-  e está rotulado como estimativa pela mesma razão. Planos exclusivamente odontológicos ficam fora da taxa.
+  acima de 100% em alguns municípios. "Quem depende só do SUS" = população − beneficiários de planos de assistência médica;
+  como o divisor conta vínculos, esse número é um **piso**, e a página diz "no mínimo" / "cerca de" e arredonda em milhões
+  em vez de dar o número exato. Planos exclusivamente odontológicos ficam fora da taxa.
+- **Também não somamos estado + prefeituras por habitante.** O estado repassa aos fundos municipais de saúde e o mesmo dinheiro
+  entra na função 10 dos dois; por isso a tabela traz duas colunas "por habitante" separadas, ordenada por nome, sem ranking padrão.
 - O código de município da ANS tem **6 dígitos** (sem o dígito verificador do IBGE); o casamento com as capitais usa `cod_ibge // 10`.
 - A taxa usa a população do IBGE, não a coluna POPULACAO do arquivo da ANS, que vem zerada na maior parte das linhas.
 - Esperança de vida e mortalidade infantil do ano corrente são **projeção** do IBGE (revisão vigente), porque é a única série

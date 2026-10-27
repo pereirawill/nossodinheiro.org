@@ -44,6 +44,12 @@ SIDRA_POP = "https://apisidra.ibge.gov.br/values/t/6579/{n}/all/v/9324/p/{p}?for
 META = "https://servicodados.ibge.gov.br/api/v3/agregados/{t}/metadados"
 UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
 
+# Categorias do "Ano" na tabela 7362 (projeção). Fixas para não depender da API de metadados
+# (servicodados.ibge.gov.br), que deu timeout a partir dos runners do GitHub em 27/10/2026. Conferir em
+# META.format(t=7362) quando o IBGE publicar uma revisão nova da projeção.
+ANOS_7362 = {2020: 49036, 2021: 49037, 2022: 49038, 2023: 49039, 2024: 49040, 2025: 49041, 2026: 49042,
+             2027: 49043, 2028: 49044, 2029: 49045, 2030: 49046}
+
 # indicadores das tabelas dos ODS (fonte primária: SIM/Ministério da Saúde, compilado pelo IBGE)
 ODS = [
     ("menores5", 6695, 9731, "Mortalidade de menores de 5 anos", "óbitos por mil nascidos vivos"),
@@ -120,13 +126,12 @@ def planos(c: httpx.Client, pop_uf: dict, pop_mun: dict, capitais: dict) -> dict
 def indicadores(c: httpx.Client) -> dict:
     out: dict = {}
     # projeção: esperança de vida e mortalidade infantil, ano mais recente até o atual
-    cats = {x["nome"]: x["id"] for x in c.get(META.format(t=7362)).json()["classificacoes"][1]["categorias"]}
-    ano_proj = max(a for a in cats if a.isdigit() and int(a) <= datetime.now().year)
-    cat = cats[ano_proj]
+    ano_proj = max(a for a in ANOS_7362 if a <= datetime.now().year)
+    cat = ANOS_7362[ano_proj]
     br = {r["D2N"]: _num(r["V"]) for r in sidra(c, SIDRA.format(t=7362, n="n1", v="2503,1940", p="all", c=f"/c2/6794/c1933/{cat}"))}
     uf_ev = {r["D1N"]: _num(r["V"]) for r in sidra(c, SIDRA.format(t=7362, n="n3", v=2503, p="all", c=f"/c2/6794/c1933/{cat}"))}
     uf_mi = {r["D1N"]: _num(r["V"]) for r in sidra(c, SIDRA.format(t=7362, n="n3", v=1940, p="all", c=f"/c2/6794/c1933/{cat}"))}
-    out["projecao"] = {"ano": int(ano_proj), "esperanca_vida_brasil": next((v for k, v in br.items() if "Esperança" in k), None),
+    out["projecao"] = {"ano": ano_proj, "esperanca_vida_brasil": next((v for k, v in br.items() if "Esperança" in k), None),
                        "mortalidade_infantil_brasil": next((v for k, v in br.items() if "mortalidade" in k), None),
                        "esperanca_vida_uf": uf_ev, "mortalidade_infantil_uf": uf_mi}
     # mortalidade infantil observada (série encerrada em 2016)
