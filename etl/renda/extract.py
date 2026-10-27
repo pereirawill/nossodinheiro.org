@@ -53,14 +53,20 @@ def _num(v: str) -> float | None:
         return None
 
 
-def _var(c: httpx.Client, t: int) -> int:
-    """Primeira variável (a de valor; a segunda é o coeficiente de variação)."""
-    return c.get(META.format(t=t)).json()["variaveis"][0]["id"]
+VARIAVEIS = {7527: 10826, 7530: 10826, 7533: 10816, 7438: 10769, 7535: 10842, 7435: 10681}  # variável de valor de cada tabela
+# (a segunda variável de cada tabela é o coeficiente de variação). Fixas para não depender de servicodados.ibge.gov.br
+# (API de metadados), que deu timeout a partir dos runners do GitHub em 27/10/2026; conferir em META quando mudar.
 
 
 def sidra(c: httpx.Client, t: int, n: str, v: int, p: str = "last 1", c_: str = "") -> list[dict]:
-    r = c.get(SIDRA.format(t=t, n=n, v=v, p=p, c=c_)); r.raise_for_status()
-    return r.json()[1:]
+    erro = None
+    for tentativa in range(3):
+        try:
+            r = c.get(SIDRA.format(t=t, n=n, v=v, p=p, c=c_)); r.raise_for_status()
+            return r.json()[1:]
+        except (httpx.TransportError, httpx.HTTPStatusError) as e:
+            erro = e; log.warning("SIDRA t%s tentativa %d: %s", t, tentativa + 1, e)
+    raise erro
 
 
 def _uf(nome: str) -> str | None:
@@ -85,7 +91,7 @@ def run() -> Path:
             if k and uf and _num(r["V"]) is not None:
                 por_uf.setdefault(uf, {"uf": uf, "nome": r["D1N"]})[k] = _num(r["V"])
         # 2. distribuição da renda domiciliar per capita
-        v7527, v7530, v7533, v7438, v7535, v7435 = (_var(c, t) for t in (7527, 7530, 7533, 7438, 7535, 7435))
+        v7527, v7530, v7533, v7438, v7535, v7435 = (VARIAVEIS[t] for t in (7527, 7530, 7533, 7438, 7535, 7435))
         massa_serie: dict[str, dict[str, float]] = {}
         for r in sidra(c, 7527, "n1", v7527, "all", "/c1019/all"):
             k = CLASSES.get(r["D4N"].strip())
