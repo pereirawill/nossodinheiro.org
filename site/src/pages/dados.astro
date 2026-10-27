@@ -1,0 +1,46 @@
+---
+import Base from "../layouts/Base.astro";
+import { DATASETS } from "../lib/datasets";
+import fs from "node:fs";
+import path from "node:path";
+
+const dir = path.resolve("public/data");
+const tamanho = (f: string) => {
+  try { const b = fs.statSync(path.join(dir, f)).size; return b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} kB`; }
+  catch { return "—"; }
+};
+const existe = (f: string) => fs.existsSync(path.join(dir, f));
+---
+<Base title="Dados abertos — Nosso Dinheiro"
+      description="Todos os dados dos painéis em JSON, com fonte primária e licença CC BY 4.0. Baixe, reutilize e cite."
+      accent="var(--s5)">
+  <h1>Dados abertos</h1>
+  <p class="lede">
+    Tudo que aparece nos painéis está aqui em JSON, gerado automaticamente a partir das fontes oficiais.
+    Pode baixar, cruzar e republicar — com crédito a <strong>Nosso Dinheiro (nossodinheiro.org)</strong>.
+  </p>
+  <p class="meta">licença CC BY 4.0 · código MIT no GitHub · os dados brutos são públicos por força da Lei de Acesso à Informação</p>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Como citar:</b> "Nosso Dinheiro (nossodinheiro.org), a partir de [fonte primária], acesso em [data]".
+    Os arquivos mudam a cada atualização; a chave <code>gerado_em</code> (quando existe) diz a data da carga.
+    Metodologia de cada painel em <a href="/metodologia/">/metodologia/</a>.</div>
+  </div>
+
+  {DATASETS.map((d) => (
+    <section class="card" style="margin-top:16px">
+      <h2 style="margin-top:0"><a href={d.slug}>{d.nome}</a></h2>
+      <p>{d.descricao}</p>
+      <table>
+        <thead><tr><th>Arquivo</th><th class="num">Tamanho</th></tr></thead>
+        <tbody>{d.arquivos.map((a) => (
+          <tr><td>{existe(a) ? <a href={`/data/${a}`}>{a}</a> : <span style="color:var(--ink-2)">{a} (pendente)</span>}</td><td class="num">{tamanho(a)}</td></tr>
+        ))}</tbody>
+      </table>
+      <p class="src">
+        Fonte{d.fontes.length > 1 ? "s" : ""}: {d.fontes.map((f, i) => <>{i > 0 ? " · " : ""}<a href={f.url} rel="noopener">{f.nome}</a></>)}
+        {d.periodo ? ` · período ${d.periodo}` : ""} · atualização {d.atualizacao}
+      </p>
+    </section>
+  ))}
+</Base>

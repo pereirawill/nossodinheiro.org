@@ -1,13 +1,35 @@
 ---
+import { porSlug } from "../lib/datasets";
 const { title, description = "O dinheiro público do Brasil, explicado com dados oficiais.", accent = "var(--s1)" } = Astro.props;
+// Dataset (schema.org) é resolvido pela rota: cada painel listado em lib/datasets.ts ganha o JSON-LD.
+// Subpáginas (/deputados/uf/rs/, /municipios/sp/campinas/) herdam o do painel-pai.
+// dataset: { nome, descricao, arquivos: ["custo_deputado_2026.json", …], fontes: [{nome,url}], periodo?: "2026" }
+// Gera schema.org/Dataset (Google Dataset Search). A home gera WebSite.
 const nav = [
   ["/", "Geral"], ["/deputados/", "Deputados"], ["/senadores/", "Senadores"], ["/presidencia/", "Presidência"], ["/judiciario/", "Judiciário"], ["/emendas/", "Emendas"], ["/poderes/", "Poderes"], ["/estados/", "Estados"], ["/municipios/", "Municípios"], ["/impostos/", "Impostos"], ["/inflacao/", "Inflação"], ["/trabalho/", "Trabalho"], ["/inss/", "INSS"], ["/aposentadoria/", "Aposentadoria"], ["/renda/", "Renda"], ["/educacao/", "Educação"], ["/seguranca/", "Segurança"], ["/saude/", "Saúde"], ["/inadimplencia/", "Inadimplência"], ["/corrupcao/", "Corrupção"], ["/rankings/", "Rankings"], ["/historico/", "Histórico"],
-  ["/metodologia/", "Metodologia"], ["/sobre/", "Sobre"],
+  ["/dados/", "Dados"], ["/metodologia/", "Metodologia"], ["/sobre/", "Sobre"],
 ];
 const path = Astro.url.pathname;
+const painelPai = "/" + (path.split("/")[1] ?? "") + "/";
+const dataset = Astro.props.dataset ?? porSlug(path) ?? (path !== painelPai ? porSlug(painelPai) : null) ?? null;
 const site = "https://nossodinheiro.org";
 const canonical = site + path;
 const ogImage = site + "/og.png";
+const org = { "@type": "Organization", name: "Nosso Dinheiro", url: site, logo: site + "/og.png" };
+const jsonld: any[] = [];
+if (path === "/") {
+  jsonld.push({ "@context": "https://schema.org", "@type": "WebSite", name: "Nosso Dinheiro", url: site,
+    description, inLanguage: "pt-BR", publisher: org, license: "https://creativecommons.org/licenses/by/4.0/" });
+}
+if (dataset) {
+  jsonld.push({ "@context": "https://schema.org", "@type": "Dataset", name: dataset.nome, description: dataset.descricao,
+    url: canonical, inLanguage: "pt-BR", creator: org, publisher: org, isAccessibleForFree: true,
+    license: "https://creativecommons.org/licenses/by/4.0/", temporalCoverage: dataset.periodo ?? undefined,
+    spatialCoverage: { "@type": "Place", name: "Brasil" },
+    isBasedOn: (dataset.fontes ?? []).map((f: any) => ({ "@type": "CreativeWork", name: f.nome, url: f.url })),
+    distribution: (dataset.arquivos ?? []).map((a: string) => ({ "@type": "DataDownload", encodingFormat: "application/json",
+      contentUrl: `${site}/data/${a}` })) });
+}
 ---
 <!doctype html>
 <html lang="pt-BR">
@@ -116,6 +138,7 @@ const ogImage = site + "/og.png";
       footer { border-top: 1px solid var(--line); background: var(--card); padding: 18px 16px; font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
       footer div { max-width: 1040px; margin: 0 auto; }
     </style>
+    {jsonld.map((o) => <script type="application/ld+json" set:html={JSON.stringify(o)} />)}
   </head>
   <body>
     <header>

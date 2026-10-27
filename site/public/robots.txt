@@ -1,0 +1,5 @@
+# nossodinheiro.org — dados públicos, metodologia aberta. Rastreio bem-vindo.
+User-agent: *
+Allow: /
+
+Sitemap: https://nossodinheiro.org/sitemap-index.xml
