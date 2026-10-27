@@ -36,6 +36,16 @@ const series = [
   { k: "conta_propria", nome: "Conta própria", cor: "var(--s4)" }, { k: "total", nome: "Média geral", cor: "var(--neutro)" },
 ];
 const maxS = Math.max(...series.flatMap((s) => Object.values(P[s.k].serie as Record<string, number>)));
+const censo = (d as any).censo_sm;
+const ROT_SM: Record<string, string> = {
+  ate_1_4: "até 1/4 do mínimo", de_1_4_a_1_2: "de 1/4 a 1/2", de_1_2_a_1: "de 1/2 a 1 mínimo",
+  de_1_a_2: "de 1 a 2", de_2_a_3: "de 2 a 3", de_3_a_5: "de 3 a 5", de_5_a_10: "de 5 a 10",
+  de_10_a_15: "de 10 a 15", de_15_a_20: "de 15 a 20", mais_de_20: "mais de 20 mínimos", sem_rendimento: "sem rendimento",
+};
+const classesSM = censo ? censo.ocupados.classes.map((c: any) => c.chave) : [];
+const maxSM = censo ? Math.max(...censo.ocupados.classes.map((c: any) => c.pct ?? 0),
+                               ...censo.moradores.classes.map((c: any) => c.pct ?? 0)) : 1;
+const ufSM = censo ? [...censo.por_uf].sort((a: any, b: any) => b.moradores_pct_ate_1_sm - a.moradores_pct_ate_1_sm) : [];
 const SW = 920, SH = 220, padL = 60, padB = 24;
 const sx = (i: number) => padL + (i * (SW - padL - 10)) / (anos.length - 1);
 const sy = (val: number) => 8 + (SH - padB - 8) * (1 - val / maxS);
@@ -198,6 +208,56 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
     <div class="legend">{serieD.map((s) => <span><i style={`background:${s.cor}`}></i>{s.nome}: {pct1(s.vals[anosD[0]])} → {pct1(s.vals[anosD[anosD.length - 1]])}</span>)}</div>
     <p class="src">Fonte: IBGE, PNAD Contínua, tabelas 7527 e 7530. Gini do Brasil: {dist.gini.serie[anosD[0]]?.toFixed(3).replace(".", ",")} em {anosD[0]} → {dist.gini.brasil?.toFixed(3).replace(".", ",")} em {d.ano_distribuicao}.</p>
   </div>
+
+  {censo && (<>
+  <h2>Quantos vivem com até um salário mínimo</h2>
+  <div class="card">
+    <div class="hero" style="margin:0 0 14px">
+      <div class="stat"><b>{pct1(censo.moradores.pct_ate_1_sm * 100)}</b><span>dos brasileiros moravam em casas com renda de <b class="inline">até um salário mínimo por pessoa</b> em {censo.ano} — {(censo.moradores.ate_1_sm / 1e6).toFixed(1).replace(".", ",")} milhões de pessoas</span></div>
+      <div class="stat"><b>{pct1(censo.ocupados.pct_ate_1_sm * 100)}</b><span>de quem trabalhava ganhava até um salário mínimo no total dos trabalhos — {(censo.ocupados.ate_1_sm / 1e6).toFixed(1).replace(".", ",")} milhões de trabalhadores</span></div>
+    </div>
+    <svg viewBox={`0 0 920 ${classesSM.length * 30 + 34}`} width="100%" role="img" aria-label="Distribuição por classes de salário mínimo, ocupados e moradores">
+      <text x="196" y="12" text-anchor="end" font-size="11" fill="var(--ink-2)">classe</text>
+      <text x="206" y="12" font-size="11" fill="var(--ink-2)">barra de cima: trabalhadores, pelo rendimento do trabalho · de baixo: moradores, pela renda da casa por pessoa</text>
+      {classesSM.map((ch: string, i: number) => {
+        const o = censo.ocupados.classes.find((c: any) => c.chave === ch);
+        const m = censo.moradores.classes.find((c: any) => c.chave === ch);
+        return (<g transform={`translate(0 ${i * 30 + 24})`}>
+          <text x="196" y="16" text-anchor="end" font-size="12" fill="var(--ink)">{ROT_SM[ch] ?? ch}</text>
+          <rect x="206" y="2" width={Math.max(1, ((o?.pct ?? 0) / maxSM) * 560)} height="10" fill="var(--s1)" rx="1">
+            <title>{(o?.pessoas ?? 0).toLocaleString("pt-BR")} trabalhadores ({pct1((o?.pct ?? 0) * 100)})</title></rect>
+          <rect x="206" y="14" width={Math.max(1, ((m?.pct ?? 0) / maxSM) * 560)} height="10" fill="var(--s3)" rx="1">
+            <title>{(m?.pessoas ?? 0).toLocaleString("pt-BR")} moradores ({pct1((m?.pct ?? 0) * 100)})</title></rect>
+          <text x="776" y="16" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">
+            {pct1((o?.pct ?? 0) * 100)} / {pct1((m?.pct ?? 0) * 100)}</text>
+        </g>);
+      })}
+    </svg>
+    <p class="src">
+      São duas perguntas diferentes, e as duas aparecem aqui. A primeira barra conta <b>trabalhadores</b> pelo que recebem de
+      todos os trabalhos; a segunda conta <b>todas as pessoas</b>, inclusive crianças e aposentados, pela renda da casa dividida
+      pelo número de moradores — por isso a segunda dá um número bem maior: um salário mínimo que sustenta quatro pessoas vira
+      um quarto de mínimo por pessoa. Fonte: IBGE, Censo Demográfico de {censo.ano}, tabelas 10292 e 10296. O salário mínimo de
+      {" "}{censo.ano} era de {brl0(censo.salario_minimo)}. <b>O Censo é de {censo.ano}</b>: é a fonte mais recente que publica a
+      distribuição em classes de salário mínimo, porque a PNAD Contínua publica rendimento em reais, não em mínimos.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 6px">Por estado</h3>
+    <table>
+      <thead><tr><th>Estado</th><th class="num">Moradores com até 1 mínimo por pessoa</th><th class="num">Trabalhadores com até 1 mínimo</th><th class="barra-cab"></th></tr></thead>
+      <tbody>
+        {ufSM.map((u: any) => (<tr>
+          <td>{u.nome}</td>
+          <td class="num"><b>{pct1(u.moradores_pct_ate_1_sm * 100)}</b></td>
+          <td class="num">{pct1(u.ocupados_pct_ate_1_sm * 100)}</td>
+          <td class="barra-cel"><span class="barra" style={`width:${(u.moradores_pct_ate_1_sm / ufSM[0].moradores_pct_ate_1_sm) * 100}%;background:var(--s3)`}></span></td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">Ordenado pela parcela de moradores com até um salário mínimo por pessoa. Clique no cabeçalho para ordenar por outra coluna.</p>
+  </div>
+  </>)}
 
   <h2>O que os números dizem</h2>
   <div class="card">

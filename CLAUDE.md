@@ -127,6 +127,10 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - **Renda** `etl/renda/extract.py` → `renda.json`, `/renda/`: SIDRA 4659 (rendimento por posição, Brasil série + UF), 7527/7530
   (massa por percentil), 7533, 7438 (limites P90/P99), 7535 (ocupados por percentil), 7435 (Gini). Público 5.301 × privado c/
   carteira 3.176 (2025); 1% com 11,0% da renda.
+  27/10: **"quantos vivem com até um salário mínimo"** entrou no `renda.json` (`censo_sm`) e na página. Vem do **Censo 2022**
+  (SIDRA 10292 ocupados e 10296 moradores) porque a PNAD publica renda em reais, não em classes de salário mínimo; SM de 2022
+  (R$ 1.212) vem do SGS 1619. Brasil: 34,3% dos ocupados e **58,2% dos moradores** (117,5 mi) com até 1 SM por pessoa; MA 80,4%.
+  As duas medidas respondem perguntas diferentes e a página explica (um mínimo para quatro pessoas = 1/4 por morador).
 - **Educação** `etl/educacao/extract.py` → `educacao.json`, `/educacao/`: INEP zips `divulgacao_{brasil,regioes_ufs}_ideb_<ano>` e
   `divulgacao_<etapa>_municipios_<ano>` (openpyxl; md5 do zip conferido; TLS do INEP falha → retry sem verify + md5; abreviações
   "R. G. do Sul"). Município = rede pública. 2023 é a última edição (2025 sai em 2026). **INEP bloqueia runners do GitHub**

@@ -32,3 +32,22 @@ Comparar a média do setor público com a do privado mistura ocupações, escola
 1. Receita Federal, "Grandes Números do IRPF": renda declarada do topo (0,1%); planilhas de formato variável, não automatizadas.
 2. Mediana por posição na ocupação (microdados da PNAD).
 3. Painel Estatístico de Pessoal (servidores federais): remuneração média por carreira.
+
+## Quantos vivem com até um salário mínimo (Censo 2022)
+
+A PNAD Contínua publica rendimento **em reais** (médias, percentis, limites) e **não** em classes de salário mínimo. Quem
+publica assim é o **Censo Demográfico de 2022**, e é de lá que sai esta seção:
+
+| Tabela | Universo | O que mede |
+|---|---|---|
+| 10292 | pessoas de 14 anos ou mais **ocupadas** | rendimento de **todos os trabalhos**, em classes de salário mínimo |
+| 10296 | **todos os moradores** de domicílios particulares permanentes | rendimento **domiciliar per capita**, nas mesmas classes |
+
+- 2022: **34,3%** dos ocupados (30,5 milhões) ganhavam até um salário mínimo de trabalho; **58,2%** dos moradores
+  (117,5 milhões) viviam em casas com até um salário mínimo por pessoa. Por estado, de 80,4% no Maranhão a menos da metade
+  no Sul e Sudeste (tabela na página).
+- **As duas medidas não são a mesma pergunta** e a página diz isso: a primeira conta trabalhadores pelo que recebem; a
+  segunda conta todas as pessoas, inclusive crianças e aposentados, dividindo a renda da casa pelo número de moradores.
+  Um salário mínimo que sustenta quatro pessoas vira um quarto de mínimo por pessoa.
+- O salário mínimo de 2022 (R$ 1.212) vem do **Banco Central, SGS 1619** — não é constante escrita no código.
+- **O dado é de 2022** e só muda no próximo Censo. Está rotulado na página; o resto do painel é PNAD Contínua do último ano.

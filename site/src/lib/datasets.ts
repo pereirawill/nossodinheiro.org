@@ -109,7 +109,8 @@ export const DATASETS: Dataset[] = [
   {
     slug: "/renda/", nome: "Renda — distribuição e desigualdade",
     descricao: "Rendimento por posição na ocupação, massa por percentil, limites P90/P99 e Gini (PNAD Contínua).",
-    arquivos: ["renda.json"], fontes: [{ nome: "IBGE — SIDRA (PNAD Contínua)", url: "https://sidra.ibge.gov.br/" }], atualizacao: "mensal",
+    arquivos: ["renda.json"], fontes: [{ nome: "IBGE — SIDRA (PNAD Contínua)", url: "https://sidra.ibge.gov.br/" },
+             { nome: "IBGE — Censo Demográfico 2022 (tabelas 10292 e 10296)", url: "https://sidra.ibge.gov.br/tabela/10296" }], atualizacao: "mensal",
   },
   {
     slug: "/educacao/", nome: "Educação — IDEB", descricao: "IDEB por Brasil, UF e município (rede pública), última edição 2023.",

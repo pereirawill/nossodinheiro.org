@@ -159,6 +159,9 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Fonte:** IBGE, PNAD Contínua anual (SIDRA 4659, 7527, 7530, 7533, 7438, 7535, 7435), valores a preços médios do último ano.
 - **Atenção:** média não é salário típico; comparar setores mistura profissões e escolaridade. Pesquisa por amostra, renda
   declarada. "Setor público" inclui professores e agentes municipais, não só carreiras federais.
+- **Até um salário mínimo:** a parcela de trabalhadores e de moradores que vive com até um mínimo vem do **Censo de 2022**
+  (tabelas 10292 e 10296), porque a PNAD Contínua publica rendimento em reais e não em classes de salário mínimo. São duas
+  medidas diferentes: 34,3% dos ocupados pelo rendimento do trabalho e 58,2% das pessoas pela renda da casa por morador.
 - Completo: `docs/metodologia/painel-renda.md`.
 
 ## Educação — IDEB por estado e município

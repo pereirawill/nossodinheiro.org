@@ -15,6 +15,8 @@ Tabelas (todas 2012 → último ano):
 - 7438  limites superiores das classes (quanto é preciso ter para entrar nos 10%, 5%, 1% mais ricos).
 - 7535  rendimento médio dos ocupados por classes de percentual (o 1% dos trabalhadores que mais ganha).
 - 7435  índice de Gini do rendimento domiciliar per capita, Brasil (série) e UF.
+- Censo 2022, tabelas 10292 e 10296: distribuição por classes de **salário mínimo** (a PNAD Contínua não publica assim),
+  para ocupados (rendimento do trabalho) e para todos os moradores (rendimento domiciliar per capita).
 
 "Setor público" na PNAD inclui servidores estatutários, militares e celetistas de órgãos públicos das três esferas; "setor privado"
 exclui trabalhadores domésticos (classe própria). Rendimento = o que a pessoa diz receber habitualmente, líquido de nada: é bruto.
@@ -73,6 +75,78 @@ def _uf(nome: str) -> str | None:
     return NOME_PARA_UF.get(nome.strip())
 
 
+# --- Censo 2022: quantos ganham até um salário mínimo ------------------------------------------------------------
+# A PNAD Contínua publica rendimento em reais (médias e percentis), não em classes de salário mínimo. Quem publica
+# a distribuição por classes de salário mínimo é o CENSO DEMOGRÁFICO: tabela 10292 (ocupados, pelo rendimento de
+# todos os trabalhos) e 10296 (todos os moradores, pelo rendimento domiciliar per capita). É de 2022 e vale o
+# salário mínimo daquele ano — está rotulado na página.
+CENSO = {"ocupados": (10292, 4090, 11915, "/c2/6794"), "moradores": (10296, 13604, 386, "/c2/6794/c86/0")}
+CLASSES_SM = {  # rótulo do IBGE → (chave, teto em salários mínimos; None = classe aberta ou sem rendimento)
+    "Até 1/4 de salário mínimo": ("ate_1_4", 0.25), "Mais de 1/4 a 1/2 salário mínimo": ("de_1_4_a_1_2", 0.5),
+    "Mais de 1/2 a 1 salário mínimo": ("de_1_2_a_1", 1), "Mais de 1 a 2 salários mínimos": ("de_1_a_2", 2),
+    "Mais de 2 a 3 salários mínimos": ("de_2_a_3", 3), "Mais de 3 a 5 salários mínimos": ("de_3_a_5", 5),
+    "Mais de 5 a 10 salários mínimos": ("de_5_a_10", 10), "Mais de 10 a 15 salários mínimos": ("de_10_a_15", 15),
+    "Mais de 15 a 20 salários mínimos": ("de_15_a_20", 20), "Mais de 20 salários mínimos": ("mais_de_20", None),
+    "Sem rendimento": ("sem_rendimento", None),
+}
+SGS_SALARIO_MINIMO = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1619/dados?formato=json&dataInicial=01/01/{ano}"
+
+
+def _censo_tabela(c: httpx.Client, chave: str, nivel: str) -> dict[str, dict]:
+    """Classes de rendimento em salários mínimos por território (nivel n1 = Brasil, n3 = UFs)."""
+    t, v, cl, filtros = CENSO[chave]
+    linhas = sidra(c, t, nivel, v, p="2022", c_=f"/c{cl}/all{filtros}")
+    saida: dict[str, dict] = {}
+    for l in linhas:
+        rotulo = (l.get("D4N") or "").strip()
+        valor = _num(l.get("V"))
+        if valor is None:
+            continue
+        local = (l.get("D1N") or "Brasil").strip()
+        d = saida.setdefault(local, {"total": 0.0, "classes": {}})
+        if rotulo == "Total":
+            d["total"] = valor
+        elif rotulo in CLASSES_SM:
+            d["classes"][CLASSES_SM[rotulo][0]] = valor
+        else:
+            log.warning("classe de rendimento desconhecida na tabela %d: %r", t, rotulo)
+    return saida
+
+
+def censo_salario_minimo(c: httpx.Client) -> dict:
+    """Quantos ocupados e quantos moradores vivem com até um salário mínimo, pelo Censo 2022 (Brasil e UFs)."""
+    r = c.get(SGS_SALARIO_MINIMO.format(ano=2022)); r.raise_for_status()
+    sm = [float(x["valor"]) for x in r.json() if x["data"].endswith("/2022")][-1]
+
+    ATE_1 = ("ate_1_4", "de_1_4_a_1_2", "de_1_2_a_1")
+    def _bloco(d: dict) -> dict:
+        total = d["total"] or sum(d["classes"].values())
+        ate1 = sum(d["classes"].get(k, 0) for k in ATE_1)
+        return {"total": int(total),
+                "classes": [{"chave": ch, "rotulo": rot, "teto_sm": teto, "pessoas": int(d["classes"].get(ch, 0)),
+                             "pct": round(d["classes"].get(ch, 0) / total, 4) if total else None}
+                            for rot, (ch, teto) in CLASSES_SM.items()],
+                "ate_1_sm": int(ate1), "pct_ate_1_sm": round(ate1 / total, 4) if total else None}
+
+    brasil = {k: _bloco(_censo_tabela(c, k, "n1")["Brasil"]) for k in CENSO}
+    por_uf: dict[str, dict] = {}
+    for chave in CENSO:
+        for nome, d in _censo_tabela(c, chave, "n3").items():
+            uf = _uf(nome)
+            if not uf:
+                continue
+            b = _bloco(d)
+            por_uf.setdefault(uf, {"uf": uf, "nome": nome})[f"{chave}_pct_ate_1_sm"] = b["pct_ate_1_sm"]
+            por_uf[uf][f"{chave}_ate_1_sm"] = b["ate_1_sm"]
+            por_uf[uf][f"{chave}_total"] = b["total"]
+    log.info("Censo 2022 (SM R$ %.2f): %.1f%% dos ocupados e %.1f%% dos moradores com até 1 salário mínimo; %d UFs",
+             sm, 100 * brasil["ocupados"]["pct_ate_1_sm"], 100 * brasil["moradores"]["pct_ate_1_sm"], len(por_uf))
+    return {"ano": 2022, "salario_minimo": sm, **brasil, "por_uf": sorted(por_uf.values(), key=lambda d: d["uf"]),
+            "fonte": "IBGE, Censo Demográfico 2022, tabelas 10292 (ocupados, rendimento de todos os trabalhos) e "
+                     "10296 (moradores, rendimento domiciliar per capita), em classes de salário mínimo",
+            "salario_minimo_fonte": "Banco Central, SGS série 1619 — salário mínimo mensal vigente em 2022"}
+
+
 def run() -> Path:
     PUB.mkdir(parents=True, exist_ok=True)
     with httpx.Client(timeout=180) as c:
@@ -118,9 +192,11 @@ def run() -> Path:
             if uf and k and _num(r["V"]) is not None:
                 massa_uf.setdefault(uf, {})[k] = _num(r["V"])
         renda_media_uf = {_uf(r["D1N"]): _num(r["V"]) for r in sidra(c, 7533, "n3", v7533, "last 1", "/c1019/49243") if _uf(r["D1N"])}
+        censo = censo_salario_minimo(c)      # Censo 2022: classes de salário mínimo (a PNAD não publica assim)
     for uf, d in por_uf.items():
         d["gini"] = gini_uf.get(uf); d["renda_domiciliar_pc"] = renda_media_uf.get(uf)
         d["massa_p90_mais"] = massa_uf.get(uf, {}).get("p90_mais"); d["massa_p99_mais"] = massa_uf.get(uf, {}).get("p99_mais"); d["massa_ate_p10"] = massa_uf.get(uf, {}).get("ate_p10")
+
     dados = {
         "gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "ano": ano, "ano_distribuicao": ano_d,
         "posicoes": [{"chave": k, "nome": nomes.get(k), "valor": s.get(ano), "serie": s} for k, s in pos_serie.items() if s],
@@ -128,6 +204,7 @@ def run() -> Path:
         "distribuicao": {"classes": classes, "massa_serie": {k: massa_serie[k] for k in ("ate_p10", "p90_mais", "p99_mais") if k in massa_serie},
                          "metade_mais_pobre_serie": metade, "limites": limites, "ocupados_por_classe": ocupados,
                          "gini": {"brasil": gini_serie.get(ano_d), "serie": gini_serie}},
+        "censo_sm": censo,
         "fontes": {"ibge": "IBGE, PNAD Contínua anual (SIDRA): tabelas 4659, 7527, 7530, 7533, 7438, 7535, 7435; valores a preços médios do último ano"},
     }
     out = PUB / "renda.json"
