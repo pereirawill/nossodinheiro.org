@@ -171,12 +171,14 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 
 ## Segurança — ocorrências registradas por estado e município
 
-- **O que é:** vítimas de homicídio doloso, feminicídio, latrocínio, lesão seguida de morte e intervenção policial, e ocorrências
-  de roubo/furto de veículo e estupro, por estado (último ano fechado) e por município com 100 mil habitantes ou mais e capitais;
-  taxa por 100 mil (população IBGE do mesmo ano); homicídios desde 2015 por estado.
+- **O que é:** o total de **mortes violentas intencionais** (homicídio doloso + latrocínio + lesão corporal seguida de morte +
+  mortes por intervenção de agente do Estado), como o Ministério da Justiça agrega, por estado (último ano fechado) e por município
+  com 100 mil habitantes ou mais e capitais; taxa por 100 mil (população IBGE do mesmo ano); série desde 2015. Mais feminicídios,
+  roubos e furtos de veículo e estupros.
 - **Fonte:** Ministério da Justiça e Segurança Pública, Sinesp VDE (base anual dos gestores estaduais), só abrangência estadual.
-- **Atenção:** registro policial, não medição independente; cada evento separado (não somamos "mortes violentas"); taxa baixa
-  pode ser pouco registro.
+- **Atenção:** registro policial, não medição independente. **Feminicídio não soma ao total** (é qualificadora do homicídio e já
+  está dentro dele); mortes no trânsito, suicídios e "mortes a esclarecer" ficam fora. No recorte por cidade o total não inclui
+  intervenção policial, informada só por estado. Taxa baixa pode significar pouco registro.
 - Completo: `docs/metodologia/painel-seguranca.md`.
 
 ## Corrupção — o que foi punido

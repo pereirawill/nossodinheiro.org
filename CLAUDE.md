@@ -114,6 +114,10 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   corta download → 4 tentativas; cache em data/raw), abrangência Estadual, eventos separados (sem MVI), vítimas × ocorrências,
   população SIDRA 6579 do mesmo ano; municípios ≥100 mil + capitais; série 2015+ por UF (baixa 11 arquivos, ~5 min).
   Roubo/furto/estupro/intervenção só por UF. dados.mj.gov.br não resolve DNS; gov.br/mj é a fonte.
+- 27/10 (pedido do dono): Segurança lidera pelo **total (MVI)**, não só homicídio doloso — homicídio + latrocínio + lesão seguida de
+  morte + intervenção de agente do Estado = 39.555 em 2025 (18,5/100 mil). **Feminicídio não soma** (qualificadora do homicídio;
+  conferido: 1.578 × 2.084 vítimas mulheres). Fora: trânsito, suicídio, mortes a esclarecer, tentativas. Por município exclui
+  intervenção policial (só vem por UF). `MVI`/`MVI_MUNICIPIO` no extrator; série por UF virou MVI + componentes.
 - **Inadimplência** `etl/credito/extract.py` → `credito.json`, `/inadimplencia/`: BCB `bcb.gov.br/pda/desig/scrdata_<ano>.zip` (ano
   corrente + anterior, ~300 MB; CSV mensal, DuckDB), inadimplência = >90 dias ÷ carteira ativa, por UF/cliente/modalidade/porte;
   série 24 meses. Sem dado municipal (só UF; "sub-região" do BCB é codificada). **Sem faixa etária** (pedido de 27/10): o SCR não

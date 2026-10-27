@@ -47,7 +47,14 @@ EVENTOS = {  # nome no VDE → chave, conta vítimas?
     "Morte no trânsito ou em decorrência dele (exceto homicídio doloso)": ("transito", True), "Suicídio": ("suicidio", True),
     "Tentativa de homicídio": ("tentativa_homicidio", True), "Estupro": ("estupro", False), "Estupro de vulnerável": ("estupro_vulneravel", False),
     "Roubo de veículo": ("roubo_veiculo", False), "Furto de veículo": ("furto_veiculo", False), "Roubo de carga": ("roubo_carga", False),
+    "Mortes a esclarecer (sem indício de crime)": ("mortes_a_esclarecer", True),
 }
+# Mortes Violentas Intencionais (MVI): o agregado que o Ministério da Justiça publica no Mapa da Segurança Pública.
+# Feminicídio NÃO entra: pela Lei 13.104/2015 é qualificadora do homicídio, e os dados confirmam (1.578 feminicídios contra
+# 2.084 vítimas mulheres de homicídio doloso em 2025) — somar contaria a mesma morte duas vezes.
+MVI = ("homicidio_doloso", "latrocinio", "lesao_morte", "intervencao_estado")
+# "intervencao_estado" só vem por UF; no recorte municipal a soma usa os três primeiros.
+MVI_MUNICIPIO = ("homicidio_doloso", "latrocinio", "lesao_morte")
 POP_MIN_MUNICIPIO = 100_000
 
 
@@ -124,13 +131,17 @@ def run(ano: int, serie_desde: int | None) -> Path:
                     pu = por_uf if a == ano else ler(baixar(c, a))[0]
                 except httpx.HTTPError as e:
                     log.warning("VDE %d: %s", a, e); continue
-                serie[str(a)] = {u: {"homicidio_doloso": d["homicidio_doloso"], "feminicidio": d.get("feminicidio", 0), "roubo_veiculo": d.get("roubo_veiculo", 0)} for u, d in pu.items()}
-                log.info("VDE %d: %d homicídios dolosos", a, sum(d["homicidio_doloso"] for d in pu.values()))
+                serie[str(a)] = {u: {**{k: d.get(k, 0) for k in MVI}, "mvi": sum(d.get(k, 0) for k in MVI),
+                                     "feminicidio": d.get("feminicidio", 0), "roubo_veiculo": d.get("roubo_veiculo", 0)} for u, d in pu.items()}
+                log.info("VDE %d: %d mortes violentas intencionais (%d homicídios dolosos)", a,
+                         sum(sum(d.get(k, 0) for k in MVI) for d in pu.values()), sum(d.get("homicidio_doloso", 0) for d in pu.values()))
     capitais = {m["cod_ibge"] for m in json.loads((PUB / "municipios_2025.json").read_text(encoding="utf-8")) if m.get("capital")} if (PUB / "municipios_2025.json").exists() else set()
     estados = []
     for uf in sorted(por_uf):
         d = dict(por_uf[uf]); p = pop_uf.get(uf)
+        mvi = sum(d.get(k, 0) for k in MVI)
         estados.append({"uf": uf, "nome": UF_PARA_NOME[uf], "populacao": p, "meses": meses.get(uf, 0), **d,
+                        "mvi": mvi, "taxa_mvi": taxa(mvi, p),
                         "taxa_homicidio": taxa(d.get("homicidio_doloso", 0), p), "taxa_feminicidio_100k": taxa(d.get("feminicidio", 0), p),
                         "taxa_roubo_veiculo": taxa(d.get("roubo_veiculo", 0), p)})
     municipios, sem_pop = [], 0
@@ -140,24 +151,30 @@ def run(ano: int, serie_desde: int | None) -> Path:
             sem_pop += 1; continue
         if m["populacao"] >= POP_MIN_MUNICIPIO or m["cod_ibge"] in capitais:
             h = d.get("homicidio_doloso", 0)
+            mvi_m = sum(d.get(k, 0) for k in MVI_MUNICIPIO)
             municipios.append({**m, "capital": m["cod_ibge"] in capitais, "homicidio_doloso": h, "feminicidio": d.get("feminicidio", 0),
                                "latrocinio": d.get("latrocinio", 0), "lesao_morte": d.get("lesao_morte", 0), "transito": d.get("transito", 0),
+                               "mortes_a_esclarecer": d.get("mortes_a_esclarecer", 0),
+                               "mvi": mvi_m, "taxa_mvi": taxa(mvi_m, m["populacao"]),
                                "taxa_homicidio": taxa(h, m["populacao"])})
-    municipios.sort(key=lambda m: (m["taxa_homicidio"] is None, m["taxa_homicidio"]))
+    municipios.sort(key=lambda m: (m["taxa_mvi"] is None, m["taxa_mvi"]))
     brasil = defaultdict(int)
     for d in por_uf.values():
         for k, v in d.items():
             brasil[k] += v
     pop_br = sum(pop_uf.values())
     dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "ano": ano, "ano_populacao": ano_pop, "pop_min_municipio": POP_MIN_MUNICIPIO,
-             "brasil": {**brasil, "populacao": pop_br, "taxa_homicidio": taxa(brasil["homicidio_doloso"], pop_br)},
+             "mvi_componentes": list(MVI), "mvi_componentes_municipio": list(MVI_MUNICIPIO),
+             "brasil": {**brasil, "populacao": pop_br, "mvi": sum(brasil.get(k, 0) for k in MVI),
+                        "taxa_mvi": taxa(sum(brasil.get(k, 0) for k in MVI), pop_br),
+                        "taxa_homicidio": taxa(brasil["homicidio_doloso"], pop_br)},
              "estados": estados, "municipios": municipios, "municipios_sem_populacao": sem_pop, "serie_uf": serie,
              "fontes": {"mj": f"Ministério da Justiça e Segurança Pública, Sinesp VDE, base dos gestores estaduais {ano} (abrangência estadual)",
                         "ibge": f"IBGE, estimativas de população {ano_pop} (SIDRA 6579)"}}
     out = PUB / "seguranca.json"
     out.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
-    log.info("%d: %d homicídios dolosos (%.1f/100 mil); %d UFs; %d municípios ≥%d hab ou capitais; %d nomes sem população", ano, brasil["homicidio_doloso"],
-             dados["brasil"]["taxa_homicidio"], len(estados), len(municipios), POP_MIN_MUNICIPIO, sem_pop)
+    log.info("%d: %d mortes violentas intencionais (%.1f/100 mil), das quais %d homicídios dolosos; %d UFs; %d municípios ≥%d hab ou capitais; %d nomes sem população",
+             ano, dados["brasil"]["mvi"], dados["brasil"]["taxa_mvi"], brasil["homicidio_doloso"], len(estados), len(municipios), POP_MIN_MUNICIPIO, sem_pop)
     return out
 
 
