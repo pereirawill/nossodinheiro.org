@@ -39,6 +39,9 @@ UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit
 SIDRA = "https://apisidra.ibge.gov.br/values/t/{t}/n1/all/v/{v}/p/last%201{extra}?formato=json"
 SIDRA_POP = "https://apisidra.ibge.gov.br/values/t/6579/n1/all/v/9324/p/last%201?formato=json"  # população total estimada
 # CEMPRE (Cadastro Central de Empresas), tabela 7528: empresas, pessoal ocupado e salário médio por faixa de pessoal ocupado
+# PNAD Contínua anual, tabela 7426: quantas pessoas recebem cada tipo de rendimento (trabalho, aposentadoria e pensão,
+# programas sociais, aluguel…). Os grupos se sobrepõem: quem trabalha e recebe aposentadoria conta nos dois.
+SIDRA_RENDIMENTO = "https://apisidra.ibge.gov.br/values/t/7426/n1/all/v/10486/p/last%201/c11308/all?formato=json"
 SIDRA_CEMPRE = "https://apisidra.ibge.gov.br/values/t/7528/n1/all/v/{v}/p/last%201/c319/all/c12762/{secao}/c2703/0?formato=json"
 # Seções da CNAE 2.0 na classificação 12762 da tabela 7528, agrupadas como o critério de porte por pessoal ocupado pede:
 # na indústria e na construção os cortes são mais altos que no comércio e nos serviços.
@@ -92,6 +95,31 @@ def _porte(c: httpx.Client, var: int, secoes: dict[int, str], tabela: dict[str, 
             continue
         if porte:
             out[porte] = out.get(porte, 0.0) + valor
+    return out
+
+
+TIPOS_RENDIMENTO = {
+    "Todas as fontes": "qualquer_renda", "Habitualmente recebido em todos os trabalhos": "trabalho",
+    "Aposentadoria e pensão": "aposentadoria_pensao", "Programas sociais do governo": "programas_sociais",
+    "Aluguel e arrendamento": "aluguel", "Pensão alimentícia, doação e mesada de não morador": "pensao_alimenticia",
+    "Outros rendimentos": "outros",
+}
+
+
+def tipos_de_renda(c: httpx.Client) -> dict:
+    """Quantas pessoas recebem cada tipo de renda (PNAD Contínua anual, tabela 7426). Os grupos se sobrepõem."""
+    out: dict = {"itens": []}
+    for r in c.get(SIDRA_RENDIMENTO).json()[1:]:
+        chave = TIPOS_RENDIMENTO.get(r["D4N"].strip())
+        if not chave:
+            continue
+        try:
+            pessoas = float(r["V"]) * 1e3
+        except (TypeError, ValueError):
+            continue
+        out["ano"] = r["D3N"]
+        out["itens"].append({"chave": chave, "nome": r["D4N"].strip(), "pessoas": pessoas})
+    out["fonte"] = "IBGE, PNAD Contínua anual, tabela 7426 do SIDRA (população residente com rendimento, por tipo)"
     return out
 
 
@@ -217,7 +245,7 @@ def run() -> Path:
     PUB.mkdir(parents=True, exist_ok=True)
     with httpx.Client(headers=UA, timeout=180, follow_redirects=True) as c:
         dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "populacao": populacao_total(c),
-                 "pnad": pnad(c), "empresas": mapa_empresas(c), "cempre": cempre(c), "inss": beps(c),
+                 "pnad": pnad(c), "renda_tipos": tipos_de_renda(c), "empresas": mapa_empresas(c), "cempre": cempre(c), "inss": beps(c),
                  "pendentes": ["Bolsa Família (famílias e valor por mês): API do Portal da Transparência por município, ainda não carregada",
                                "Optantes do Simples Nacional (ME/EPP): sem arquivo aberto localizado na Receita; o Mapa de Empresas traz o porte, não a opção"]}
     for k, mn in (("ocupados", 50_000), ("pop_14_mais", 100_000)):

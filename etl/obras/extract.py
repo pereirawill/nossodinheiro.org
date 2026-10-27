@@ -29,6 +29,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+import time
+
 import httpx
 
 from etl.ufs import UF_PARA_NOME
@@ -38,21 +40,27 @@ PUB, RAW = Path("data/public"), Path("data/raw")
 API = "https://api.obrasgov.gestao.gov.br/obrasgov/api/{recurso}"
 UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
 PAGINA = 50
-WORKERS = 10          # o Obrasgov leva ~85 s por requisição; sem paralelismo a coleta levaria horas
+WORKERS = 6           # o Obrasgov leva ~80 s por requisição e devolve 429 se pedirmos rápido demais
 PARADAS = {"Paralisada", "Inacabada"}          # situações que o CIPI usa para obra interrompida
 TOPO = 40
 
 
 def _pagina(c: httpx.Client, recurso: str, n: int) -> list[dict] | None:
-    for tentativa in range(4):
+    """Uma página, com espera crescente. HTTP 429 = estamos pedindo rápido demais; aí a espera é bem maior."""
+    for tentativa in range(5):
         try:
             r = c.get(API.format(recurso=recurso), params={"pagina": n, "tamanhoDaPagina": PAGINA})
             if r.status_code == 200:
                 return r.json().get("content", [])
+            if r.status_code == 429:
+                time.sleep(30 * (tentativa + 1))
+            else:
+                time.sleep(2 * (tentativa + 1))
             log.debug("%s página %d: HTTP %d", recurso, n, r.status_code)
         except httpx.HTTPError as e:
             log.debug("%s página %d: %s", recurso, n, e)
-    log.warning("%s página %d falhou nas 4 tentativas", recurso, n)
+            time.sleep(2 * (tentativa + 1))
+    log.warning("%s página %d falhou nas tentativas", recurso, n)
     return None
 
 
@@ -74,11 +82,13 @@ def baixar(recurso: str, arquivo: Path, paginas_conhecidas: int | None = None) -
         return linhas, 0
     RAW.mkdir(parents=True, exist_ok=True)
     parcial, marca = arquivo.with_suffix(".parcial.gz"), arquivo.with_suffix(".pagina")
+    buracos = arquivo.with_suffix(".falhas")          # páginas que não responderam, para uma segunda passada no fim
     registros: list[dict] = _ler(parcial) if parcial.exists() else []
     pagina = int(marca.read_text()) if marca.exists() else 0
+    falhas_pendentes: set[int] = set(json.loads(buracos.read_text())) if buracos.exists() else set()
     if pagina:
         log.info("%s: retomando da página %d com %d registros já baixados", recurso, pagina, len(registros))
-    falhas, bloco, vazios_seguidos, ultima_com_dado = 0, WORKERS * 2, 0, -1   # bloco curto = progresso salvo com frequência
+    falhas, bloco, vazios_seguidos, ultima_com_dado, bloqueios = 0, WORKERS * 2, 0, -1, 0   # bloco curto = progresso salvo com frequência
     with httpx.Client(headers=UA, timeout=180, follow_redirects=True) as c:
         while True:
             faixa = range(pagina, pagina + bloco)
@@ -87,22 +97,52 @@ def baixar(recurso: str, arquivo: Path, paginas_conhecidas: int | None = None) -
             obtidos = [r for p in paginas if p for r in p]
             erros = sum(1 for p in paginas if p is None)
             falhas += erros
+            falhas_pendentes |= {n for n, p in zip(faixa, paginas) if p is None}
+            falhas_pendentes -= {n for n, p in zip(faixa, paginas) if p is not None}
             registros += obtidos
             with gzip.open(parcial, "at", encoding="utf-8") as f:
                 for r in obtidos:
                     f.write(json.dumps(r, ensure_ascii=False) + "\n")
             pagina += bloco
             marca.write_text(str(pagina))
+            buracos.write_text(json.dumps(sorted(falhas_pendentes)))
             if obtidos:
                 ultima_com_dado = max(n for n, p in zip(faixa, paginas) if p)
             log.info("%s: páginas %d–%d → %d registros (%d erros); total %d", recurso, faixa.start, faixa.stop - 1, len(obtidos), erros, len(registros))
             # Fim de verdade: DOIS blocos seguidos respondendo 200 com lista vazia. Um só não basta — o Obrasgov, sob carga,
             # devolve 200 com content vazio em vez de erro, e pararíamos no meio da base achando que acabou.
             vazios_seguidos = vazios_seguidos + 1 if (not obtidos and erros == 0) else 0
+            # bloco inteiro com erro, várias vezes seguidas: o servidor nos barrou (429) ou caiu — paramos e avisamos
+            bloqueios = bloqueios + 1 if erros == len(paginas) else 0
+            if bloqueios >= 3:
+                log.warning("%s: 3 blocos seguidos sem nenhuma resposta na página %d — servidor barrando; pare e rode de novo mais tarde", recurso, pagina)
+                break
             if vazios_seguidos >= 2 or (paginas_conhecidas and pagina >= paginas_conhecidas):
                 break
+        # segunda passada: tenta de novo as páginas que falharam no caminho
+        if falhas_pendentes and bloqueios < 3:
+            pendentes = sorted(falhas_pendentes)
+            log.info("%s: repescagem de %d páginas que falharam", recurso, len(pendentes))
+            for i in range(0, len(pendentes), WORKERS):
+                lote = pendentes[i:i + WORKERS]
+                with ThreadPoolExecutor(max_workers=WORKERS) as ex:
+                    res = list(ex.map(lambda n: _pagina(c, recurso, n), lote))
+                recuperados = [r for p in res if p for r in p]
+                registros += recuperados
+                falhas_pendentes -= {n for n, p in zip(lote, res) if p is not None}
+                if recuperados:
+                    with gzip.open(parcial, "at", encoding="utf-8") as f:
+                        for r in recuperados:
+                            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+            buracos.write_text(json.dumps(sorted(falhas_pendentes)))
+            log.info("%s: após a repescagem restam %d páginas sem resposta", recurso, len(falhas_pendentes))
+    falhas = len(falhas_pendentes)
+    if bloqueios >= 3:
+        raise SystemExit(f"{recurso}: servidor parou de responder (HTTP 429/500 em bloco). O que já foi baixado está em "
+                         f"{parcial.name}; rode de novo mais tarde que ele continua de onde parou.")
     parcial.replace(arquivo)
     marca.unlink(missing_ok=True)
+    buracos.unlink(missing_ok=True)
     log.info("%s: %d registros, última página com dado: %d, %d páginas sem resposta", recurso, len(registros), ultima_com_dado, falhas)
     return registros, falhas
 

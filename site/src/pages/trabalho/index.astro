@@ -47,9 +47,25 @@ const FATIAS_PREV = [
   { nome: "Trabalham e contribuem para a previdência", v: contrib, cor: "var(--s2)" },
   { nome: "Trabalham e não contribuem (informais)", v: naoContrib, cor: "var(--s4)" },
   { nome: "Procuram trabalho (desocupados)", v: desocupados, cor: "#d9a23b" },
-  { nome: "Fora da força de trabalho: aposentados, estudantes, quem cuida da casa", v: foraForca, cor: "var(--neutro)" },
+  { nome: "Fora da força de trabalho: aposentados, estudantes, quem cuida da casa, quem desistiu", v: foraForca, cor: "var(--neutro)" },
   { nome: "Crianças e adolescentes até 13 anos", v: criancasPrev, cor: "var(--s5)" },
 ];
+const rendaTipos = (d as any).renda_tipos;
+const RENDA_ORDEM = ["trabalho", "aposentadoria_pensao", "programas_sociais", "pensao_alimenticia", "aluguel", "outros"];
+const RENDA_ROTULO: Record<string, string> = {
+  trabalho: "Recebem do trabalho", aposentadoria_pensao: "Recebem aposentadoria ou pensão",
+  programas_sociais: "Recebem programa social (Bolsa Família, BPC…)",
+  pensao_alimenticia: "Recebem pensão alimentícia, doação ou mesada", aluguel: "Recebem aluguel ou arrendamento",
+  outros: "Recebem outros rendimentos",
+};
+const RENDA_COR: Record<string, string> = { trabalho: "var(--s2)", aposentadoria_pensao: "var(--s1)", programas_sociais: "var(--s3)",
+  pensao_alimenticia: "var(--neutro)", aluguel: "var(--s4)", outros: "var(--s5)" };
+const itensRenda = RENDA_ORDEM.map((k) => (rendaTipos?.itens ?? []).find((i: any) => i.chave === k)).filter(Boolean) as { chave: string; pessoas: number }[];
+const qualquerRenda = (rendaTipos?.itens ?? []).find((i: any) => i.chave === "qualquer_renda")?.pessoas ?? 0;
+const maxRenda = Math.max(...itensRenda.map((i) => i.pessoas), 1);
+const aposentados = itensRenda.find((i) => i.chave === "aposentadoria_pensao");
+const auxilio = itensRenda.find((i) => i.chave === "programas_sociais");
+
 const pctPop = (v: number) => `${((100 * v) / popTotal).toFixed(1).replace(".", ",")}%`;
 
 // Pizza 3: os benefícios que o INSS paga, por grupo
@@ -163,10 +179,33 @@ const empresasBarras = [
       {" "}{(10 * contrib / ocupadosPnad).toFixed(1).replace(".", ",")} contribuem. Os {mi(naoContrib)} que trabalham sem contribuir
       não geram direito a aposentadoria nem a auxílio enquanto estiverem assim. Entre os {mi(foraForca)} fora da força de trabalho
       estão os aposentados — <b>que já contribuíram</b> —, estudantes, pessoas que cuidam da casa e quem desistiu de procurar emprego;
-      a PNAD não separa esse grupo por fonte de renda nesta tabela. Fontes: IBGE, PNAD Contínua ({d.pnad.periodo}, tabelas 5947 e 6318)
+      a PNAD não separa esse grupo por motivo, mas o bloco seguinte mostra quantas pessoas recebem aposentadoria e quantas recebem auxílio do governo. Fontes: IBGE, PNAD Contínua ({d.pnad.periodo}, tabelas 5947 e 6318)
       e estimativa de população de {d.populacao.ano}; as crianças saem da diferença entre as duas pesquisas, então são aproximadas.
     </p>
   </div>
+
+  {itensRenda.length > 0 && <>
+    <h2>De onde vem a renda de cada um ({rendaTipos.ano})</h2>
+    <div class="card">
+      <p class="explica">
+        A pizza acima divide o país sem sobreposição. Já aqui os grupos <b>se sobrepõem de propósito</b>: muita gente recebe de mais
+        de uma fonte — trabalha e recebe aposentadoria, ou trabalha e recebe Bolsa Família. É assim que dá para responder quantos
+        são os aposentados e quantos recebem auxílio do governo, sem inventar divisões que a pesquisa não faz.
+      </p>
+      <svg viewBox={`0 0 ${W} ${itensRenda.length * 30 + 10}`} width="100%" role="img" aria-label="Pessoas por tipo de renda recebida">
+        {itensRenda.map((i, k) => (<g transform={`translate(0 ${k * 30 + 5})`}>
+          <text x="330" y="18" text-anchor="end" font-size="12.5" fill="var(--ink)">{RENDA_ROTULO[i.chave]}</text>
+          <rect x="340" y="4" width={Math.max(2, (i.pessoas / maxRenda) * 360)} height="20" fill={RENDA_COR[i.chave]} rx="2" />
+          <text x={346 + (i.pessoas / maxRenda) * 360} y="18" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{mi(i.pessoas)} · {pctPop(i.pessoas)} do país</text>
+        </g>))}
+      </svg>
+      <p class="src">
+        {mi(qualquerRenda)} de brasileiros têm alguma renda própria — os demais dependem da renda de quem mora com eles.
+        <b>{mi(aposentados!.pessoas)} recebem aposentadoria ou pensão</b> e <b>{mi(auxilio!.pessoas)} recebem programas sociais</b>{" "}(Bolsa Família, BPC e outros). Parte dessas pessoas também trabalha, por isso a soma das barras passa do total.
+        Fonte: {rendaTipos.fonte}. É pesquisa domiciliar: conta <b>pessoas</b>, diferente dos {mi(inss.total)} de <b>benefícios</b>{" "}do INSS logo abaixo, em que quem recebe dois aparece duas vezes.
+      </p>
+    </div>
+  </>}
 
   <h2>Os {mi(inss.total)} de benefícios que o INSS paga por mês</h2>
   <div class="card pizza">
