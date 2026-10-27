@@ -21,7 +21,7 @@ Workflows (`.github/workflows/`):
 - `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
-- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao,previdencia}.yml` — mensais (dias 7, 9, 10, 11, 12, 13, 14); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
+- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao,previdencia,obras}.yml` — mensais (dias 7, 9, 10, 11, 12, 13, 14, 15); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 Secrets existentes: os dois da Cloudflare + `PORTAL_TRANSPARENCIA_KEY`. Workflow permissions = read/write.
 
 Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026` (FONTE=bulk padrão),
@@ -32,7 +32,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Impostos, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Obras, Impostos, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -119,6 +119,18 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   série 24 meses. Sem dado municipal (só UF; "sub-região" do BCB é codificada). **Sem faixa etária** (pedido de 27/10): o SCR não
   publica idade; o recorte mais próximo é `cnae_ocupacao` (PF), que inclui "Aposentado/pensionista" — virou tabela na página.
 - `openpyxl` entrou em requirements. Glossário ganhou 14 termos (rendimento_habitual … modalidade_credito).
+
+## Painel Obras (sem chave, mensal dia 15; feito 27/10/2026)
+- `etl/obras/extract.py` → `obras.json`, `/obras/` (menu depois de Municípios). **Host novo**: `api.obrasgov.gestao.gov.br/obrasgov/api/`
+  (`api-publica.*` devolve 404 — era esse o motivo de o painel estar parado desde o início). Dois endpoints: `projeto-investimento`
+  (uma linha por obra) e `execucao-financeira` (empenhos por `idProjetoInvestimento`).
+- **Limites medidos**: página máxima 50 (100+ = HTTP 500); **~85 s por requisição**, ~25% de 500/524 sob carga; 8 requisições em
+  paralelo rendem ~8 páginas/82 s; `totalElements` do endpoint de obras é falso (repete o servido). Coleta **retomável**
+  (`.parcial.gz` + `.pagina`), termina só após **dois blocos vazios e limpos**, e falha se vierem <15 mil obras (cadastro tem ~25 mil).
+  Workflow com `timeout-minutes: 240`.
+- Regras: paradas = situação "Paralisada"/"Inacabada" (declarada pelo órgão); previsto ≠ gasto; `dataSituacao` é a última atualização
+  do status → a página separa "sem atualizar a situação" de "atraso do prazo"; `qdtEmpregosGerados`/`populacaoBeneficiada` são
+  declarados pelo órgão e ficam fora dos destaques.
 
 ## Painéis INSS e Aposentadoria (NO AR, sem chave, mensal dia 14; feitos 27/10/2026)
 - Pedido de 27/10: **duas abas**, com a diferença explicada nas duas (o dono escolheu duas, contra a recomendação de uma só).
@@ -241,9 +253,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 2. Página por deputado `/deputado/{id}` (foto, cota mês a mês, categorias, fornecedores, link da NF) — maior
    ganho de SEO e o link para os comentários do Instagram.
 3. Painel "No que gastaram" (categorias) e fornecedores em rede.
-4. Painel Obras paralisadas (pedido de novo em 27/10/2026, ainda não feito): o host mudou — `api-publica.obrasgov.gestao.gov.br`
-   devolve 404 e o que responde é **`https://api.obrasgov.gestao.gov.br/obrasgov/api/projeto-investimento?pagina=0&tamanhoDaPagina=N`**
-   (CIPI, sem auth, JSON paginado com idUnico, nome, descrição, situação, valores). TCU abr/2025: 11.469 de 22.621 paradas.
+4. Obras: feito em 27/10/2026 (ver seção do painel). Falta reconciliar a contagem com o relatório de obras paralisadas do TCU
+   (abr/2025: 11.469 de 22.621) e buscar valor liquidado/pago por obra, que o CIPI não publica.
 5. `etl/camara/validate.py`: invariantes (513±, liquido = documento − glosa, total ≥ 95% do run anterior),
    reconciliação api × bulk × total oficial, falhar o job antes de commitar dado ruim.
 6. Judiciário fase 2: remuneração de magistrados (CNJ), Justiça em Números; TJs via SICONFI.

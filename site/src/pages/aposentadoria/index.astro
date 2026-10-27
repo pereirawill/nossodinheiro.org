@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
 import prev from "../../../public/data/previdencia.json";
 import funcoes from "../../../public/data/poderes_funcao_2025.json";
 import categorias from "../../../public/data/poderes_categoria_2025.json";
@@ -107,6 +108,10 @@ const W = 920;
 
   <h2>Previdência nos estados: quanto cada um paga por habitante ({ANO})</h2>
   <div class="card">
+    <MapaBrasil valores={Object.fromEntries(estadosOrd.map((e) => [e.uf, e.porHab]))} formato={(v) => brl0(v)}
+      titulo={`Previdência paga por habitante em cada estado em ${ANO}`} legenda={`pagos por habitante na função Previdência em ${ANO}`} />
+  </div>
+  <div class="card" style="margin-top:14px">
     <table>
       <thead><tr><th>Estado</th><th class="num">Previdência paga</th><th class="num">Por habitante</th><th class="num">% da despesa do estado</th></tr></thead>
       <tbody>{estadosOrd.map((e) => (<tr><td>{e.nome}</td><td class="num">{bi(e.pago)}</td><td class="num"><b>{brl0(e.porHab)}</b></td><td class="num">{e.pctTotal != null ? `${(e.pctTotal * 100).toFixed(1).replace(".", ",")}%` : "—"}</td></tr>))}</tbody>

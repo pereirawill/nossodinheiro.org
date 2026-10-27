@@ -60,6 +60,15 @@ const barraPop = [
   { nome: "Fora da força de trabalho (estudantes, aposentados, donas de casa, desalentados…)", v: p.fora_forca, cor: "var(--neutro)" },
 ];
 const W = 920;
+// CEMPRE: quantas empresas há em cada faixa de tamanho e quanta gente trabalha em cada uma
+const cempre = (d as any).cempre;
+const faixas = (cempre?.faixas ?? []) as { faixa: string; empresas: number; pessoas: number; assalariados: number; salario_medio: number | null }[];
+const cempreTotal = cempre?.total ?? { empresas: 0, pessoas: 0 };
+const maxEmpresas = Math.max(...faixas.map((f) => f.empresas), 1);
+const maxPessoas = Math.max(...faixas.map((f) => f.pessoas), 1);
+const micro = faixas.find((f) => f.faixa === "0 a 4");
+const gigantes = faixas.find((f) => f.faixa === "500 ou mais");
+
 const empresasBarras = [
   { nome: "MEI (microempreendedor individual)", v: e.mei, cor: "var(--s4)" },
   { nome: "Micro e pequenas empresas (não MEI)", v: e.micro_e_pequenas_nao_mei, cor: "var(--s2)" },
@@ -178,6 +187,47 @@ const empresasBarras = [
     <p class="src">Fonte: <a href={e.url} rel="noopener">Mapa de Empresas (governo federal, dados abertos)</a>, empresas ativas por natureza jurídica e porte. Conta CNPJs, não pessoas: uma pessoa pode ter mais de uma empresa.</p>
   </div>
 
+  {faixas.length > 0 && <>
+    <h2>Quantas empresas têm quantos funcionários ({cempre.ano})</h2>
+    <div class="card">
+      <div class="hero" style="margin-top:0">
+        <div class="stat big"><b>{pct(micro!.empresas, cempreTotal.empresas)}</b><span>das {mi(cempreTotal.empresas)} de empresas e organizações do país têm <b class="inline">até 4 pessoas</b> trabalhando, contando os donos</span></div>
+        <div class="stat"><b>{num(gigantes!.empresas)}</b><span>empresas têm 500 pessoas ou mais — {pct(gigantes!.empresas, cempreTotal.empresas)} do total</span></div>
+        <div class="stat"><b>{pct(gigantes!.pessoas, cempreTotal.pessoas)}</b><span>de todo o pessoal ocupado nessas empresas está justamente nessas maiores: {mi(gigantes!.pessoas)} de pessoas</span></div>
+      </div>
+      <table>
+        <thead><tr><th><Termo t="faixa_pessoal">Pessoas na empresa</Termo></th><th class="num">Empresas</th><th class="num">% das empresas</th><th class="num">Pessoal ocupado</th><th class="num">% do pessoal</th><th class="num">Salário médio</th></tr></thead>
+        <tbody>{faixas.map((f) => (<tr>
+          <td>{f.faixa === "500 ou mais" ? "500 ou mais" : `${f.faixa} pessoas`}</td>
+          <td class="num">{num(f.empresas)}</td><td class="num">{pct(f.empresas, cempreTotal.empresas)}</td>
+          <td class="num">{num(f.pessoas)}</td><td class="num">{pct(f.pessoas, cempreTotal.pessoas)}</td>
+          <td class="num">{f.salario_medio ? f.salario_medio.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : "—"}</td></tr>))}
+          <tr class="grupo"><td><b>Total</b></td><td class="num"><b>{num(cempreTotal.empresas)}</b></td><td class="num">100%</td><td class="num"><b>{num(cempreTotal.pessoas)}</b></td><td class="num">100%</td>
+            <td class="num"><b>{cempreTotal.salario_medio ? cempreTotal.salario_medio.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }) : "—"}</b></td></tr>
+        </tbody>
+      </table>
+      <svg viewBox={`0 0 ${W} ${faixas.length * 26 + 34}`} width="100%" role="img" aria-label="Empresas e pessoal ocupado por faixa de tamanho" style="margin-top:14px">
+        <text x="300" y="14" text-anchor="end" font-size="11.5" fill="var(--ink-2)">quantas empresas</text>
+        <text x="420" y="14" text-anchor="middle" font-size="11.5" fill="var(--ink-2)">pessoas na empresa</text>
+        <text x="540" y="14" font-size="11.5" fill="var(--ink-2)">quanta gente trabalha nelas</text>
+        {faixas.map((f, i) => (<g transform={`translate(0 ${i * 26 + 24})`}>
+          <rect x={300 - (f.empresas / maxEmpresas) * 190} y="2" width={Math.max(2, (f.empresas / maxEmpresas) * 190)} height="16" fill="var(--s2)" rx="2" />
+          <text x={294 - (f.empresas / maxEmpresas) * 190} y="14" text-anchor="end" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{num(f.empresas)}</text>
+          <text x="420" y="14" text-anchor="middle" font-size="11.5" fill="var(--ink)">{f.faixa}</text>
+          <rect x="540" y="2" width={Math.max(2, (f.pessoas / maxPessoas) * 260)} height="16" fill="var(--s1)" rx="2" />
+          <text x={546 + (f.pessoas / maxPessoas) * 260} y="14" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{miMil(f.pessoas / 1e3)} · {pct(f.pessoas, cempreTotal.pessoas)}</text>
+        </g>))}
+      </svg>
+      <p class="src">
+        Fonte: {cempre.fonte}, {cempre.ano}. "Pessoal ocupado" inclui sócios e proprietários que trabalham na empresa, por isso a faixa
+        de 0 a 4 ocupa {mi(micro!.pessoas)} de pessoas mesmo tendo empresas sem nenhum assalariado. O cadastro cobre empresas formais e
+        outras organizações (inclusive administração pública e entidades sem fins lucrativos), e vem com cerca de dois anos de defasagem —
+        por isso o total aqui ({mi(cempreTotal.empresas)}) é menor que o do Mapa de Empresas acima, que conta CNPJs ativos hoje, incluindo
+        MEIs sem atividade declarada.
+      </p>
+    </div>
+  </>}
+
   <h2>Benefícios pagos pelo INSS: {mi(inss.total)} por mês ({inss.mes.toLowerCase()}/{inss.ano})</h2>
   <div class="card">
     <table>
@@ -197,5 +247,7 @@ const empresasBarras = [
   .pizza { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
   @media (max-width: 720px) { .pizza { grid-template-columns: 1fr; } }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  tr.grupo td { font-weight: 700; background: color-mix(in srgb, var(--accent) 5%, transparent); }
+  .stat b.inline { display: inline; font-family: inherit; font-size: inherit; color: var(--ink); }
   td.desc { color: var(--ink-2); font-size: 12.5px; white-space: normal; max-width: 40ch; }
 </style>

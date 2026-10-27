@@ -29,11 +29,14 @@ import csv
 import io
 import json
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+
+CTB = "https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/estudos/carga-tributaria/tabelas-carga-tributaria-no-brasil-{ano}/@@download/file"
 
 log = logging.getLogger("etl.impostos")
 PUB = Path("data/public")
@@ -158,11 +161,68 @@ def agregar(linhas: list[dict]) -> dict:
             "anual": anual_out, "mensal": mensal_out, "por_uf": por_uf_out, "tributos_ultimo_ano": tributos_out}
 
 
+def _texto(v) -> str:
+    return re.sub(r"\s+", " ", str(v or "")).strip()
+
+
+def carga_tributaria(c: httpx.Client) -> dict | None:
+    """
+    Carga tributária bruta (tudo que União, estados e municípios arrecadam em tributos, sobre o PIB), da planilha oficial
+    "Carga Tributária no Brasil" da Receita Federal. Tab_01 traz a série (PIB, arrecadação e carga); Tab_02, a divisão por
+    ente federativo no último ano. Os percentuais vêm como fração (0,3220 = 32,20% do PIB).
+    """
+    import openpyxl
+
+    conteudo = None
+    for ano in range(datetime.now().year, datetime.now().year - 4, -1):
+        r = c.get(CTB.format(ano=ano))
+        if r.status_code == 200 and r.content[:2] == b"PK":
+            conteudo, edicao = r.content, ano
+            break
+    if not conteudo:
+        log.warning("planilha de carga tributária não encontrada na Receita Federal")
+        return None
+    wb = openpyxl.load_workbook(io.BytesIO(conteudo), data_only=True, read_only=True)
+
+    serie: dict[str, dict] = {}
+    linhas = [list(r) for r in wb["Tab_01"].iter_rows(values_only=True)]
+    cab = next((l for l in linhas if any(_texto(v).isdigit() and len(_texto(v)) == 4 for v in l)), None)
+    anos = {i: _texto(v) for i, v in enumerate(cab or []) if _texto(v).isdigit() and len(_texto(v)) == 4}
+    rotulos = {"Produto Interno Bruto": "pib", "Arrecadação Tributária Bruta": "arrecadacao", "Carga Tributária Bruta": "carga"}
+    for l in linhas:
+        chave = next((v for k, v in rotulos.items() if _texto(l[1] if len(l) > 1 else "").startswith(k)), None)
+        if not chave:
+            continue
+        for i, ano in anos.items():
+            if i < len(l) and isinstance(l[i], (int, float)):
+                serie.setdefault(ano, {})[chave] = round(float(l[i]), 6)
+
+    entes, ano_entes = [], None
+    linhas2 = [list(r) for r in wb["Tab_02"].iter_rows(values_only=True)]
+    cab2 = next((l for l in linhas2 if any(_texto(v).isdigit() and len(_texto(v)) == 4 for v in l)), [])
+    cols_ano = sorted((i, _texto(v)) for i, v in enumerate(cab2) if _texto(v).isdigit() and len(_texto(v)) == 4)
+    if cols_ano:
+        col, ano_entes = cols_ano[-1]                       # bloco do ano mais recente: arrecadação, % do PIB, % da arrecadação
+        for l in linhas2:
+            nome = _texto(l[1] if len(l) > 1 else "")
+            if nome in ("União", "Estados", "Municípios", "Total") and len(l) > col + 1 and isinstance(l[col], (int, float)):
+                entes.append({"ente": nome, "arrecadacao_milhoes": round(float(l[col]), 2),
+                              "pct_pib": round(float(l[col + 1]), 6) if isinstance(l[col + 1], (int, float)) else None})
+    ultimo = ano_entes or (max(serie) if serie else None)
+    log.info("carga tributária (CTB %d): %s = %.2f%% do PIB; %d anos na série; %d entes", edicao, ultimo,
+             100 * (next((e["pct_pib"] for e in entes if e["ente"] == "Total"), 0) or serie.get(ultimo, {}).get("carga", 0)), len(serie), len(entes))
+    return {"edicao": edicao, "ano": ultimo, "serie": serie, "por_ente": entes,
+            "fonte": f"Receita Federal, Carga Tributária no Brasil {edicao} (tabelas 01 e 02)",
+            "url": CTB.format(ano=edicao)}
+
+
 def run() -> Path:
     PUB.mkdir(parents=True, exist_ok=True)
-    r = httpx.get(URL, headers=HEADERS, timeout=300, follow_redirects=True); r.raise_for_status()
-    linhas = carregar(r.content.decode("latin-1"))
-    dados = agregar(linhas)
+    with httpx.Client(headers=HEADERS, timeout=300, follow_redirects=True) as c:
+        r = c.get(URL); r.raise_for_status()
+        linhas = carregar(r.content.decode("latin-1"))
+        dados = agregar(linhas)
+        dados["carga"] = carga_tributaria(c)
     u = dados["ultimo_mes"]; a = dados["anual"][-1]
     if a["total"] < 1e11:
         raise SystemExit(f"total de {u['ano']} = {a['total']:.0f}: unidade/arquivo mudou?")

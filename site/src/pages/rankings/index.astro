@@ -1,6 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import Glossario from "../../components/Glossario.astro";
+import SerieRanking from "../../components/SerieRanking.astro";
 import dados from "../../../public/data/rankings.json";
 
 type Pais = { iso3: string; pais: string; valor: number; ano: number; posicao: number };
@@ -40,7 +41,8 @@ const pct = (i: Indice) => 100 - Math.round(((i.brasil.posicao - 1) / (i.total -
   <p class="lede">
     Posição do Brasil em índices internacionais: economia, desenvolvimento, educação, desigualdade, segurança e corrupção.
     Cada cartão mostra os 10 primeiros e os vizinhos do Brasil; a tabela completa abre embaixo. Em todos, 1º é o melhor.
-    A trajetória do Brasil nos últimos 40 anos, índice a índice, está em <a href="/rankings/historico/">Histórico</a>.
+    Cada cartão traz também a trajetória do Brasil ao longo dos anos; para ver todas lado a lado, há a página de
+    <a href="/rankings/historico/">Histórico</a>.
   </p>
   <p class="meta">atualizado em {fmt.format(quando)} · fontes em cada cartão · organismos oficiais (Banco Mundial, PNUD, UNODC) e, quando indicado, ONG (Transparência Internacional)</p>
 
@@ -60,6 +62,7 @@ const pct = (i: Indice) => 100 - Math.round(((i.brasil.posicao - 1) / (i.total -
           <b>{ord(b.posicao)}</b>
           <span>de {b.total} países · {fmtValor(i, b.valor)} em {b.ano}<br />Brasil à frente de {pct(i)}% dos países listados</span>
         </div>
+        <SerieRanking serie={i.serie} cor={cor(i)} fmt={(v: number) => fmtValor(i, v)} rotulo={i.titulo} />
         <ol class="lista">
           {r.top.map((p) => (
             <li class={p.iso3 === "BRA" ? "bra" : ""}><span class="pos">{p.posicao}</span><span class="nome">{p.pais}</span><span class="val">{fmtValor(i, p.valor)}</span></li>

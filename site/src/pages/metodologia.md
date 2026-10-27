@@ -190,6 +190,18 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   fiscalização. O estado é o do órgão que puniu, não o da empresa. Não publicamos nomes nem CPF de pessoas.
 - Completo: `docs/metodologia/painel-corrupcao.md`.
 
+## Obras — o cadastro federal de investimentos
+
+- **O que é:** todas as obras e projetos com recurso federal registrados no Obrasgov/CIPI: situação declarada pelo órgão, valor
+  previsto, empenhos já feitos, estado, eixo e tipo. A página destaca as paralisadas e inacabadas, onde estão e quanto já foi
+  comprometido nelas.
+- **Fonte:** Obrasgov/CIPI, API pública do Ministério da Gestão (o host mudou: `api.obrasgov.gestao.gov.br`).
+- **Atenção:** só obras com dinheiro federal — obra tocada apenas por estado ou município pode não estar no cadastro. Valor previsto
+  não é valor gasto, e a data da situação é a da última atualização do status, não o dia em que a obra parou; por isso mostramos
+  "sem atualizar a situação" e "atraso do prazo" separados. Empregos gerados e população beneficiada são estimativas declaradas pelo
+  próprio órgão e ficam fora dos números de destaque.
+- Completo: `docs/metodologia/painel-obras.md`.
+
 ## Inflação — o IPCA desde 1979
 
 - **O que é:** a alta de preços no mês, no ano e em 12 meses; a série mensal desde 1996; o resultado de cada ano comparado com a

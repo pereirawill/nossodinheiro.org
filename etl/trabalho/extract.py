@@ -9,6 +9,9 @@ Fontes:
     tabela 6318 (pessoas de 14+ por condição na força de trabalho: total, força de trabalho, ocupada, desocupada, fora),
     tabela 4097 (ocupados por posição na ocupação: empregado privado com/sem carteira, doméstico, setor público, militar/
     estatutário, empregador, conta própria, familiar auxiliar), tabela 6381 (taxa de desocupação). Valores em mil pessoas.
+- IBGE, Cadastro Central de Empresas (CEMPRE), tabela 7528 do SIDRA: quantas empresas há em cada faixa de pessoal ocupado
+  (de 0 a 4 até 500 ou mais), quanta gente trabalha em cada faixa e o salário médio mensal de cada uma. É anual, com ~2 anos de
+  defasagem, e conta empresas formais (CNPJ) e outras organizações, inclusive administração pública e entidades sem fins lucrativos.
 - Governo federal (MEMP/DREI), Mapa de Empresas, planilha mensal aberta (gov.br/memp): empresas ativas por natureza jurídica
   e porte (MEI, microempresa, EPP, demais), última edição publicada.
 - Ministério da Previdência, Boletim Estatístico da Previdência Social (BEPS), tabela 14 (benefícios emitidos por grandes
@@ -34,6 +37,8 @@ PUB = Path("data/public")
 UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
 SIDRA = "https://apisidra.ibge.gov.br/values/t/{t}/n1/all/v/{v}/p/last%201{extra}?formato=json"
 SIDRA_POP = "https://apisidra.ibge.gov.br/values/t/6579/n1/all/v/9324/p/last%201?formato=json"  # população total estimada
+# CEMPRE (Cadastro Central de Empresas), tabela 7528: empresas, pessoal ocupado e salário médio por faixa de pessoal ocupado
+SIDRA_CEMPRE = "https://apisidra.ibge.gov.br/values/t/7528/n1/all/v/{v}/p/last%201/c319/all/c12762/0/c2703/0?formato=json"
 MEMP = "https://www.gov.br/memp/pt-br/acesso-a-informacao/dados-abertos/repositorio-de-dados-abertos"
 BEPS = "https://www.gov.br/previdencia/pt-br/assuntos/previdencia-social/Dados-estatisticos-previdencia-social-e-inss/boletins-da-previdencia-social"
 
@@ -56,6 +61,24 @@ def populacao_total(c: httpx.Client) -> dict:
     """População total estimada pelo IBGE — a PNAD só conta quem tem 14 anos ou mais."""
     r = c.get(SIDRA_POP).json()[1]
     return {"ano": r["D3N"], "pessoas": int(r["V"])}
+
+
+def cempre(c: httpx.Client) -> dict:
+    """Quantas empresas há em cada faixa de tamanho e quanta gente trabalha em cada uma (IBGE, CEMPRE, tabela 7528)."""
+    faixas: dict[str, dict] = {}
+    ano = None
+    for chave, var in (("empresas", 2585), ("pessoas", 707), ("assalariados", 708), ("salario_medio", 10143)):
+        for r in c.get(SIDRA_CEMPRE.format(v=var)).json()[1:]:
+            faixa, valor = r["D4N"].strip(), r["V"]
+            ano = r["D3N"]
+            try:
+                faixas.setdefault(faixa, {"faixa": faixa})[chave] = float(valor)
+            except (TypeError, ValueError):
+                faixas.setdefault(faixa, {"faixa": faixa})[chave] = None
+    ordem = ["0 a 4", "5 a 9", "10 a 19", "20 a 29", "30 a 49", "50 a 99", "100 a 249", "250 a 499", "500 ou mais"]
+    total = faixas.get("Total", {})
+    return {"ano": ano, "total": total, "faixas": [faixas[f] for f in ordem if f in faixas],
+            "fonte": "IBGE, Cadastro Central de Empresas (CEMPRE), tabela 7528 do SIDRA"}
 
 
 def pnad(c: httpx.Client) -> dict:
@@ -146,7 +169,7 @@ def run() -> Path:
     PUB.mkdir(parents=True, exist_ok=True)
     with httpx.Client(headers=UA, timeout=180, follow_redirects=True) as c:
         dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "populacao": populacao_total(c),
-                 "pnad": pnad(c), "empresas": mapa_empresas(c), "inss": beps(c),
+                 "pnad": pnad(c), "empresas": mapa_empresas(c), "cempre": cempre(c), "inss": beps(c),
                  "pendentes": ["Bolsa Família (famílias e valor por mês): API do Portal da Transparência por município, ainda não carregada",
                                "Optantes do Simples Nacional (ME/EPP): sem arquivo aberto localizado na Receita; o Mapa de Empresas traz o porte, não a opção"]}
     for k, mn in (("ocupados", 50_000), ("pop_14_mais", 100_000)):
