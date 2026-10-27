@@ -74,6 +74,13 @@ export const DATASETS: Dataset[] = [
     periodo: "2025", atualizacao: "trimestral",
   },
   {
+    slug: "/obras/", nome: "Obras e projetos de investimento com recurso federal",
+    descricao: "Cadastro federal de obras (Obrasgov/CIPI): quantidade, valor previsto e empenhado por situação, estado, eixo e tipo, com o recorte das obras paralisadas e inacabadas, tempo sem atualização da situação e prazo vencido.",
+    arquivos: ["obras.json"],
+    fontes: [{ nome: "Obrasgov/CIPI — API pública do Ministério da Gestão", url: "https://api.obrasgov.gestao.gov.br/obrasgov/api/" }],
+    periodo: "2026", atualizacao: "mensal",
+  },
+  {
     slug: "/impostos/", nome: "Arrecadação federal por estado e tributo",
     descricao: "Receita administrada pela Receita Federal, mensal desde 2000, por UF e por tributo.",
     arquivos: ["impostos.json"],

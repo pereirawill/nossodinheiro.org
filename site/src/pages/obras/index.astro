@@ -1,0 +1,153 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
+import d from "../../../public/data/obras.json";
+
+const num = (v: number) => v.toLocaleString("pt-BR");
+const bi = (v: number) => v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(0)} mi` : `R$ ${num(Math.round(v))}`;
+const pct1 = (a: number, b: number) => `${((100 * a) / b).toFixed(1).replace(".", ",")}%`;
+const n1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const W = 920;
+
+const paradas = d.paradas;
+const situacoes = d.por_situacao as { situacao: string; n: number; previsto: number; empenhado: number }[];
+const maxSit = Math.max(...situacoes.map((s) => s.n));
+const ufs = [...(d.por_uf as any[])].sort((a, b) => b.paradas - a.paradas);
+const maxUfParadas = Math.max(...ufs.map((u) => u.paradas));
+const totalEmpenhado = situacoes.reduce((s, x) => s + x.empenhado, 0);
+const totalPrevisto = situacoes.reduce((s, x) => s + x.previsto, 0);
+const eixos = d.por_eixo as { nome: string; n: number; previsto: number; paradas: number }[];
+const tipos = d.por_tipo as { nome: string; n: number; previsto: number; paradas: number }[];
+const maiores = paradas.maiores as any[];
+const CORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "#9c755f", "var(--neutro)"];
+// proporção só faz sentido onde há obras suficientes; se nenhum estado atingir o mínimo, a frase sai do ar
+const MIN_OBRAS = 50;
+const porProporcao = ufs.filter((u) => u.n >= MIN_OBRAS).sort((a, b) => b.paradas / b.n - a.paradas / a.n);
+---
+<Base title="Obras: quantas estão paradas e quanto já foi empenhado — Nosso Dinheiro" accent="var(--s4)" description="O cadastro federal de obras e projetos de investimento: quantas estão paralisadas ou inacabadas, em que estado, há quanto tempo e quanto dinheiro já foi comprometido.">
+  <h1>Obras paradas: quantas são e quanto já custaram</h1>
+  <p class="lede">
+    O governo federal mantém um cadastro de todas as obras e projetos de investimento que recebem dinheiro da União — da creche de
+    um município ao trecho de ferrovia. Cada uma tem situação declarada pelo órgão responsável, valor previsto e os empenhos já
+    feitos no orçamento. Aqui está quantas estão <Termo t="obra_parada">paralisadas ou inacabadas</Termo>, onde ficam e quanto
+    dinheiro público já foi comprometido nelas.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · Obrasgov/CIPI, Ministério da Gestão · {num(d.total)} obras no cadastro · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{num(paradas.n)}</b><span>obras paralisadas ou inacabadas, {pct1(paradas.n, d.total)} das {num(d.total)} do cadastro</span></div>
+    <div class="stat"><b>{bi(paradas.previsto)}</b><span>é o investimento previsto nessas obras paradas — o que custariam se fossem concluídas como planejado</span></div>
+    <div class="stat"><b>{bi(paradas.empenhado)}</b><span>já foram <Termo t="empenhado">empenhados</Termo> pela União nelas: dinheiro comprometido no orçamento em obra que não anda</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>O que este cadastro é.</b> Só obras com participação de recurso federal, declaradas pelos próprios órgãos: não é o conjunto
+    de todas as obras públicas do país, e obra tocada só com dinheiro estadual ou municipal pode não estar aqui. <b>Valor previsto não é
+    valor gasto</b> — por isso as duas colunas andam separadas. E a data da situação é <b>quando o órgão atualizou o status</b>, não o dia
+    em que a obra parou: por isso mostramos "sem atualizar a situação" e "atraso em relação ao prazo" como medidas diferentes.</div>
+  </div>
+
+  <h2>Em que situação estão as obras do cadastro</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${situacoes.length * 30 + 10}`} width="100%" role="img" aria-label="Obras por situação declarada">
+      {situacoes.map((s, i) => (<g transform={`translate(0 ${i * 30 + 5})`}>
+        <text x="200" y="18" text-anchor="end" font-size="12.5" fill="var(--ink)">{s.situacao}</text>
+        <rect x="210" y="4" width={Math.max(1, (s.n / maxSit) * 420)} height="20" fill={CORES[i % CORES.length]} rx="2" />
+        <text x={216 + (s.n / maxSit) * 420} y="18" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{num(s.n)} obras · {bi(s.previsto)} previstos</text>
+      </g>))}
+    </svg>
+    <table style="margin-top:12px">
+      <thead><tr><th>Situação</th><th class="num">Obras</th><th class="num">%</th><th class="num">Investimento previsto</th><th class="num">Já empenhado</th></tr></thead>
+      <tbody>{situacoes.map((s) => (<tr class={s.situacao === "Paralisada" || s.situacao === "Inacabada" ? "destaque" : ""}>
+        <td>{s.situacao}</td><td class="num">{num(s.n)}</td><td class="num">{pct1(s.n, d.total)}</td><td class="num">{bi(s.previsto)}</td><td class="num">{bi(s.empenhado)}</td></tr>))}
+        <tr class="grupo"><td><b>Total</b></td><td class="num"><b>{num(d.total)}</b></td><td class="num">100%</td><td class="num"><b>{bi(totalPrevisto)}</b></td><td class="num"><b>{bi(totalEmpenhado)}</b></td></tr></tbody>
+    </table>
+    <p class="src">
+      A situação é a declarada pelo órgão responsável no cadastro. "Cadastrada" é obra registrada que ainda não começou;
+      "paralisada" é obra interrompida; "inacabada" é obra abandonada sem conclusão. O empenho é federal: {num(d.obras_com_empenho)} das
+      {num(d.total)} obras têm pelo menos um empenho registrado — as demais podem ser tocadas com recurso de outra fonte ou ainda não ter
+      compromisso orçamentário. Fonte: Obrasgov/CIPI, API pública.
+    </p>
+  </div>
+
+  <h2>Onde estão as obras paradas</h2>
+  <div class="card">
+    <MapaBrasil valores={Object.fromEntries((d.por_uf as any[]).map((u) => [u.uf, u.paradas]))} formato={(v) => num(v)}
+      titulo="Obras paralisadas ou inacabadas em cada estado" legenda="obras paralisadas ou inacabadas" melhorMenor={true} />
+  </div>
+  <div class="card" style="margin-top:14px">
+    <svg viewBox={`0 0 ${W} ${ufs.length * 20 + 10}`} width="100%" role="img" aria-label="Obras paradas por estado">
+      {ufs.map((u, i) => (<g transform={`translate(0 ${i * 20 + 5})`}>
+        <text x="150" y="13" text-anchor="end" font-size="12" fill="var(--ink)">{u.nome}</text>
+        <rect x="160" y="2" width={Math.max(1, (u.paradas / maxUfParadas) * 540)} height="14" fill="var(--s4)" rx="2" />
+        <text x={166 + (u.paradas / maxUfParadas) * 540} y="13" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{num(u.paradas)} de {num(u.n)} · {bi(u.previsto_paradas)}</text>
+      </g>))}
+    </svg>
+    <table style="margin-top:12px">
+      <thead><tr><th>Estado</th><th class="num">Obras no cadastro</th><th class="num">Paradas</th><th class="num">% paradas</th><th class="num">Previsto nas paradas</th><th class="num">Já empenhado nas paradas</th></tr></thead>
+      <tbody>{ufs.map((u) => (<tr><td>{u.nome}</td><td class="num">{num(u.n)}</td><td class="num"><b>{num(u.paradas)}</b></td><td class="num">{u.n ? pct1(u.paradas, u.n) : "—"}</td>
+        <td class="num">{bi(u.previsto_paradas)}</td><td class="num">{bi(u.empenhado_paradas)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Obras sem UF declarada ficam fora do mapa e da tabela. Clique no cabeçalho para ordenar — por "% paradas" o retrato muda bastante em relação ao número absoluto.</p>
+  </div>
+
+  <h2>Que tipo de obra para mais</h2>
+  <div class="card duas">
+    <div>
+      <h3>Por eixo</h3>
+      <table><thead><tr><th>Eixo</th><th class="num">Obras</th><th class="num">Paradas</th><th class="num">%</th></tr></thead>
+        <tbody>{eixos.map((e) => (<tr><td>{e.nome}</td><td class="num">{num(e.n)}</td><td class="num">{num(e.paradas)}</td><td class="num">{e.n ? pct1(e.paradas, e.n) : "—"}</td></tr>))}</tbody></table>
+    </div>
+    <div>
+      <h3>Por tipo (15 maiores)</h3>
+      <table><thead><tr><th>Tipo</th><th class="num">Obras</th><th class="num">Paradas</th><th class="num">%</th></tr></thead>
+        <tbody>{tipos.map((t) => (<tr><td>{t.nome}</td><td class="num">{num(t.n)}</td><td class="num">{num(t.paradas)}</td><td class="num">{t.n ? pct1(t.paradas, t.n) : "—"}</td></tr>))}</tbody></table>
+    </div>
+    <p class="src" style="grid-column:1/-1">Eixo e tipo são a classificação do próprio cadastro (econômico, social, infraestrutura…). Cada obra entra com o eixo e o tipo principal.</p>
+  </div>
+
+  <h2>As {maiores.length} obras paradas de maior valor previsto</h2>
+  <div class="card largo">
+    <table>
+      <thead><tr><th>#</th><th>Obra</th><th>UF</th><th>Situação</th><th class="num">Previsto</th><th class="num">Já empenhado</th><th class="num">Sem atualizar a situação</th><th class="num">Atraso do prazo</th><th>Executor</th></tr></thead>
+      <tbody>{maiores.map((o, i) => (<tr><td class="rank">{i + 1}</td><td class="nome">{o.nome}</td><td class="mono">{o.uf || "—"}</td><td>{o.situacao}</td>
+        <td class="num">{bi(o.previsto)}</td><td class="num">{bi(o.empenhado)}</td>
+        <td class="num">{o.anos_sem_atualizacao != null ? `${n1(o.anos_sem_atualizacao)} anos` : "—"}</td>
+        <td class="num">{(o.anos_de_atraso ?? 0) > 0 ? `${n1(o.anos_de_atraso)} anos` : "no prazo"}</td>
+        <td class="exec">{o.executor}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      "Sem atualizar a situação" conta desde a última vez que o órgão mexeu no status — pode ser bem depois de a obra ter parado.
+      "Atraso do prazo" compara a data final prevista com hoje. Mediana das paradas: {n1(paradas.anos_sem_atualizacao_mediana)} anos sem
+      atualização; {num(paradas.com_prazo_vencido)} delas já passaram do prazo previsto, com atraso mediano de {n1(paradas.anos_de_atraso_mediana)} anos.
+    </p>
+  </div>
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>De {num(d.total)} obras no cadastro federal, {num(paradas.n)} estão paralisadas ou inacabadas — {pct1(paradas.n, d.total)} do total.</li>
+      <li>Essas obras somam {bi(paradas.previsto)} de investimento previsto, e a União já empenhou {bi(paradas.empenhado)} nelas.</li>
+      <li>{ufs[0].nome} é o estado com mais obras paradas ({num(ufs[0].paradas)} de {num(ufs[0].n)}){porProporcao.length ? `; proporcionalmente, o maior percentual é de ${porProporcao[0].nome} (${pct1(porProporcao[0].paradas, porProporcao[0].n)}, entre os estados com ${MIN_OBRAS} obras ou mais)` : ""}.</li>
+      <li>{num(paradas.com_prazo_vencido)} das obras paradas já passaram da data em que deveriam estar prontas, com atraso mediano de {n1(paradas.anos_de_atraso_mediana)} anos.</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima.{d.paginas_sem_resposta && (d.paginas_sem_resposta.obras || d.paginas_sem_resposta.empenhos) ? ` Nesta coleta, ${d.paginas_sem_resposta.obras} páginas do cadastro e ${d.paginas_sem_resposta.empenhos} de empenhos não responderam e ficaram de fora.` : ""}</p>
+  </div>
+
+  <Glossario termos={["obra_parada", "empenhado", "pago"]} />
+</Base>
+<style>
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .duas h3 { margin: 0 0 8px; font-size: 15px; }
+  @media (max-width: 900px) { .duas { grid-template-columns: 1fr; } }
+  .largo { overflow-x: auto; }
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+  td.nome { white-space: normal; max-width: 38ch; }
+  td.exec { color: var(--ink-2); font-size: 12px; white-space: normal; max-width: 26ch; }
+  td.mono { font-family: var(--mono); font-size: 12.5px; }
+  tr.destaque td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  tr.grupo td { font-weight: 700; }
+</style>

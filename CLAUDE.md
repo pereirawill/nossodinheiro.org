@@ -157,6 +157,10 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   paralelo rendem ~8 páginas/82 s; `totalElements` do endpoint de obras é falso (repete o servido). Coleta **retomável**
   (`.parcial.gz` + `.pagina`), termina só após **dois blocos vazios e limpos**, e falha se vierem <15 mil obras (cadastro tem ~25 mil).
   Workflow com `timeout-minutes: 240`.
+- **Coleta de 27/10 concluída (no ar)**: 124.148 obras, 17.110 com empenho federal; **1.779 paradas** (793 paralisadas +
+  986 inacabadas), R$ 49,1 bi previstos e R$ 0,4 bi empenhados nelas; 1.612 com prazo vencido. Situações: Cadastrada 57.527,
+  Concluída 41.486, Em execução 19.302, Cancelada 3.540, Inativada 511. A coleta levou ~5 h (cadastro + execução financeira,
+  34.665 empenhos); 4 páginas de empenhos não responderam e a página declara isso.
 - Regras: paradas = situação "Paralisada"/"Inacabada" (declarada pelo órgão); previsto ≠ gasto; `dataSituacao` é a última atualização
   do status → a página separa "sem atualizar a situação" de "atraso do prazo"; `qdtEmpregosGerados`/`populacaoBeneficiada` são
   declarados pelo órgão e ficam fora dos destaques.

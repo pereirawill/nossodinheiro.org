@@ -27,6 +27,7 @@ import inflacao from "../../public/data/inflacao.json";
 import corrupcao from "../../public/data/corrupcao.json";
 import previdencia from "../../public/data/previdencia.json";
 import irpf from "../../public/data/irpf.json";
+import obras from "../../public/data/obras.json";
 
 const ANO = 2025;
 const rendaPub = (renda.posicoes as any[]).find((p) => p.chave === "publico")?.valor ?? 0;
@@ -96,6 +97,8 @@ const irpfPico = irpf.faixas.reduce((a, f) => (f.aliquota_efetiva ?? 0) > (a.ali
 const pctIrpf = `${(100 * (irpfTopo.aliquota_efetiva ?? 0)).toFixed(1).replace(".", ",")}%`;
 const pctIrpfPico = `${(100 * (irpfPico.aliquota_efetiva ?? 0)).toFixed(1).replace(".", ",")}%`;
 const irpfMi = (irpf.declarantes / 1e6).toFixed(1).replace(".", ",");
+const obrasParadas = obras.paradas.n.toLocaleString("pt-BR");
+const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".", ",")} bi`;
 ---
 <Base title="Nosso Dinheiro — para onde vai o dinheiro público do Brasil" description="Quanto custa um deputado, para onde vão as emendas, quanto custa cada Poder. Dados oficiais, com a fonte de cada número e metodologia aberta." accent="var(--s1)">
   <h1>Para onde vai o nosso dinheiro?</h1>
@@ -164,6 +167,7 @@ const irpfMi = (irpf.declarantes / 1e6).toFixed(1).replace(".", ",");
     <a class="card tile" href="/emendas/"><b>R$ 47,1 bi</b><span>empenhados em emendas parlamentares em 2025 · veja por autor</span></a>
     <a class="card tile" href="/inflacao/"><b>{String(inflacao.doze_meses[inflacao.ultimo_mes]).replace(".", ",")}%</b><span>de alta de preços em 12 meses (IPCA) · por grupo de gasto, por região e comparado com a meta do Banco Central</span></a>
     <a class="card tile" href="/impostos/"><b>{compact(arrec.total)}</b><span>arrecadação federal em {arrec.meses} meses de {arrec.ano}, por base de incidência e por estado</span></a>
+    <a class="card tile" href="/obras/"><b>{obrasParadas}</b><span>obras paralisadas ou inacabadas no cadastro federal · {obrasPrevisto} previstos nelas, por estado e por tipo</span></a>
     <a class="card tile" href="/imposto-de-renda/"><b>{pctIrpf}</b><span>de alíquota efetiva no topo do Imposto de Renda, contra {pctIrpfPico} na faixa que mais paga · {irpfMi} mi de declarantes em {irpf.ano_calendario}</span></a>
     <a class="card tile" href="/corrupcao/"><b>{corrupcao.ceis.registros.toLocaleString("pt-BR")}</b><span>sanções que impedem contratar com o poder público · empresas punidas, acordos de leniência e servidores expulsos</span></a>
     <a class="card tile" href="/rankings/"><b>{idh ? `${idh.posicao}º` : "—"}</b><span>posição do Brasil no IDH entre {idh?.total} países · 10 rankings e o histórico de 40 anos</span></a>
