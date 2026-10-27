@@ -271,6 +271,17 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 6. Judiciário fase 2: remuneração de magistrados (CNJ), Justiça em Números; TJs via SICONFI.
 7. DNS: adicionar `www` como custom domain no Pages; TXT anti-spoofing (SPF `v=spf1 -all`, DMARC `p=reject`).
 
+## Descoberta / SEO (feito 27/10/2026)
+- `@astrojs/sitemap` → `/sitemap-index.xml` (5.622 URLs; prioridade 0.9 painéis, 0.6 filtros UF/partido, 0.4 municípios);
+  `public/robots.txt` libera tudo (decisão do dono: crawlers de IA bem-vindos, nada bloqueado).
+- JSON-LD no `Base.astro`: `WebSite` na home; `Dataset` (schema.org, CC BY, `distribution` → `/data/*.json`, `isBasedOn` → fonte
+  primária) resolvido pela rota a partir de `site/src/lib/datasets.ts`; subpáginas herdam o do painel-pai. **Painel novo = uma
+  entrada em `datasets.ts`** (nome, descrição, arquivos, fontes, período, cadência) — alimenta também a página `/dados/` (catálogo).
+- Google Search Console: domínio verificado por TXT no DNS (não remover o registro); sitemap enviado em 27/10/2026.
+  Pendente: Bing Webmaster Tools ("Import from GSC"); testar rich results em search.google.com/test/rich-results.
+- Analytics da Cloudflare conta bots (picos de 5 mil pageviews = crawler varrendo os municípios); para humanos, Web Analytics
+  (beacon) ainda não ligado.
+
 ## Convenções
 - Nunca persistir o CPF do parlamentar que vem no CSV da CEAP.
 - Todo número fixo em `config.py` com fonte e data; mudou lá → muda a metodologia na mesma PR.
