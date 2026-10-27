@@ -1,0 +1,130 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/seguranca.json";
+
+const num = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR");
+const t1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const b = d.brasil as Record<string, number>;
+type E = (typeof d.estados)[number] & Record<string, any>;
+const estados = ([...d.estados] as E[]).sort((a, c) => (a.taxa_homicidio ?? 999) - (c.taxa_homicidio ?? 999));
+const muns = d.municipios as any[];
+const maisSeguros = muns.filter((m) => m.taxa_homicidio != null).slice(0, 30);
+const menosSeguros = [...muns].filter((m) => m.taxa_homicidio != null).reverse().slice(0, 30);
+const capitais = muns.filter((m) => m.capital).sort((a, c) => (a.taxa_homicidio ?? 999) - (c.taxa_homicidio ?? 999));
+const W = 920;
+const maxT = Math.max(...estados.map((e) => e.taxa_homicidio ?? 0));
+// série por UF (homicídios dolosos, absolutos) e Brasil
+const serie = d.serie_uf as Record<string, Record<string, { homicidio_doloso: number; feminicidio: number; roubo_veiculo: number }>>;
+const anos = Object.keys(serie).sort();
+const brasilSerie = anos.map((a) => Object.values(serie[a]).reduce((s, u) => s + (u.homicidio_doloso || 0), 0));
+const SW = 920, SH = 220, padL = 56, padB = 24;
+const maxS = Math.max(...brasilSerie) * 1.05;
+const sx = (i: number) => padL + (i * (SW - padL - 10)) / Math.max(1, anos.length - 1);
+const sy = (v: number) => 8 + (SH - padB - 8) * (1 - v / maxS);
+const varPct = (a: number, c: number) => `${((c / a - 1) * 100).toFixed(0)}%`;
+const ufSerie = (uf: string, k: "homicidio_doloso") => anos.map((a) => serie[a]?.[uf]?.[k] ?? null);
+const compacto = (v: number) => v >= 1000 ? `${(v / 1000).toFixed(1).replace(".", ",")} mil` : String(v);
+---
+<Base title="Segurança: onde há menos mortes violentas — Nosso Dinheiro" accent="var(--s1)" description="Homicídios, feminicídios, latrocínios e roubos por 100 mil habitantes em cada estado e nas cidades com mais de 100 mil habitantes. Ministério da Justiça (Sinesp) e IBGE.">
+  <h1>Onde se registram menos mortes violentas</h1>
+  <p class="lede">
+    Quantas pessoas foram vítimas de homicídio doloso, feminicídio e latrocínio em cada estado e em cada cidade com mais de 100 mil
+    habitantes, por 100 mil moradores; e roubos e furtos de veículo por estado. Os números são os que as polícias registraram e os estados
+    enviaram ao Ministério da Justiça, em {d.ano}.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · Ministério da Justiça e Segurança Pública, Sinesp VDE, base {d.ano} (abrangência estadual) · população: IBGE {d.ano_populacao} · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{t1(b.taxa_homicidio)}</b><span>vítimas de <Termo t="homicidio_doloso">homicídio doloso</Termo> por 100 mil habitantes no Brasil em {d.ano}: {num(b.homicidio_doloso)} pessoas</span></div>
+    <div class="stat"><b>{estados[0].uf}</b><span>menor <Termo t="taxa_100k">taxa</Termo> entre os estados: {estados[0].nome}, {t1(estados[0].taxa_homicidio)} por 100 mil; a maior: {estados[estados.length - 1].nome}, {t1(estados[estados.length - 1].taxa_homicidio)}</span></div>
+    <div class="stat"><b>{num(b.feminicidio)}</b><span>feminicídios registrados em {d.ano}; {num(b.latrocinio)} latrocínios; {num(b.roubo_veiculo)} roubos de veículo</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>São <Termo t="registro_policial">registros policiais</Termo>, não uma medição independente.</b> Cada estado alimenta o sistema no seu ritmo e com
+    seus critérios; feminicídio, latrocínio e morte por intervenção policial são categorias separadas do homicídio doloso e não somamos nada
+    por conta própria. Roubo e furto só aparecem quando a vítima registra. Para cidades pequenas a taxa salta com poucos casos, por isso o
+    ranking municipal só inclui quem tem {num(d.pop_min_municipio)} habitantes ou mais, além das capitais.</div>
+  </div>
+
+  <h2>Por estado: vítimas por 100 mil habitantes ({d.ano})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${estados.length * 22 + 10}`} width="100%" role="img" aria-label="Taxa de homicídio doloso por estado">
+      {estados.map((e, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
+        <text x="150" y="14" text-anchor="end" font-size="12" fill="var(--ink)">{e.nome}</text>
+        <rect x="160" y="2" width={Math.max(1, ((e.taxa_homicidio ?? 0) / maxT) * 600)} height="16" fill="var(--s1)" rx="2" />
+        <text x={166 + ((e.taxa_homicidio ?? 0) / maxT) * 600} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{t1(e.taxa_homicidio)} · {num(e.homicidio_doloso)} vítimas</text>
+      </g>))}
+    </svg>
+    <div class="largo"><table style="margin-top:12px">
+      <thead><tr><th>Estado</th><th class="num">Homicídio doloso /100 mil</th><th class="num">Vítimas</th><th class="num">Feminicídios</th><th class="num">Latrocínios</th><th class="num">Lesão seguida de morte</th><th class="num">Morte por intervenção policial</th><th class="num">Roubo de veículo /100 mil</th><th class="num">Furto de veículo</th><th class="num">Estupros (inclui vulnerável)</th><th class="num">Meses informados</th></tr></thead>
+      <tbody>{estados.map((e) => (<tr><td>{e.nome}</td><td class="num"><b>{t1(e.taxa_homicidio)}</b></td><td class="num">{num(e.homicidio_doloso)}</td><td class="num">{num(e.feminicidio)}</td><td class="num">{num(e.latrocinio)}</td><td class="num">{num(e.lesao_morte)}</td><td class="num">{num(e.intervencao_estado)}</td>
+        <td class="num">{t1(e.taxa_roubo_veiculo)}</td><td class="num">{num(e.furto_veiculo)}</td><td class="num">{num((e.estupro ?? 0) + (e.estupro_vulneravel ?? 0))}</td><td class="num">{e.meses}</td></tr>))}</tbody>
+    </table></div>
+    <p class="src">Fonte: MJSP, Sinesp VDE {d.ano}, abrangência estadual (polícias civis e militares; PF e PRF fora). Mortes contadas em vítimas; roubos, furtos e estupros em ocorrências. Clique no cabeçalho para ordenar.</p>
+  </div>
+
+  <h2>Capitais ({d.ano})</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Capital</th><th class="num">População</th><th class="num">Homicídio doloso /100 mil</th><th class="num">Vítimas</th><th class="num">Feminicídios</th><th class="num">Latrocínios</th><th class="num">Mortes no trânsito</th></tr></thead>
+      <tbody>{capitais.map((m) => (<tr><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{num(m.populacao)}</td><td class="num"><b>{t1(m.taxa_homicidio)}</b></td><td class="num">{num(m.homicidio_doloso)}</td><td class="num">{num(m.feminicidio)}</td><td class="num">{num(m.latrocinio)}</td><td class="num">{num(m.transito)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Capitais sem linha: o estado não informou o dado por município (entra só no total estadual).</p>
+  </div>
+
+  <h2>Cidades com {num(d.pop_min_municipio)}+ habitantes: as 30 menores e as 30 maiores taxas ({d.ano})</h2>
+  <div class="card duas">
+    <div>
+      <h3>Menores taxas de homicídio doloso</h3>
+      <table><thead><tr><th>#</th><th>Município</th><th class="num">População</th><th class="num">/100 mil</th><th class="num">Vítimas</th></tr></thead>
+        <tbody>{maisSeguros.map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}{m.capital ? " ★" : ""}</span></td><td class="num">{num(m.populacao)}</td><td class="num">{t1(m.taxa_homicidio)}</td><td class="num">{num(m.homicidio_doloso)}</td></tr>))}</tbody></table>
+    </div>
+    <div>
+      <h3>Maiores taxas de homicídio doloso</h3>
+      <table><thead><tr><th>#</th><th>Município</th><th class="num">População</th><th class="num">/100 mil</th><th class="num">Vítimas</th></tr></thead>
+        <tbody>{menosSeguros.map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}{m.capital ? " ★" : ""}</span></td><td class="num">{num(m.populacao)}</td><td class="num">{t1(m.taxa_homicidio)}</td><td class="num">{num(m.homicidio_doloso)}</td></tr>))}</tbody></table>
+    </div>
+    <p class="src" style="grid-column:1/-1">{num(muns.length)} municípios com {num(d.pop_min_municipio)}+ habitantes ou capitais com dado municipal em {d.ano}. Uma taxa baixa pode significar poucas mortes ou pouco registro: veja a coluna "meses informados" do estado.</p>
+  </div>
+
+  <h2>Homicídios dolosos desde {anos[0]}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="Homicídios dolosos no Brasil por ano">
+      {[0.25, 0.5, 0.75, 1].map((f) => (<g><line x1={padL} x2={SW - 10} y1={sy(maxS * f)} y2={sy(maxS * f)} stroke="var(--line)" /><text x={padL - 6} y={sy(maxS * f) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{compacto(Math.round(maxS * f))}</text></g>))}
+      <polyline points={brasilSerie.map((v, i) => `${sx(i).toFixed(1)},${sy(v).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s1)" stroke-width="2.5" />
+      {brasilSerie.map((v, i) => <g><circle cx={sx(i)} cy={sy(v)} r="3" fill="var(--s1)" /><text x={sx(i)} y={sy(v) - 8} text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compacto(v)}</text></g>)}
+      {anos.map((a, i) => <text x={sx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
+    </svg>
+    <p class="src">Soma das vítimas de homicídio doloso informadas pelos estados (Sinesp VDE, bases anuais {anos[0]}–{anos[anos.length - 1]}). {anos[0]}: {num(brasilSerie[0])} → {anos[anos.length - 1]}: {num(brasilSerie[brasilSerie.length - 1])} ({varPct(brasilSerie[0], brasilSerie[brasilSerie.length - 1])}). Anos antigos podem ter cobertura menor (estados que ainda não enviavam tudo).</p>
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;font-weight:700;color:var(--accent)">Por estado, ano a ano</summary>
+      <table style="margin-top:8px"><thead><tr><th>Estado</th>{anos.map((a) => <th class="num">{a}</th>)}</tr></thead>
+        <tbody>{[...d.estados].sort((a, c) => a.nome.localeCompare(c.nome, "pt-BR")).map((e) => (<tr><td>{e.nome}</td>{ufSerie(e.uf, "homicidio_doloso").map((v) => <td class="num">{num(v)}</td>)}</tr>))}</tbody></table>
+    </details>
+  </div>
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>Em {d.ano} foram registradas {num(b.homicidio_doloso)} vítimas de homicídio doloso no Brasil, {t1(b.taxa_homicidio)} por 100 mil habitantes; a taxa de {estados[estados.length - 1].nome} ({t1(estados[estados.length - 1].taxa_homicidio)}) é {(estados[estados.length - 1].taxa_homicidio / estados[0].taxa_homicidio).toFixed(1).replace(".", ",")} vezes a de {estados[0].nome} ({t1(estados[0].taxa_homicidio)}).</li>
+      <li>Entre as capitais, a menor taxa é de {capitais[0]?.nome} ({t1(capitais[0]?.taxa_homicidio)}) e a maior, de {capitais[capitais.length - 1]?.nome} ({t1(capitais[capitais.length - 1]?.taxa_homicidio)}).</li>
+      <li>Entre as cidades com {num(d.pop_min_municipio)}+ habitantes, {maisSeguros[0]?.nome} ({maisSeguros[0]?.uf}) teve a menor taxa ({t1(maisSeguros[0]?.taxa_homicidio)}, {num(maisSeguros[0]?.homicidio_doloso)} vítimas) e {menosSeguros[0]?.nome} ({menosSeguros[0]?.uf}) a maior ({t1(menosSeguros[0]?.taxa_homicidio)}).</li>
+      <li>De {anos[0]} a {anos[anos.length - 1]} o total de homicídios dolosos registrados variou {varPct(brasilSerie[0], brasilSerie[brasilSerie.length - 1])}.</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>
+  </div>
+
+  <Glossario termos={["homicidio_doloso", "taxa_100k", "registro_policial"]} />
+</Base>
+<style>
+  .largo { overflow-x: auto; }
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .duas h3 { margin: 0 0 8px; font-size: 15px; }
+  @media (max-width: 900px) { .duas { grid-template-columns: 1fr; } }
+  td .uf { color: var(--ink-2); font-size: 12px; font-family: var(--mono); margin-left: 4px; }
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+</style>

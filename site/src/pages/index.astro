@@ -17,8 +17,17 @@ import stf from "../../public/data/custo_ministro_stf_2026.json";
 import metaStf from "../../public/data/meta_stf_2026.json";
 import pres from "../../public/data/presidencia_cpgf_2026.json";
 import rankings from "../../public/data/rankings.json";
+import trabalho from "../../public/data/trabalho.json";
+import renda from "../../public/data/renda.json";
+import educacao from "../../public/data/educacao.json";
+import seguranca from "../../public/data/seguranca.json";
+import credito from "../../public/data/credito.json";
 
 const ANO = 2025;
+const rendaPub = (renda.posicoes as any[]).find((p) => p.chave === "publico")?.valor ?? 0;
+const rendaPriv = (renda.posicoes as any[]).find((p) => p.chave === "privado_com_carteira")?.valor ?? 1;
+const top1 = (renda.distribuicao.classes as any[]).find((c) => c.classe === "p99_mais")?.massa_pct;
+const idebAI = (educacao.brasil as any).ai?.total?.[String(educacao.ano)];
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 // Na página inicial, por extenso: "R$ 5,06 trilhões", "R$ 30,4 bilhões", "R$ 224 milhões"
 const compact = (v: number) =>
@@ -143,6 +152,15 @@ const resumo = [
     <a class="card tile" href="/emendas/"><b>R$ 47,1 bi</b><span>empenhados em emendas parlamentares em 2025 · veja por autor</span></a>
     <a class="card tile" href="/impostos/"><b>{compact(arrec.total)}</b><span>arrecadação federal em {arrec.meses} meses de {arrec.ano}, por base de incidência e por estado</span></a>
     <a class="card tile" href="/rankings/"><b>{idh ? `${idh.posicao}º` : "—"}</b><span>posição do Brasil no IDH entre {idh?.total} países · 10 rankings e o histórico de 40 anos</span></a>
+  </div>
+
+  <h2>Como vive o país</h2>
+  <div class="grade">
+    <a class="card tile" href="/trabalho/"><b>{(trabalho.pnad.mil.ocupados / 1e3).toFixed(1).replace(".", ",")} mi</b><span>pessoas ocupadas ({trabalho.pnad.periodo}): carteira, conta própria, servidores, empresas e MEI, benefícios do INSS</span></a>
+    <a class="card tile" href="/renda/"><b>{(rendaPub / rendaPriv).toFixed(2).replace(".", ",")}×</b><span>rendimento médio no setor público ({brl0(rendaPub)}) em relação ao privado com carteira ({brl0(rendaPriv)}), {renda.ano} · o 1% mais rico fica com {String(top1).replace(".", ",")}% da renda</span></a>
+    <a class="card tile" href="/educacao/"><b>{idebAI != null ? String(idebAI).replace(".", ",") : "—"}</b><span>IDEB do Brasil nos anos iniciais ({educacao.ano}) · por estado, capital e município, rede pública e privada</span></a>
+    <a class="card tile" href="/seguranca/"><b>{String(seguranca.brasil.taxa_homicidio).replace(".", ",")}</b><span>vítimas de homicídio doloso por 100 mil habitantes em {seguranca.ano} · estados e cidades com 100 mil+ habitantes</span></a>
+    <a class="card tile" href="/inadimplencia/"><b>{String(credito.brasil.PF.pct).replace(".", ",")}%</b><span>do crédito a pessoas físicas está vencido há mais de 90 dias ({credito.referencia}) · por estado, tipo de crédito e renda</span></a>
   </div>
 
   <Glossario termos={["pago", "empenhado", "maquina", "politicas_publicas", "divida_transferencias", "per_capita"]} />

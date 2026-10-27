@@ -151,6 +151,42 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   separados. Ano corrente como parcial.
 - Completo: `docs/metodologia/painel-historico.md`.
 
+## Renda — setor público × privado e os 10% e 1% mais ricos
+
+- **O que é:** rendimento médio habitual por vínculo (setor público: estatutários, militares, celetistas; privado com e sem
+  carteira; doméstico; conta própria; empregador), Brasil desde 2012 e por estado; e a distribuição da renda domiciliar por
+  pessoa: quanto fica com a metade mais pobre, os 10% e o 1% mais ricos, limites de cada faixa e Gini.
+- **Fonte:** IBGE, PNAD Contínua anual (SIDRA 4659, 7527, 7530, 7533, 7438, 7535, 7435), valores a preços médios do último ano.
+- **Atenção:** média não é salário típico; comparar setores mistura profissões e escolaridade. Pesquisa por amostra, renda
+  declarada. "Setor público" inclui professores e agentes municipais, não só carreiras federais.
+- Completo: `docs/metodologia/painel-renda.md`.
+
+## Educação — IDEB por estado e município
+
+- **O que é:** IDEB (aprovação × nota no Saeb, 0–10) da última edição por estado, região e Brasil, por rede (total, pública,
+  privada, estadual), com a série desde 2005; por município (rede pública), com capitais e os 25 maiores por etapa.
+- **Fonte:** INEP, planilhas de divulgação do IDEB (md5 conferido). Bienal; a edição seguinte entra quando o INEP publicar.
+- **Atenção:** mede escolas e redes, não famílias; décimos não são ranking; municípios pequenos oscilam muito.
+- Completo: `docs/metodologia/painel-educacao.md`.
+
+## Segurança — ocorrências registradas por estado e município
+
+- **O que é:** vítimas de homicídio doloso, feminicídio, latrocínio, lesão seguida de morte e intervenção policial, e ocorrências
+  de roubo/furto de veículo e estupro, por estado (último ano fechado) e por município com 100 mil habitantes ou mais e capitais;
+  taxa por 100 mil (população IBGE do mesmo ano); homicídios desde 2015 por estado.
+- **Fonte:** Ministério da Justiça e Segurança Pública, Sinesp VDE (base anual dos gestores estaduais), só abrangência estadual.
+- **Atenção:** registro policial, não medição independente; cada evento separado (não somamos "mortes violentas"); taxa baixa
+  pode ser pouco registro.
+- Completo: `docs/metodologia/painel-seguranca.md`.
+
+## Inadimplência — crédito em atraso por estado
+
+- **O que é:** parcela do crédito a pessoas e empresas vencida há mais de 90 dias, por estado, tipo de crédito e faixa de renda
+  do tomador; série mensal dos últimos ~24 meses.
+- **Fonte:** Banco Central, SCR.data (zips anuais com CSV mensal). Definições do BCB; valores em reais.
+- **Atenção:** inadimplência em reais, não em pessoas; o estado é o menor recorte publicado — não há dado por município.
+- Completo: `docs/metodologia/painel-credito.md`.
+
 ## Até onde cada fonte volta no tempo
 
 Nenhuma fonte oficial em formato aberto chega a 1988. "Desde" é o primeiro ano legível por máquina; antes disso, quase
@@ -169,6 +205,10 @@ sempre só PDF ou metodologia diferente.
 | Trabalho (PNAD Contínua) | IBGE | 2012 | PNAD anual 1992–2011, metodologia diferente |
 | Empresas ativas (Mapa de Empresas) | governo federal | 2019 | base do CNPJ sem série pronta |
 | Rankings | Banco Mundial / PNUD / Transparência Internacional | 1960 / 1990 / 2012 | já no histórico de rankings |
+| Renda (PNAD Contínua) | IBGE | 2012 | PNAD anual 1992–2011 e Censos, metodologia diferente |
+| IDEB | INEP | 2005 | o índice foi criado em 2007 com dados de 2005 |
+| Ocorrências policiais (Sinesp VDE) | MJSP | 2015 | anuários do Fórum Brasileiro de Segurança Pública (ONG) e DATASUS/SIM para mortes |
+| Inadimplência (SCR.data) | Banco Central | 2012 (v2 desde 2023; aqui 24 meses) | séries do SGS desde 2011 |
 
 ## Como conferir
 

@@ -1,0 +1,117 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/credito.json";
+
+const tri = (v: number) => `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri`;
+const bi = (v: number) => v >= 1e12 ? tri(v) : `R$ ${(v / 1e9).toFixed(v >= 1e11 ? 0 : 1).replace(".", ",")} bi`;
+const pct = (v: number | null | undefined) => v == null ? "—" : `${v.toFixed(2).replace(".", ",")}%`;
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const [ano, mes] = d.referencia.split("-");
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const ref = `${MESES[+mes - 1]}/${ano}`;
+const pf = d.brasil.PF, pj = d.brasil.PJ;
+const ufs = [...d.por_uf].sort((a, b) => (b.pct_pf ?? 0) - (a.pct_pf ?? 0));
+const modPF = d.modalidades.filter((m) => m.cliente === "PF" && m.carteira > 1e9).map((m) => ({ ...m, modalidade: m.modalidade.replace(/\s*\(ex-.*\)/, "") }));
+const modPJ = d.modalidades.filter((m) => m.cliente === "PJ" && m.carteira > 1e9).map((m) => ({ ...m, modalidade: m.modalidade.replace(/\s*\(ex-.*\)/, "") }));
+const ORDEM = ["Sem rendimento", "Até 1 salário mínimo", "Mais de 1 a 2 salários mínimos", "Mais de 2 a 3 salários mínimos", "Mais de 3 a 5 salários mínimos", "Mais de 5 a 10 salários mínimos", "Mais de 10 a 20 salários mínimos", "Acima de 20 salários mínimos", "Indisponível"];
+const portePF = d.porte.filter((p) => p.cliente === "PF").sort((a, b) => ORDEM.indexOf(a.porte) - ORDEM.indexOf(b.porte));
+const portePJ = d.porte.filter((p) => p.cliente === "PJ").sort((a, b) => b.carteira - a.carteira);
+const W = 920;
+const maxUf = Math.max(...ufs.map((u) => u.pct_pf ?? 0));
+// série
+const SW = 920, SH = 200, padL = 48, padB = 24;
+const maxS = Math.max(...d.serie.map((s) => Math.max(s.pct_pf ?? 0, s.pct_pj ?? 0))) * 1.1;
+const sx = (i: number) => padL + (i * (SW - padL - 10)) / Math.max(1, d.serie.length - 1);
+const sy = (v: number) => 8 + (SH - padB - 8) * (1 - v / maxS);
+const rotulo = (m: string) => `${MESES[+m.slice(5) - 1]}/${m.slice(2, 4)}`;
+---
+<Base title="Inadimplência por estado — Nosso Dinheiro" accent="var(--s4)" description="Quanto do crédito a pessoas e empresas está atrasado há mais de 90 dias, por estado, tipo de crédito e faixa de renda. Banco Central, SCR.data.">
+  <h1>Quanto do crédito está em atraso, em cada estado</h1>
+  <p class="lede">
+    De todo o dinheiro que bancos, cooperativas e financeiras emprestaram a pessoas e empresas, quanto está com parcelas vencidas há
+    mais de 90 dias. Por estado, por tipo de crédito (cartão, consignado, imobiliário, rural…) e por faixa de renda do tomador.
+    Fonte: o cadastro de crédito do Banco Central (SCR), em dados abertos.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · Banco Central do Brasil, SCR.data, posição de {ref} · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{pct(pf.pct)}</b><span><Termo t="inadimplencia_scr">inadimplência</Termo> das pessoas físicas em {ref}: {bi(pf.inadimplencia)} em atraso de uma <Termo t="carteira_ativa">carteira</Termo> de {tri(pf.carteira)}</span></div>
+    <div class="stat"><b>{pct(pj.pct)}</b><span>inadimplência das empresas: {bi(pj.inadimplencia)} em atraso de {tri(pj.carteira)} emprestados</span></div>
+    <div class="stat"><b>{tri(pf.carteira + pj.carteira)}</b><span>crédito total ativo no país; pessoas físicas devem {Math.round(100 * pf.carteira / (pf.carteira + pj.carteira))}% desse valor</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>É inadimplência em reais, não em pessoas.</b> O Banco Central conta quanto do dinheiro emprestado está atrasado há mais de 90
+    dias, não quantas pessoas estão com o nome sujo (isso é dado de birôs privados, que não usamos). Um estado com muito crédito
+    imobiliário (quase sempre em dia) tende a ter taxa menor. O menor recorte que o BC publica é o estado: <b>não há dado oficial por
+    município</b>.</div>
+  </div>
+
+  <h2>Por estado: pessoas físicas e empresas ({ref})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${ufs.length * 22 + 10}`} width="100%" role="img" aria-label="Inadimplência de pessoas físicas por estado">
+      {ufs.map((u, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
+        <text x="150" y="14" text-anchor="end" font-size="12" fill="var(--ink)">{u.nome}</text>
+        <rect x="160" y="2" width={Math.max(1, ((u.pct_pf ?? 0) / maxUf) * 560)} height="16" fill="var(--s4)" rx="2" />
+        <rect x="160" y="2" width={Math.max(1, ((u.pct_pj ?? 0) / maxUf) * 560)} height="16" fill="var(--s1)" rx="2" opacity=".55" />
+        <text x={166 + ((u.pct_pf ?? 0) / maxUf) * 560} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{pct(u.pct_pf)} PF · {pct(u.pct_pj)} PJ</text>
+      </g>))}
+    </svg>
+    <div class="legend"><span><i style="background:var(--s4)"></i>Pessoas físicas</span><span><i style="background:var(--s1);opacity:.55"></i>Empresas (PJ)</span></div>
+    <table style="margin-top:12px">
+      <thead><tr><th>Estado</th><th class="num">Crédito a pessoas</th><th class="num">Inadimplência PF</th><th class="num">Crédito a empresas</th><th class="num">Inadimplência PJ</th></tr></thead>
+      <tbody>{ufs.map((u) => (<tr><td>{u.nome}</td><td class="num">{bi(u.carteira_pf)}</td><td class="num">{pct(u.pct_pf)}</td><td class="num">{bi(u.carteira_pj)}</td><td class="num">{pct(u.pct_pj)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Fonte: Banco Central, SCR.data, {ref}. UF = endereço do tomador no cadastro do banco. Clique no cabeçalho para ordenar.</p>
+  </div>
+
+  <h2>Por tipo de crédito ({ref})</h2>
+  <div class="card duas">
+    <div>
+      <h3>Pessoas físicas</h3>
+      <table><thead><tr><th><Termo t="modalidade_credito">Modalidade</Termo></th><th class="num">Carteira</th><th class="num">Inadimplência</th></tr></thead>
+        <tbody>{modPF.map((m) => (<tr><td>{m.modalidade}</td><td class="num">{bi(m.carteira)}</td><td class="num">{pct(m.pct)}</td></tr>))}</tbody></table>
+    </div>
+    <div>
+      <h3>Empresas</h3>
+      <table><thead><tr><th>Modalidade</th><th class="num">Carteira</th><th class="num">Inadimplência</th></tr></thead>
+        <tbody>{modPJ.map((m) => (<tr><td>{m.modalidade}</td><td class="num">{bi(m.carteira)}</td><td class="num">{pct(m.pct)}</td></tr>))}</tbody></table>
+    </div>
+    <p class="src" style="grid-column:1/-1">"Empréstimos" reúne cartão de crédito, crédito pessoal e consignado; "Financiamentos", sobretudo veículos. Modalidades com menos de R$ 1 bi omitidas.</p>
+  </div>
+
+  <h2>Por faixa de renda do tomador (pessoas físicas, {ref})</h2>
+  <div class="card duas">
+    <div>
+      <table><thead><tr><th>Renda declarada ao banco</th><th class="num">Carteira</th><th class="num">Inadimplência</th></tr></thead>
+        <tbody>{portePF.map((p) => (<tr><td>{p.porte}</td><td class="num">{bi(p.carteira)}</td><td class="num">{pct(p.pct)}</td></tr>))}</tbody></table>
+    </div>
+    <div>
+      <h3>Empresas, por porte</h3>
+      <table><thead><tr><th>Porte</th><th class="num">Carteira</th><th class="num">Inadimplência</th></tr></thead>
+        <tbody>{portePJ.map((p) => (<tr><td>{p.porte}</td><td class="num">{bi(p.carteira)}</td><td class="num">{pct(p.pct)}</td></tr>))}</tbody></table>
+    </div>
+    <p class="src" style="grid-column:1/-1">Faixa de renda é a informada pelo tomador à instituição (campo "porte" do SCR); "Indisponível" = instituição não informou.</p>
+  </div>
+
+  <h2>Evolução mensal</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="Inadimplência mensal PF e PJ">
+      {[2, 4, 6, 8].filter((p) => p < maxS).map((p) => (<g><line x1={padL} x2={SW - 10} y1={sy(p)} y2={sy(p)} stroke="var(--line)" /><text x={padL - 6} y={sy(p) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{p}%</text></g>))}
+      <polyline points={d.serie.map((s, i) => `${sx(i).toFixed(1)},${sy(s.pct_pf ?? 0).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s4)" stroke-width="2.5" />
+      <polyline points={d.serie.map((s, i) => `${sx(i).toFixed(1)},${sy(s.pct_pj ?? 0).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s1)" stroke-width="2.5" />
+      {d.serie.map((s, i) => (i % Math.ceil(d.serie.length / 12) === 0 || i === d.serie.length - 1) && <text x={sx(i)} y={SH - 6} text-anchor={i === d.serie.length - 1 ? "end" : "middle"} font-size="11" fill="var(--ink-2)">{rotulo(s.mes)}</text>)}
+    </svg>
+    <div class="legend"><span><i style="background:var(--s4)"></i>Pessoas físicas: {pct(d.serie[0].pct_pf)} → {pct(pf.pct)}</span><span><i style="background:var(--s1)"></i>Empresas: {pct(d.serie[0].pct_pj)} → {pct(pj.pct)}</span></div>
+    <p class="src">Série dos arquivos anuais do SCR.data disponíveis ({d.serie[0].mes} a {d.referencia}). Séries mais longas: Banco Central, SGS.</p>
+  </div>
+
+  <Glossario termos={["inadimplencia_scr", "carteira_ativa", "modalidade_credito"]} />
+</Base>
+<style>
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .duas h3 { margin: 0 0 8px; font-size: 15px; }
+  @media (max-width: 720px) { .duas { grid-template-columns: 1fr; } }
+</style>

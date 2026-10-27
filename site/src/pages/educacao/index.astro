@@ -1,0 +1,129 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/educacao.json";
+import municipiosBase from "../../../public/data/municipios_2025.json";
+
+type Serie = Record<string, number>;
+type Etapa = Record<string, Serie>;
+const n1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
+const ano = String(d.ano);
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const ETAPAS: [string, string, string][] = [["ai", "Anos iniciais (1º–5º)", "var(--s2)"], ["af", "Anos finais (6º–9º)", "var(--s1)"], ["em", "Ensino médio", "var(--s3)"]];
+const br = d.brasil as Record<string, Etapa>;
+const val = (e: Etapa | undefined, rede: string, a = ano) => e?.[rede]?.[a];
+const anterior = (e: Etapa | undefined, rede: string) => { const s = e?.[rede] ?? {}; const anos = Object.keys(s).filter((a) => a < ano).sort(); return anos.length ? s[anos[anos.length - 1]] : undefined; };
+const delta = (e: Etapa | undefined, rede: string) => { const a = val(e, rede), b = anterior(e, rede); return a != null && b != null ? a - b : null; };
+const fmtDelta = (v: number | null) => v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1).replace(".", ",")}`;
+
+const estados = (d.estados as any[]).map((e) => ({ ...e })).sort((a, b) => (val(b.ai, "total") ?? 0) - (val(a.ai, "total") ?? 0));
+const regioes = d.regioes as any[];
+
+// série Brasil (rede total)
+const anosSerie = Object.keys(br.ai.total).sort();
+const SW = 920, SH = 220, padL = 40, padB = 24;
+const sx = (i: number) => padL + (i * (SW - padL - 10)) / (anosSerie.length - 1);
+const sy = (v: number) => 8 + (SH - padB - 8) * (1 - v / 8);
+
+// municípios
+const capitais = new Set((municipiosBase as any[]).filter((m) => m.capital).map((m) => m.cod_ibge));
+const muns = d.municipios as { cod_ibge: number; nome: string; uf: string; ai?: number; af?: number; em?: number }[];
+const topo = (k: "ai" | "af" | "em", n = 25) => muns.filter((m) => m[k] != null).sort((a, b) => (b[k] ?? 0) - (a[k] ?? 0)).slice(0, n);
+const caps = muns.filter((m) => capitais.has(m.cod_ibge)).sort((a, b) => (b.ai ?? 0) - (a.ai ?? 0));
+const comIdeb = { ai: muns.filter((m) => m.ai != null).length, af: muns.filter((m) => m.af != null).length, em: muns.filter((m) => m.em != null).length };
+const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") ?? 0) - (val(a[k], "total") ?? 0))[0];
+---
+<Base title="Educação: IDEB por estado e município — Nosso Dinheiro" accent="var(--s2)" description="IDEB por estado, capital e município, rede pública e privada, com a série desde 2005. INEP.">
+  <h1>Como vai a escola em cada estado e município</h1>
+  <p class="lede">
+    O <Termo t="ideb">IDEB</Termo> é a nota oficial da educação básica: junta quanto os alunos aprendem (prova Saeb) com quantos
+    passam de ano, de 0 a 10. Aqui está o último resultado por estado, por capital e por município, separando <Termo t="rede_publica">rede pública</Termo>
+    e privada, e a série desde 2005. Sem nota nossa: só o que o INEP publicou.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · INEP, IDEB {ano} (divulgado em 2024; a edição {d.ano + 2} sai em {d.ano + 3}) · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{n1(val(br.ai, "total"))}</b><span>IDEB do Brasil nos anos iniciais do fundamental ({ano}) · rede pública {n1(val(br.ai, "publica"))}, privada {n1(val(br.ai, "privada"))}</span></div>
+    <div class="stat"><b>{n1(val(br.af, "total"))}</b><span>anos finais (6º ao 9º) · pública {n1(val(br.af, "publica"))}, privada {n1(val(br.af, "privada"))}</span></div>
+    <div class="stat"><b>{n1(val(br.em, "total"))}</b><span>ensino médio · estadual {n1(val(br.em, "estadual"))}, privada {n1(val(br.em, "privada"))}</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>O IDEB mede escolas, não famílias.</b> Rede privada tem nota maior em todo o país, e isso reflete também renda e escolaridade dos
+    pais, não só a escola. Comparar estados faz mais sentido dentro da mesma rede (pública com pública). O índice sai a cada dois anos e
+    vale 0,1 ponto de diferença a mais ou a menos por arredondamento; décimos não são "ranking".</div>
+  </div>
+
+  <h2>Por estado: IDEB {ano} por etapa e rede</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Estado</th>
+        <th class="num">Anos iniciais</th><th class="num">pública</th><th class="num">privada</th><th class="num">Δ vs. edição anterior</th>
+        <th class="num">Anos finais</th><th class="num">pública</th><th class="num">privada</th>
+        <th class="num">Ensino médio</th><th class="num">estadual</th><th class="num">privada</th></tr></thead>
+      <tbody>{estados.map((e) => (<tr><td>{e.nome}</td>
+        <td class="num"><b>{n1(val(e.ai, "total"))}</b></td><td class="num">{n1(val(e.ai, "publica"))}</td><td class="num">{n1(val(e.ai, "privada"))}</td><td class="num">{fmtDelta(delta(e.ai, "total"))}</td>
+        <td class="num"><b>{n1(val(e.af, "total"))}</b></td><td class="num">{n1(val(e.af, "publica"))}</td><td class="num">{n1(val(e.af, "privada"))}</td>
+        <td class="num"><b>{n1(val(e.em, "total"))}</b></td><td class="num">{n1(val(e.em, "estadual"))}</td><td class="num">{n1(val(e.em, "privada"))}</td></tr>))}
+        {regioes.map((r) => (<tr class="regiao"><td>{r.nome}</td>
+        <td class="num">{n1(val(r.ai, "total"))}</td><td class="num">{n1(val(r.ai, "publica"))}</td><td class="num">{n1(val(r.ai, "privada"))}</td><td class="num">{fmtDelta(delta(r.ai, "total"))}</td>
+        <td class="num">{n1(val(r.af, "total"))}</td><td class="num">{n1(val(r.af, "publica"))}</td><td class="num">{n1(val(r.af, "privada"))}</td>
+        <td class="num">{n1(val(r.em, "total"))}</td><td class="num">{n1(val(r.em, "estadual"))}</td><td class="num">{n1(val(r.em, "privada"))}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">Fonte: INEP, IDEB {ano}, planilha "regiões e UFs". Ordenado pelos anos iniciais; clique no cabeçalho para reordenar. Δ = diferença para a edição anterior ({Object.keys(br.ai.total).filter((a) => a < ano).pop()}). No ensino médio o INEP não publica "pública" por UF, só estadual.</p>
+  </div>
+
+  <h2>Brasil desde 2005 (todas as redes)</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="IDEB do Brasil por etapa desde 2005">
+      {[2, 4, 6, 8].map((v) => (<g><line x1={padL} x2={SW - 10} y1={sy(v)} y2={sy(v)} stroke="var(--line)" /><text x={padL - 6} y={sy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}</text></g>))}
+      {ETAPAS.map(([k, , cor]) => <polyline points={anosSerie.filter((a) => br[k].total[a] != null).map((a) => `${sx(anosSerie.indexOf(a)).toFixed(1)},${sy(br[k].total[a]).toFixed(1)}`).join(" ")} fill="none" stroke={cor} stroke-width="2.5" />)}
+      {ETAPAS.map(([k, , cor]) => anosSerie.filter((a) => br[k].total[a] != null).map((a) => <circle cx={sx(anosSerie.indexOf(a))} cy={sy(br[k].total[a])} r="3" fill={cor}><title>{a}: {n1(br[k].total[a])}</title></circle>))}
+      {anosSerie.map((a, i) => <text x={sx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
+    </svg>
+    <div class="legend">{ETAPAS.map(([k, nome, cor]) => <span><i style={`background:${cor}`}></i>{nome}: {n1(br[k].total[anosSerie[0]])} → {n1(val(br[k], "total"))}</span>)}</div>
+    <p class="src">Fonte: INEP. Em 2021 a coleta foi afetada pela pandemia (nota informativa do INEP).</p>
+  </div>
+
+  <h2>Capitais: rede pública, IDEB {ano}</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Capital</th><th class="num">Anos iniciais</th><th class="num">Anos finais</th><th class="num">Ensino médio</th></tr></thead>
+      <tbody>{caps.map((m) => (<tr><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{n1(m.ai)}</td><td class="num">{n1(m.af)}</td><td class="num">{n1(m.em)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Fonte: INEP, IDEB {ano} por município, rede pública (estadual + municipal). Nos anos iniciais quase todas as escolas públicas são municipais; no ensino médio, estaduais.</p>
+  </div>
+
+  <h2>Os 25 municípios com maior IDEB na rede pública ({ano})</h2>
+  <div class="card tres">
+    {ETAPAS.map(([k, nome]) => (<div>
+      <h3>{nome}</h3>
+      <table><thead><tr><th>#</th><th>Município</th><th class="num">IDEB</th></tr></thead>
+        <tbody>{topo(k as any).map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{n1((m as any)[k])}</td></tr>))}</tbody></table>
+    </div>))}
+    <p class="src" style="grid-column:1/-1">Fonte: INEP, IDEB {ano}, rede pública. Municípios com IDEB publicado: {comIdeb.ai.toLocaleString("pt-BR")} nos anos iniciais, {comIdeb.af.toLocaleString("pt-BR")} nos anos finais e {comIdeb.em.toLocaleString("pt-BR")} no ensino médio (de 5.570). Em municípios pequenos a nota depende de poucas turmas e varia muito entre edições.</p>
+  </div>
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>A nota cai conforme o aluno avança: no Brasil, {n1(val(br.ai, "total"))} nos anos iniciais, {n1(val(br.af, "total"))} nos anos finais e {n1(val(br.em, "total"))} no ensino médio ({ano}).</li>
+      <li>A rede privada fica {n1((val(br.ai, "privada") ?? 0) - (val(br.ai, "publica") ?? 0))} ponto acima da pública nos anos iniciais e {n1((val(br.em, "privada") ?? 0) - (val(br.em, "estadual") ?? 0))} acima da estadual no ensino médio.</li>
+      <li>Maior IDEB estadual: {melhorUF("ai").nome} nos anos iniciais ({n1(val(melhorUF("ai").ai, "total"))}), {melhorUF("af").nome} nos anos finais ({n1(val(melhorUF("af").af, "total"))}) e {melhorUF("em").nome} no ensino médio ({n1(val(melhorUF("em").em, "total"))}).</li>
+      <li>Desde 2005, o Brasil subiu {n1((val(br.ai, "total") ?? 0) - br.ai.total[anosSerie[0]])} ponto nos anos iniciais e {n1((val(br.em, "total") ?? 0) - br.em.total[anosSerie[0]])} no ensino médio.</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>
+  </div>
+
+  <Glossario termos={["ideb", "rede_publica"]} />
+</Base>
+<style>
+  .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; } .tres h3 { margin: 0 0 8px; font-size: 15px; }
+  @media (max-width: 900px) { .tres { grid-template-columns: 1fr; } }
+  td .uf { color: var(--ink-2); font-size: 12px; font-family: var(--mono); margin-left: 4px; }
+  tr.regiao td { color: var(--ink-2); font-style: italic; border-top: 2px solid var(--line); }
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+</style>

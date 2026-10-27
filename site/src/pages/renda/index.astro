@@ -1,0 +1,171 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/renda.json";
+
+const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const pct1 = (v: number | null | undefined) => v == null ? "—" : `${v.toFixed(1).replace(".", ",")}%`;
+const x = (a: number, b: number) => `${(a / b).toFixed(2).replace(".", ",")}×`;
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const P = Object.fromEntries(d.posicoes.map((p) => [p.chave, p])) as Record<string, (typeof d.posicoes)[number]>;
+const v = (k: string) => P[k]?.valor ?? 0;
+const dist = d.distribuicao;
+const anos = Object.keys(P.total.serie);
+
+const barras = [
+  { k: "publico_estatutario_militar", nome: "Setor público: estatutários e militares", cor: "var(--s3)" },
+  { k: "publico_celetista_com_carteira", nome: "Setor público: celetistas com carteira", cor: "#c56aa3" },
+  { k: "publico", nome: "Setor público (todos)", cor: "var(--s3)", destaque: true },
+  { k: "empregador_cnpj", nome: "Empregador com CNPJ", cor: "var(--s4)" },
+  { k: "conta_propria_cnpj", nome: "Conta própria com CNPJ", cor: "#d9a23b" },
+  { k: "privado_com_carteira", nome: "Setor privado com carteira", cor: "var(--s1)", destaque: true },
+  { k: "total", nome: "Todos os ocupados (média)", cor: "var(--neutro)", destaque: true },
+  { k: "privado_sem_carteira", nome: "Setor privado sem carteira", cor: "#9ec5e8" },
+  { k: "conta_propria_sem_cnpj", nome: "Conta própria sem CNPJ", cor: "#e8c98a" },
+  { k: "domestico", nome: "Trabalhador doméstico", cor: "var(--s5)" },
+].sort((a, b) => v(b.k) - v(a.k));
+const maxBar = Math.max(...barras.map((b) => v(b.k)));
+const W = 920;
+
+// série: público × privado com carteira × conta própria
+const series = [
+  { k: "publico", nome: "Setor público", cor: "var(--s3)" }, { k: "privado_com_carteira", nome: "Privado com carteira", cor: "var(--s1)" },
+  { k: "conta_propria", nome: "Conta própria", cor: "var(--s4)" }, { k: "total", nome: "Média geral", cor: "var(--neutro)" },
+];
+const maxS = Math.max(...series.flatMap((s) => Object.values(P[s.k].serie as Record<string, number>)));
+const SW = 920, SH = 220, padL = 60, padB = 24;
+const sx = (i: number) => padL + (i * (SW - padL - 10)) / (anos.length - 1);
+const sy = (val: number) => 8 + (SH - padB - 8) * (1 - val / maxS);
+const linha = (k: string) => anos.map((a, i) => `${sx(i).toFixed(1)},${sy((P[k].serie as any)[a]).toFixed(1)}`).join(" ");
+
+// distribuição
+const classesSimples = dist.classes.filter((c) => !["p90_p95", "p95_p99"].includes(c.classe) && c.classe !== "p90_mais");
+const top = { p90: dist.classes.find((c) => c.classe === "p90_mais"), p99: dist.classes.find((c) => c.classe === "p99_mais"), p10: dist.classes.find((c) => c.classe === "ate_p10") };
+const massaMax = Math.max(...classesSimples.map((c) => c.massa_pct ?? 0));
+const lim = dist.limites as Record<string, number>;
+const oc = dist.ocupados_por_classe as Record<string, number>;
+const anosD = Object.keys(dist.massa_serie.p99_mais);
+const serieD = [
+  { nome: "10% mais ricos", vals: dist.massa_serie.p90_mais as Record<string, number>, cor: "var(--s3)" },
+  { nome: "Metade mais pobre (50%)", vals: dist.metade_mais_pobre_serie as Record<string, number>, cor: "var(--s2)" },
+  { nome: "1% mais rico", vals: dist.massa_serie.p99_mais as Record<string, number>, cor: "var(--s4)" },
+  { nome: "10% mais pobres", vals: dist.massa_serie.ate_p10 as Record<string, number>, cor: "var(--s1)" },
+];
+const dy = (val: number) => 8 + (SH - padB - 8) * (1 - val / 50);
+const dx = (i: number) => padL + (i * (SW - padL - 10)) / (anosD.length - 1);
+
+const ufs = [...d.por_uf].sort((a, b) => (b.publico / b.privado_com_carteira) - (a.publico / a.privado_com_carteira));
+const ufMaisDesigual = [...d.por_uf].sort((a, b) => (b.gini ?? 0) - (a.gini ?? 0))[0];
+const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 9))[0];
+---
+<Base title="Renda: público, privado e o 1% mais rico — Nosso Dinheiro" accent="var(--s3)" description="Quanto ganha quem trabalha no setor público e no privado, e quanto da renda fica com os 10% e o 1% mais ricos. IBGE, PNAD Contínua.">
+  <h1>Quem ganha quanto no Brasil</h1>
+  <p class="lede">
+    Rendimento médio de quem trabalha, por tipo de vínculo (servidor, carteira assinada, conta própria, empregador), em cada estado;
+    e como a renda se divide: quanto fica com a metade mais pobre, com os 10% mais ricos e com o 1% do topo. Tudo da PNAD Contínua
+    do IBGE, a pesquisa domiciliar que mede isso oficialmente.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · IBGE, PNAD Contínua anual {d.ano}, valores a preços médios de {d.ano} · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{brl0(v("publico"))}</b><span><Termo t="rendimento_habitual">rendimento médio</Termo> de quem trabalha no <Termo t="setor_publico_pnad">setor público</Termo> ({d.ano}) · {x(v("publico"), v("privado_com_carteira"))} o do setor privado com carteira ({brl0(v("privado_com_carteira"))})</span></div>
+    <div class="stat"><b>{pct1(top.p99?.massa_pct)}</b><span>da renda de todos os brasileiros fica com o <Termo t="percentil">1% mais rico</Termo> ({d.ano_distribuicao}); os 10% mais ricos ficam com {pct1(top.p90?.massa_pct)}</span></div>
+    <div class="stat"><b>{brl0(lim.P99)}</b><span><Termo t="renda_domiciliar_pc">renda domiciliar por pessoa</Termo> acima da qual se está no 1% mais rico; para os 10%: {brl0(lim.P90)}; metade do país vive com até {brl0(lim.P50)}</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Média não é salário típico, e comparar setores mistura profissões.</b> O setor público tem mais gente com ensino superior
+    (professores, médicos, juízes, policiais) e quase nenhum emprego de salário mínimo; o privado tem de tudo. A PNAD é uma pesquisa por
+    amostra, com rendimento declarado pelo próprio entrevistado. Os números dizem quanto cada grupo recebe em média, não se é "justo".</div>
+  </div>
+
+  <h2>Rendimento médio mensal por tipo de vínculo ({d.ano})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${barras.length * 30 + 10}`} width="100%" role="img" aria-label="Rendimento médio por posição na ocupação">
+      {barras.map((b, i) => (<g transform={`translate(0 ${i * 30 + 5})`}>
+        <text x="330" y="18" text-anchor="end" font-size="12" font-weight={b.destaque ? "700" : "400"} fill="var(--ink)">{b.nome}</text>
+        <rect x="340" y="4" width={Math.max(1, (v(b.k) / maxBar) * 470)} height="20" fill={b.cor} rx="2" />
+        <text x={346 + (v(b.k) / maxBar) * 470} y="18" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl0(v(b.k))}</text>
+      </g>))}
+    </svg>
+    <p class="src">Fonte: IBGE, PNAD Contínua, tabela 4659 (rendimento médio mensal real habitualmente recebido no trabalho principal, pessoas de 14 anos ou mais). "Com CNPJ" inclui MEI.</p>
+  </div>
+
+  <h2>Como evoluiu desde 2012 (em reais de {d.ano})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="Série do rendimento médio por posição">
+      {[0.25, 0.5, 0.75, 1].map((f) => (<g><line x1={padL} x2={SW - 10} y1={sy(maxS * f)} y2={sy(maxS * f)} stroke="var(--line)" /><text x={padL - 6} y={sy(maxS * f) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{brl0(maxS * f)}</text></g>))}
+      {series.map((s) => <polyline points={linha(s.k)} fill="none" stroke={s.cor} stroke-width="2.5" />)}
+      {anos.map((a, i) => (i % 2 === 0 || i === anos.length - 1) && <text x={sx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
+    </svg>
+    <div class="legend">{series.map((s) => <span><i style={`background:${s.cor}`}></i>{s.nome}: {brl0(P[s.k].serie[anos[0]])} → {brl0(P[s.k].valor)}</span>)}</div>
+    <p class="src">Valores já corrigidos pela inflação pelo IBGE (preços médios de {d.ano}). 2020 e 2021 têm quebra na coleta (pandemia).</p>
+  </div>
+
+  <h2>Por estado: público × privado, renda por pessoa e desigualdade ({d.ano})</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Estado</th><th class="num">Setor público</th><th class="num">Privado c/ carteira</th><th class="num">Público ÷ privado</th><th class="num">Conta própria</th><th class="num">Renda por pessoa</th><th class="num"><Termo t="gini">Gini</Termo></th><th class="num">10% mais ricos têm</th><th class="num">1% mais rico tem</th></tr></thead>
+      <tbody>{ufs.map((u) => (<tr><td>{u.nome}</td><td class="num">{brl0(u.publico)}</td><td class="num">{brl0(u.privado_com_carteira)}</td><td class="num">{x(u.publico, u.privado_com_carteira)}</td>
+        <td class="num">{brl0(u.conta_propria)}</td><td class="num">{brl0(u.renda_domiciliar_pc)}</td><td class="num">{u.gini?.toFixed(3).replace(".", ",")}</td><td class="num">{pct1(u.massa_p90_mais)}</td><td class="num">{pct1(u.massa_p99_mais)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Fonte: IBGE, PNAD Contínua, tabelas 4659 (rendimento por posição), 7533 (renda domiciliar por pessoa), 7435 (Gini) e 7527 (parcela da renda por classe). Clique no cabeçalho para ordenar.</p>
+  </div>
+
+  <h2>Os 10% e o 1% mais ricos: quanto da renda fica com cada faixa ({d.ano_distribuicao})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${classesSimples.length * 28 + 10}`} width="100%" role="img" aria-label="Parcela da renda por classe de percentual">
+      {classesSimples.map((c, i) => (<g transform={`translate(0 ${i * 28 + 5})`}>
+        <text x="330" y="17" text-anchor="end" font-size="12" font-weight={c.classe === "p99_mais" ? "700" : "400"} fill="var(--ink)">{c.nome.replace("Maior que o ", "> ").replace(" até o ", " a ")}</text>
+        <rect x="340" y="3" width={Math.max(1, ((c.massa_pct ?? 0) / massaMax) * 330)} height="20" fill={c.classe === "p99_mais" ? "var(--s4)" : c.classe === "p80_p90" ? "var(--s3)" : "var(--s1)"} rx="2" />
+        <text x={346 + ((c.massa_pct ?? 0) / massaMax) * 330} y="17" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{pct1(c.massa_pct)} da renda · média {brl0(c.renda_media)}/pessoa</text>
+      </g>))}
+    </svg>
+    <p class="src">Fonte: IBGE, PNAD Contínua, tabelas 7527 (distribuição da massa de rendimento domiciliar per capita) e 7533 (rendimento médio por classe). "P" = percentil: "> P99" é o 1% mais rico. As faixas de 10% somam 100%; o 1% está contido nos 10%.</p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 10px">O que é preciso ter para estar em cada faixa, e quanto ganha quem trabalha</h3>
+    <table>
+      <thead><tr><th>Faixa</th><th class="num">Renda domiciliar por pessoa (limite)</th><th class="num">Rendimento médio de quem trabalha nessa faixa</th></tr></thead>
+      <tbody>
+        <tr><td>10% mais pobres (até o P10)</td><td class="num">até {brl0(lim.P10)}</td><td class="num">{brl0(oc.ate_p10)}</td></tr>
+        <tr><td>Metade do país (até o P50)</td><td class="num">até {brl0(lim.P50)}</td><td class="num">—</td></tr>
+        <tr><td>10% mais ricos (acima do P90)</td><td class="num">acima de {brl0(lim.P90)}</td><td class="num">{brl0(oc.p90_mais)}</td></tr>
+        <tr><td>5% mais ricos (acima do P95)</td><td class="num">acima de {brl0(lim.P95)}</td><td class="num">{brl0(oc.p95_p99)} (P95–P99)</td></tr>
+        <tr><td>1% mais rico (acima do P99)</td><td class="num">acima de {brl0(lim.P99)}</td><td class="num">{brl0(oc.p99_mais)}</td></tr>
+        <tr><td>Todos os trabalhadores</td><td class="num">—</td><td class="num">{brl0(oc.total)}</td></tr>
+      </tbody>
+    </table>
+    <p class="src">Fonte: IBGE, PNAD Contínua, tabelas 7438 (limites das classes de renda domiciliar per capita) e 7535 (rendimento de todos os trabalhos dos ocupados, por classe de percentual dos próprios ocupados). As duas colunas usam ordenações diferentes (pessoas por renda do domicílio × trabalhadores por renda do trabalho).</p>
+  </div>
+
+  <h2>Desigualdade desde 2012: parcela da renda de cada grupo</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="Parcela da renda por grupo ao longo do tempo">
+      {[10, 20, 30, 40, 50].map((p) => (<g><line x1={padL} x2={SW - 10} y1={dy(p)} y2={dy(p)} stroke="var(--line)" /><text x={padL - 6} y={dy(p) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{p}%</text></g>))}
+      {serieD.map((s) => <polyline points={anosD.map((a, i) => `${dx(i).toFixed(1)},${dy(s.vals[a] ?? 0).toFixed(1)}`).join(" ")} fill="none" stroke={s.cor} stroke-width="2.5" />)}
+      {anosD.map((a, i) => (i % 2 === 0 || i === anosD.length - 1) && <text x={dx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
+    </svg>
+    <div class="legend">{serieD.map((s) => <span><i style={`background:${s.cor}`}></i>{s.nome}: {pct1(s.vals[anosD[0]])} → {pct1(s.vals[anosD[anosD.length - 1]])}</span>)}</div>
+    <p class="src">Fonte: IBGE, PNAD Contínua, tabelas 7527 e 7530. Gini do Brasil: {dist.gini.serie[anosD[0]]?.toFixed(3).replace(".", ",")} em {anosD[0]} → {dist.gini.brasil?.toFixed(3).replace(".", ",")} em {d.ano_distribuicao}.</p>
+  </div>
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>Em {d.ano}, o rendimento médio no setor público ({brl0(v("publico"))}) foi {x(v("publico"), v("privado_com_carteira"))} o do setor privado com carteira ({brl0(v("privado_com_carteira"))}) e {x(v("publico"), v("total"))} a média de todos os ocupados ({brl0(v("total"))}). Estatutários e militares: {brl0(v("publico_estatutario_militar"))}.</li>
+      <li>Quem mais ganha, em média, são empregadores com CNPJ ({brl0(v("empregador_cnpj"))}); quem menos ganha, trabalhadores domésticos ({brl0(v("domestico"))}) e conta própria sem CNPJ ({brl0(v("conta_propria_sem_cnpj"))}).</li>
+      <li>O 1% mais rico ({top.p99 ? brl0(top.p99.renda_media) : "—"} por pessoa do domicílio, em média) fica com {pct1(top.p99?.massa_pct)} da renda; os 10% mais pobres ({top.p10 ? brl0(top.p10.renda_media) : "—"} por pessoa) ficam com {pct1(top.p10?.massa_pct)}. Os 10% mais ricos têm {pct1(top.p90?.massa_pct)}; a metade mais pobre, {pct1(dist.metade_mais_pobre_serie[d.ano_distribuicao])}.</li>
+      <li>A razão público ÷ privado é maior em {ufs[0].nome} ({x(ufs[0].publico, ufs[0].privado_com_carteira)}) e menor em {ufs[ufs.length - 1].nome} ({x(ufs[ufs.length - 1].publico, ufs[ufs.length - 1].privado_com_carteira)}). O estado mais desigual pelo Gini é {ufMaisDesigual.nome} ({ufMaisDesigual.gini?.toFixed(3).replace(".", ",")}); o menos, {ufMenosDesigual.nome} ({ufMenosDesigual.gini?.toFixed(3).replace(".", ",")}).</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima; nenhum número é digitado à mão.</p>
+  </div>
+
+  <Glossario termos={["rendimento_habitual", "setor_publico_pnad", "percentil", "renda_domiciliar_pc", "gini"]} />
+</Base>
+<style>
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+</style>

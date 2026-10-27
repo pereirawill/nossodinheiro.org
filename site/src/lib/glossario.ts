@@ -66,6 +66,24 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   unidade_orcamentaria: { rotulo: "Unidade orçamentária", texto: "A menor divisão da Lei Orçamentária com orçamento próprio: uma universidade, um tribunal regional, um fundo. É o que chamamos de 'órgão' nas tabelas." },
   per_capita: { rotulo: "Por habitante", texto: "Valor dividido pela população do Brasil estimada pelo IBGE (212,6 milhões). Serve só para dar escala; não é quanto cada pessoa pagou." },
   despesa_paga: { rotulo: "Despesa paga", texto: "Tudo que saiu do caixa no ano, incluindo benefícios e transferências. Não confundir com 'custo da máquina', que é só a parte de manutenção do órgão." },
+
+  // Renda (PNAD Contínua)
+  rendimento_habitual: { rotulo: "Rendimento médio habitual", texto: "Quanto a pessoa diz receber normalmente por mês no trabalho principal, em dinheiro ou produtos, antes de descontos. Média entre quem tem rendimento; a PNAD é uma pesquisa por amostra do IBGE, com margem de erro." },
+  setor_publico_pnad: { rotulo: "Setor público (PNAD)", texto: "Empregados de órgãos públicos das três esferas: servidores estatutários, militares e celetistas. Inclui professor da rede municipal e agente de saúde, não só carreiras federais. Comparar a média com o setor privado mistura ocupações e escolaridades diferentes." },
+  percentil: { rotulo: "Percentil (P10, P90, P99)", texto: "Ordene todas as pessoas pela renda domiciliar por pessoa: P10 é o ponto abaixo do qual estão os 10% mais pobres; acima do P90 estão os 10% mais ricos; acima do P99, o 1% mais rico." },
+  renda_domiciliar_pc: { rotulo: "Renda domiciliar por pessoa", texto: "Soma de todos os rendimentos do domicílio (trabalho, aposentadoria, aluguel, programas sociais) dividida pelo número de moradores. É a medida que o IBGE usa para distribuição e desigualdade." },
+  gini: { rotulo: "Índice de Gini", texto: "Mede desigualdade de 0 (todos com a mesma renda) a 1 (uma pessoa com tudo). Calculado pelo IBGE sobre a renda domiciliar por pessoa." },
+  // Educação (IDEB)
+  ideb: { rotulo: "IDEB", texto: "Índice de Desenvolvimento da Educação Básica, do INEP: taxa de aprovação multiplicada pela nota média no Saeb (português e matemática), de 0 a 10. Divulgado a cada dois anos para anos iniciais (1º ao 5º), anos finais (6º ao 9º) e ensino médio." },
+  rede_publica: { rotulo: "Rede pública", texto: "Escolas estaduais e municipais juntas (e federais, quando há). Nos anos iniciais a maior parte é municipal; no ensino médio, estadual. O IDEB por município é calculado só para a rede pública." },
+  // Segurança (Sinesp)
+  taxa_100k: { rotulo: "Taxa por 100 mil habitantes", texto: "Número de ocorrências ou vítimas no ano dividido pela população estimada pelo IBGE e multiplicado por 100 mil. Permite comparar lugares de tamanhos diferentes; em cidades pequenas, poucos casos mudam muito a taxa." },
+  registro_policial: { rotulo: "Registro policial", texto: "O dado é o que as polícias civis e militares registraram e os estados enviaram ao Ministério da Justiça (Sinesp VDE). Crimes não denunciados não aparecem; cada estado alimenta o sistema no seu ritmo e pode corrigir depois." },
+  homicidio_doloso: { rotulo: "Homicídio doloso", texto: "Morte causada intencionalmente por outra pessoa, contada em vítimas. Feminicídio, latrocínio (roubo seguido de morte) e lesão corporal seguida de morte são registrados em categorias próprias; aqui cada uma aparece separada, como o MJ publica." },
+  // Crédito (Banco Central)
+  inadimplencia_scr: { rotulo: "Inadimplência (SCR)", texto: "Parte do dinheiro emprestado que está com parcelas vencidas há mais de 90 dias, dividida por todo o crédito ativo. É inadimplência em reais, não em número de pessoas: o Banco Central não publica quantas pessoas estão com nome sujo." },
+  carteira_ativa: { rotulo: "Carteira ativa", texto: "Tudo que bancos, cooperativas e financeiras têm emprestado a pessoas (PF) ou empresas (PJ) na data: parcelas a vencer e vencidas. Fonte: SCR, o cadastro de operações de crédito do Banco Central." },
+  modalidade_credito: { rotulo: "Modalidade", texto: "Tipo de crédito: empréstimos (cartão, consignado, pessoal), financiamentos (veículos), imobiliário, rural, entre outros, conforme a classificação do Banco Central." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;
