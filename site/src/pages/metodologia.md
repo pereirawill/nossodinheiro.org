@@ -200,6 +200,17 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   pesquisadas. A comparação com a meta usa só o valor central, sem a margem de tolerância. Não existe IPCA por estado.
 - Completo: `docs/metodologia/painel-inflacao.md`.
 
+## INSS e Aposentadoria — duas abas, de propósito
+
+- **Por que separadas:** o INSS paga muito mais que aposentadoria (pensões, auxílios, salário-maternidade e o BPC, que é assistência
+  sem contribuição) e aposentadoria não é só INSS (servidor público tem regime próprio, com outra caixa e outras regras). A aba
+  **INSS** mostra tudo que o instituto paga; a aba **Aposentadoria** compara os dois regimes.
+- **Fontes:** Boletim Estatístico da Previdência Social (benefícios por espécie, por estado e a série desde 2000); SIOP, para o que a
+  União paga a servidores aposentados e pensionistas; SICONFI, para a previdência dos estados.
+- **Atenção:** são benefícios, não pessoas — quem recebe aposentadoria e pensão conta duas vezes. Do regime próprio existe o valor
+  pago, mas não há contagem nacional aberta de quantos servidores aposentados são, e por isso não comparamos valor médio.
+- Completo: `docs/metodologia/painel-previdencia.md`.
+
 ## Saúde — gasto público, planos e indicadores
 
 - **O que é:** o que União, governos estaduais e prefeituras pagaram na função Saúde; quantos brasileiros têm plano de saúde e
@@ -230,7 +241,7 @@ sempre só PDF ou metodologia diferente.
 |---|---|---|---|
 | União por função e por Poder | SIOP | 2000 | Balanço Geral da União em PDF; séries agregadas do Tesouro desde 1997 |
 | Arrecadação federal | Receita Federal (CSV) | 2000 | planilhas da Receita desde 1995 |
-| Benefícios do INSS | BEPS, tabela 14 | 2000 | anuários antigos em PDF |
+| Benefícios do INSS | BEPS, tabelas 13, 14, 15 e 19 | 2000 | anuários antigos em PDF |
 | Estados e municípios por função | SICONFI (DCA) | 2013 | Finbra antigo, arquivos anuais desde 1989, formato diferente (em avaliação) |
 | Cota dos deputados e senadores | Câmara, Senado | 2008 | a cota não existia nesse formato |
 | Folha do STF | portal do STF | ~2012 | não publicada |

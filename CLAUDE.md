@@ -21,7 +21,7 @@ Workflows (`.github/workflows/`):
 - `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
-- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao}.yml` — mensais (dias 7, 9, 10, 11, 12, 13); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
+- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao,previdencia}.yml` — mensais (dias 7, 9, 10, 11, 12, 13, 14); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 Secrets existentes: os dois da Cloudflare + `PORTAL_TRANSPARENCIA_KEY`. Workflow permissions = read/write.
 
 Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026` (FONTE=bulk padrão),
@@ -32,7 +32,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Impostos, Inflação, Trabalho, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Impostos, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -119,6 +119,16 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   série 24 meses. Sem dado municipal (só UF; "sub-região" do BCB é codificada). **Sem faixa etária** (pedido de 27/10): o SCR não
   publica idade; o recorte mais próximo é `cnae_ocupacao` (PF), que inclui "Aposentado/pensionista" — virou tabela na página.
 - `openpyxl` entrou em requirements. Glossário ganhou 14 termos (rendimento_habitual … modalidade_credito).
+
+## Painéis INSS e Aposentadoria (NO AR, sem chave, mensal dia 14; feitos 27/10/2026)
+- Pedido de 27/10: **duas abas**, com a diferença explicada nas duas (o dono escolheu duas, contra a recomendação de uma só).
+- `etl/previdencia/extract.py` → `previdencia.json`: BEPS abas **15** (espécie: quantidade, valor, valor médio — hierarquia em
+  `GRUPOS_15`, rótulos com nota de rodapé no texto da célula → corta no primeiro parêntese, nas chaves e nos valores), **19** (UF,
+  só RGPS; UFs vêm indentadas, regiões não) e **13** (série desde 2000). Ago/2026: 42,7 mi de benefícios, R$ 80,3 bi/mês.
+- `/inss/` = tudo que o instituto paga (42,2% não é aposentadoria; BPC 6,6 mi); `/aposentadoria/` = os dois regimes, com RPPS da
+  União vindo de `poderes_categoria_2025` (subcategoria "Aposentados e pensionistas", R$ 135,4 bi) e estados da função 09 do SICONFI
+  (R$ 226,2 bi). Ano do INSS = mês × 13, rotulado. **Sem contagem de aposentados do RPPS** (não há base aberta) → não comparamos
+  valor médio entre regimes. `xlwt` entrou em requirements só para os testes.
 
 ## Painel Inflação (NO AR, sem chave, mensal dia 12; feito 27/10/2026)
 - `etl/inflacao/extract.py` → `inflacao.json`, `/inflacao/` (menu depois de Impostos). SIDRA 1737 (IPCA desde dez/1979: índice,

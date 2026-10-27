@@ -1,0 +1,155 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
+import d from "../../../public/data/previdencia.json";
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const bi = (v: number) => `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi`;
+const mi = (v: number) => `${(v / 1e6).toFixed(1).replace(".", ",")} mi`;
+const num = (v: number) => v.toLocaleString("pt-BR");
+const pct1 = (a: number, b: number) => `${((100 * a) / b).toFixed(1).replace(".", ",")}%`;
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const [ano, mes] = d.competencia.split("-");
+const competencia = `${MESES[+mes - 1]} de ${ano}`;
+
+const esp = Object.fromEntries((d.especies as any[]).map((e) => [e.chave, e])) as Record<string, any>;
+const total = esp.total, rgps = esp.rgps, assist = esp.assistenciais;
+const aposent = esp.aposentadorias;
+const naoAposentadoria = total.quantidade - aposent.quantidade;
+
+// pizza: o que o INSS paga, pelos grandes blocos
+const BLOCOS = [
+  { chave: "aposentadorias", cor: "var(--s1)" },
+  { chave: "pensoes", cor: "var(--s3)" },
+  { chave: "auxilios", cor: "var(--s4)" },
+  { chave: "salario_maternidade", cor: "var(--s5)" },
+  { chave: "acidentarios", cor: "#9c755f" },
+  { chave: "assistenciais", cor: "var(--s2)" },
+  { chave: "legislacao_especial", cor: "var(--neutro)" },
+].map((b) => ({ ...b, ...esp[b.chave] })).filter((b) => b.quantidade);
+const somaBlocos = BLOCOS.reduce((s, b) => s + b.quantidade, 0);
+let ang = -Math.PI / 2;
+const arcos = BLOCOS.map((b) => {
+  const fr = b.quantidade / somaBlocos, a0 = ang; ang += fr * 2 * Math.PI;
+  const x0 = 100 + 86 * Math.cos(a0), y0 = 100 + 86 * Math.sin(a0), x1 = 100 + 86 * Math.cos(ang), y1 = 100 + 86 * Math.sin(ang);
+  return { ...b, fr, d: `M100,100 L${x0.toFixed(2)},${y0.toFixed(2)} A86,86 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` };
+});
+
+const ufs = [...d.por_uf].sort((a, b) => b.quantidade - a.quantidade);
+const serie = d.serie as { ano: number; mes: string; quantidade: number }[];
+const SW = 920, SH = 220, padL = 52, padB = 24;
+const maxS = Math.max(...serie.map((s) => s.quantidade)) * 1.05;
+const sx = (i: number) => padL + (i * (SW - padL - 10)) / (serie.length - 1);
+const sy = (v: number) => 8 + (SH - padB - 8) * (1 - v / maxS);
+const W = 920;
+const maxQtd = Math.max(...BLOCOS.map((b) => b.quantidade));
+---
+<Base title="INSS: o que o instituto paga todo mês — Nosso Dinheiro" accent="var(--s1)" description="Os 42,7 milhões de benefícios que o INSS paga por mês: aposentadorias, pensões, auxílios, salário-maternidade e BPC, com valor, valor médio e divisão por estado.">
+  <h1>INSS: o que o instituto paga todo mês</h1>
+  <p class="lede">
+    <b>O INSS não é só aposentadoria.</b> Ele paga aposentadoria, pensão por morte, auxílio por incapacidade, auxílio-acidente,
+    auxílio-reclusão e salário-maternidade a quem contribuiu — e ainda opera o <Termo t="bpc">BPC</Termo>, que é assistência social e
+    não exige nenhuma contribuição. Aqui estão todos esses benefícios, quantos são, quanto custam e quanto cada um paga em média.
+    Para ver só a aposentadoria, e comparar com a dos servidores públicos, vá em <a href="/aposentadoria/">Aposentadoria</a>.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · Ministério da Previdência Social, Boletim Estatístico, competência de {competencia} · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{mi(total.quantidade)}</b><span>benefícios pagos em {competencia}, somando {bi(total.valor)} no mês — {brl0(total.valor_medio)} em média por benefício</span></div>
+    <div class="stat"><b>{pct1(naoAposentadoria, total.quantidade)}</b><span>do que o INSS paga <b class="inline">não é aposentadoria</b>: são {mi(naoAposentadoria)} de pensões, auxílios, salário-maternidade e BPC</span></div>
+    <div class="stat"><b>{mi(assist.quantidade)}</b><span>são benefícios assistenciais (BPC e rendas vitalícias), pagos a quem <b class="inline">nunca precisou contribuir</b>: {bi(assist.valor)} no mês</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>São benefícios, não pessoas.</b> Alguém pode receber dois — uma aposentadoria e uma pensão, por exemplo — e aparece duas
+    vezes nesta conta. Quem recebe também pode estar trabalhando. E o INSS cobre apenas o <Termo t="rgps">RGPS</Termo>, o regime de
+    quem contribui pelo trabalho privado ou por conta própria: <b>servidores públicos têm regime próprio</b>, que não está aqui
+    (veja em <a href="/aposentadoria/">Aposentadoria</a>).</div>
+  </div>
+
+  <h2>O que o INSS paga, por tipo de benefício ({competencia})</h2>
+  <div class="card pizza">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label="Benefícios do INSS por tipo">
+      {arcos.map((a) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {num(a.quantidade)} ({pct1(a.quantidade, somaBlocos)})</title></path>)}
+      <circle cx="100" cy="100" r="46" fill="var(--card)" />
+      <text x="100" y="96" text-anchor="middle" font-size="10" fill="var(--ink-2)">benefícios</text>
+      <text x="100" y="112" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{mi(total.quantidade)}</text>
+    </svg>
+    <table>
+      <thead><tr><th>Tipo</th><th class="num">Benefícios</th><th class="num">%</th><th class="num">Valor no mês</th><th class="num">Média</th></tr></thead>
+      <tbody>{arcos.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{num(a.quantidade)}</td>
+        <td class="num">{pct1(a.quantidade, somaBlocos)}</td><td class="num">{bi(a.valor)}</td><td class="num">{brl0(a.valor_medio)}</td></tr>))}</tbody>
+    </table>
+    <p class="src" style="grid-column:1/-1">Fonte: Boletim Estatístico da Previdência Social, tabela 15, benefícios emitidos em {competencia}. "Acidentários" são benefícios por acidente de trabalho (aposentadoria, pensão e auxílios), contados à parte dos previdenciários comuns.</p>
+  </div>
+
+  <h2>Cada benefício em detalhe</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Benefício</th><th class="num">Quantidade</th><th class="num">Valor no mês</th><th class="num">Valor médio</th></tr></thead>
+      <tbody>{(d.especies as any[]).filter((e) => e.chave !== "total").map((e) => (
+        <tr class={e.nivel <= 1 ? "grupo" : ""}><td style={`padding-left:${(e.nivel - 1) * 18}px`}>{e.nome}</td>
+          <td class="num">{num(e.quantidade)}</td><td class="num">{bi(e.valor)}</td><td class="num">{brl0(e.valor_medio)}</td></tr>))}
+        <tr class="grupo"><td><b>Total</b></td><td class="num"><b>{num(total.quantidade)}</b></td><td class="num"><b>{bi(total.valor)}</b></td><td class="num"><b>{brl0(total.valor_medio)}</b></td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      Os itens recuados são partes do item acima. O valor médio do BPC é próximo de um salário mínimo porque é exatamente isso que a
+      lei manda pagar; a aposentadoria por tempo de contribuição é a mais alta ({brl0(esp.aposentadoria_tempo.valor_medio)}) porque
+      exige mais anos de contribuição, e a por idade a mais comum ({num(esp.aposentadoria_idade.quantidade)} benefícios).
+      Fonte: BEPS, tabela 15.
+    </p>
+  </div>
+
+  <h2>Quantos benefícios em cada estado</h2>
+  <div class="card">
+    <MapaBrasil valores={Object.fromEntries(d.por_uf.map((u) => [u.uf, u.quantidade]))} formato={(v) => mi(v)}
+      titulo={`Benefícios do RGPS emitidos em cada estado, ${competencia}`} legenda="benefícios do INSS (RGPS) por estado" />
+  </div>
+  <div class="card" style="margin-top:14px">
+    <table>
+      <thead><tr><th>Estado</th><th class="num">Benefícios</th><th class="num">Valor no mês</th><th class="num">Valor médio</th><th class="num">% em área rural</th></tr></thead>
+      <tbody>{ufs.map((u) => (<tr><td>{u.nome}</td><td class="num">{num(u.quantidade)}</td><td class="num">{bi(u.valor)}</td><td class="num">{brl0(u.valor_medio)}</td><td class="num">{String(u.pct_rural).replace(".", ",")}%</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Fonte: BEPS, tabela 19 — só benefícios do RGPS (o BPC não entra nesta tabela do boletim). "Clientela rural" é quem se
+      aposentou como trabalhador rural, com regra própria de idade e sem exigência de contribuição em dinheiro; por isso o valor médio
+      é menor nos estados onde ela pesa mais. Clique no cabeçalho para ordenar.
+    </p>
+  </div>
+
+  <h2>Quantos benefícios o INSS paga, ano a ano</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="Benefícios emitidos pelo INSS por ano">
+      {[10e6, 20e6, 30e6, 40e6].filter((v) => v < maxS).map((v) => (<g><line x1={padL} x2={SW - 10} y1={sy(v)} y2={sy(v)} stroke="var(--line)" /><text x={padL - 6} y={sy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{mi(v)}</text></g>))}
+      <polyline points={serie.map((s, i) => `${sx(i).toFixed(1)},${sy(s.quantidade).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s1)" stroke-width="2.5" />
+      {serie.map((s, i) => (i % 3 === 0 || i === serie.length - 1) && <text x={sx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{s.ano}</text>)}
+    </svg>
+    <p class="src">Dezembro de cada ano, e o último mês publicado no ano corrente. De {serie[0].ano} a {serie[serie.length - 1].ano} o número de benefícios passou de {mi(serie[0].quantidade)} para {mi(serie[serie.length - 1].quantidade)} — alta de {Math.round((serie[serie.length - 1].quantidade / serie[0].quantidade - 1) * 100)}%, puxada pelo envelhecimento da população e pela inclusão de quem não contribuía. Fonte: BEPS, tabela 13.</p>
+  </div>
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>Em {competencia} o INSS pagou {num(total.quantidade)} benefícios, {bi(total.valor)} no mês. Se o ritmo do mês se repetir, dá cerca de {bi(total.valor * 12)} no ano.</li>
+      <li>Aposentadorias são {pct1(aposent.quantidade, total.quantidade)} dos benefícios e {pct1(aposent.valor, total.valor)} do dinheiro. O resto são pensões ({num(esp.pensoes.quantidade)}), auxílios ({num(esp.auxilios.quantidade)}), salário-maternidade ({num(esp.salario_maternidade.quantidade)}), acidentários ({num(esp.acidentarios.quantidade)}) e BPC ({num(assist.quantidade)}).</li>
+      <li>O BPC, que não exige contribuição, atende {num(esp.bpc_idoso.quantidade)} idosos e {num(esp.bpc_deficiencia.quantidade)} pessoas com deficiência, a {brl0(esp.bpc.valor_medio)} em média.</li>
+      <li>{ufs[0].nome} concentra o maior número de benefícios ({num(ufs[0].quantidade)}) e {ufs[ufs.length - 1].nome} o menor ({num(ufs[ufs.length - 1].quantidade)}). O valor médio vai de {brl0(Math.min(...ufs.map((u) => u.valor_medio)))} a {brl0(Math.max(...ufs.map((u) => u.valor_medio)))}.</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>
+  </div>
+
+  <Glossario termos={["rgps", "bpc", "pensao_morte", "beneficio_x_pessoa"]} />
+</Base>
+<style>
+  .pizza { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 720px) { .pizza { grid-template-columns: 1fr; } }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+  tr.grupo td { font-weight: 700; background: color-mix(in srgb, var(--accent) 5%, transparent); }
+  .stat b.inline { display: inline; font-family: inherit; font-size: inherit; color: var(--ink); }
+</style>

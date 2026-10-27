@@ -24,13 +24,16 @@ import seguranca from "../../public/data/seguranca.json";
 import credito from "../../public/data/credito.json";
 import saudeDados from "../../public/data/saude.json";
 import inflacao from "../../public/data/inflacao.json";
-import corrupcao from "../../public/data/corrupcao.json";  // "saude" já é usado abaixo para a função 10 da União
+import corrupcao from "../../public/data/corrupcao.json";
+import previdencia from "../../public/data/previdencia.json";  // "saude" já é usado abaixo para a função 10 da União
 
 const ANO = 2025;
 const rendaPub = (renda.posicoes as any[]).find((p) => p.chave === "publico")?.valor ?? 0;
 const rendaPriv = (renda.posicoes as any[]).find((p) => p.chave === "privado_com_carteira")?.valor ?? 1;
 const top1 = (renda.distribuicao.classes as any[]).find((c) => c.classe === "p99_mais")?.massa_pct;
 const idebAI = (educacao.brasil as any).ai?.total?.[String(educacao.ano)];
+const inssTotal = (previdencia.especies as any[]).find((e) => e.chave === "total");
+const inssAposent = (previdencia.especies as any[]).find((e) => e.chave === "aposentadorias");
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 // Na página inicial, por extenso: "R$ 5,06 trilhões", "R$ 30,4 bilhões", "R$ 224 milhões"
 const compact = (v: number) =>
@@ -162,6 +165,8 @@ const resumo = [
   <h2>Como vive o país</h2>
   <div class="grade">
     <a class="card tile" href="/trabalho/"><b>{(trabalho.pnad.mil.ocupados / 1e3).toFixed(1).replace(".", ",")} mi</b><span>pessoas ocupadas ({trabalho.pnad.periodo}): carteira, conta própria, servidores, empresas e MEI, benefícios do INSS</span></a>
+    <a class="card tile" href="/inss/"><b>{(inssTotal.quantidade / 1e6).toFixed(1).replace(".", ",")} mi</b><span>benefícios pagos pelo INSS por mês · {(100 * (1 - inssAposent.quantidade / inssTotal.quantidade)).toFixed(0)}% deles não são aposentadoria</span></a>
+    <a class="card tile" href="/aposentadoria/"><b>{(inssAposent.quantidade / 1e6).toFixed(1).replace(".", ",")} mi</b><span>aposentadorias do INSS · e quanto custa o regime próprio dos servidores públicos</span></a>
     <a class="card tile" href="/renda/"><b>{(rendaPub / rendaPriv).toFixed(2).replace(".", ",")}×</b><span>rendimento médio no setor público ({brl0(rendaPub)}) em relação ao privado com carteira ({brl0(rendaPriv)}), {renda.ano} · o 1% mais rico fica com {String(top1).replace(".", ",")}% da renda</span></a>
     <a class="card tile" href="/educacao/"><b>{idebAI != null ? String(idebAI).replace(".", ",") : "—"}</b><span>IDEB do Brasil nos anos iniciais ({educacao.ano}) · por estado, capital e município, rede pública e privada</span></a>
     <a class="card tile" href="/seguranca/"><b>{String(seguranca.brasil.taxa_homicidio).replace(".", ",")}</b><span>vítimas de homicídio doloso por 100 mil habitantes em {seguranca.ano} · estados e cidades com 100 mil+ habitantes</span></a>

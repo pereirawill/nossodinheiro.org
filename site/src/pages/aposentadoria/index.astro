@@ -1,0 +1,138 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import prev from "../../../public/data/previdencia.json";
+import funcoes from "../../../public/data/poderes_funcao_2025.json";
+import categorias from "../../../public/data/poderes_categoria_2025.json";
+import estados from "../../../public/data/estados_2025.json";
+import trabalho from "../../../public/data/trabalho.json";
+
+const ANO = 2025;
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const bi = (v: number) => v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi`;
+const mi = (v: number) => `${(v / 1e6).toFixed(1).replace(".", ",")} mi`;
+const num = (v: number) => v.toLocaleString("pt-BR");
+const pct1 = (a: number, b: number) => `${((100 * a) / b).toFixed(1).replace(".", ",")}%`;
+const quando = new Date(prev.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const [anoC, mesC] = prev.competencia.split("-");
+const competencia = `${MESES[+mesC - 1]} de ${anoC}`;
+
+const esp = Object.fromEntries((prev.especies as any[]).map((e) => [e.chave, e])) as Record<string, any>;
+const aposent = esp.aposentadorias;                       // aposentadorias do RGPS (INSS)
+const rgpsAno = aposent.valor * 13;                        // 12 meses + 13º, como a própria lei manda pagar
+// Regime próprio: o que a União pagou de aposentadorias e pensões de servidores, por Poder (SIOP)
+const rpps = (categorias as any[]).filter((c) => c.subcategoria === "Aposentados e pensionistas");
+const rppsUniao = rpps.reduce((s, c) => s + (c.pago || 0), 0);
+const rppsPorPoder = Object.entries(rpps.reduce((acc: Record<string, number>, c) => { acc[c.poder] = (acc[c.poder] || 0) + (c.pago || 0); return acc; }, {}))
+  .map(([poder, pago]) => ({ poder, pago: pago as number })).sort((a, b) => b.pago - a.pago);
+// Previdência no orçamento da União (função 09) e nos estados (SICONFI, função 09)
+const funcao09 = (funcoes as any[]).find((f) => f.funcao === "09")?.pago ?? 0;
+const prevEstados = (estados as any[]).reduce((s, e) => s + (e.pago_previdencia || 0), 0);
+const estadosOrd = (estados as any[]).map((e) => ({ uf: e.uf, nome: e.nome, pago: e.pago_previdencia || 0, populacao: e.populacao,
+  porHab: e.populacao ? (e.pago_previdencia || 0) / e.populacao : null, pctTotal: e.pago_total ? (e.pago_previdencia || 0) / e.pago_total : null }))
+  .sort((a, b) => (b.porHab ?? 0) - (a.porHab ?? 0));
+const servidores = trabalho.pnad.mil.publico_estatutario_militar * 1e3;
+
+const BARRAS = [
+  { nome: `Aposentadorias do INSS (RGPS), ${competencia} × 13`, v: rgpsAno, cor: "var(--s1)", pessoas: aposent.quantidade },
+  { nome: `Aposentadorias e pensões de servidores da União, ${ANO}`, v: rppsUniao, cor: "var(--s3)", pessoas: null },
+  { nome: `Previdência paga pelos governos estaduais, ${ANO}`, v: prevEstados, cor: "var(--s4)", pessoas: null },
+];
+const maxB = Math.max(...BARRAS.map((b) => b.v));
+const W = 920;
+---
+<Base title="Aposentadoria: os dois regimes do Brasil — Nosso Dinheiro" accent="var(--s3)" description="Quem se aposenta pelo INSS e quem se aposenta pelo regime próprio dos servidores: quantos são, quanto custa cada regime e como varia entre os estados.">
+  <h1>Aposentadoria: o Brasil tem dois regimes</h1>
+  <p class="lede">
+    Quem trabalha na iniciativa privada, por conta própria ou como doméstico se aposenta pelo <Termo t="rgps">INSS</Termo>. Servidor
+    público concursado se aposenta pelo <Termo t="rpps">regime próprio</Termo> do ente que o contratou — União, estado ou município.
+    São regras, caixas e contas diferentes, e é por isso que esta página existe separada do <a href="/inss/">INSS</a>, onde estão
+    todos os outros benefícios que o instituto paga (pensões, auxílios, salário-maternidade e BPC).
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · INSS: Boletim Estatístico da Previdência ({competencia}) · servidores: SIOP e SICONFI ({ANO}) · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{mi(aposent.quantidade)}</b><span>aposentadorias pagas pelo INSS, somando {bi(aposent.valor)} por mês — {brl0(aposent.valor_medio)} em média</span></div>
+    <div class="stat"><b>{bi(rppsUniao)}</b><span>pagos pela União em {ANO} a servidores aposentados e pensionistas do regime próprio, só no orçamento federal</span></div>
+    <div class="stat"><b>{bi(prevEstados)}</b><span>pagos pelos governos estaduais em {ANO} na função Previdência, quase tudo regime próprio de servidor</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>As duas colunas não são comparáveis linha a linha.</b> Do INSS sabemos quantos benefícios são e quanto custam, mês a mês.
+    Do regime próprio sabemos quanto foi pago no orçamento, mas <b>não quantos servidores aposentados existem</b> — não há base
+    nacional aberta com essa contagem (está nas pendências da metodologia). E a comparação de valor médio seria injusta de qualquer
+    forma: são carreiras, tempos de contribuição e tetos diferentes.</div>
+  </div>
+
+  <h2>Quanto custa cada regime por ano</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${BARRAS.length * 44 + 10}`} width="100%" role="img" aria-label="Custo anual de cada regime de aposentadoria">
+      {BARRAS.map((b, i) => (<g transform={`translate(0 ${i * 44 + 5})`}>
+        <text x="0" y="14" font-size="12.5" fill="var(--ink)">{b.nome}</text>
+        <rect x="0" y="20" width={Math.max(2, (b.v / maxB) * 640)} height="18" fill={b.cor} rx="2" />
+        <text x={(b.v / maxB) * 640 + 8} y="34" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{bi(b.v)}{b.pessoas ? ` · ${num(b.pessoas)} benefícios` : ""}</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      <b>INSS</b>: valor de {competencia} multiplicado por 13 (12 parcelas mais o 13º, que a lei manda pagar), só aposentadorias —
+      pensões, auxílios e BPC estão em <a href="/inss/">INSS</a>. <b>União</b>: despesa paga em {ANO} na subcategoria
+      "aposentados e pensionistas" do orçamento (SIOP), que cobre o regime próprio dos servidores civis e os militares inativos.
+      <b>Estados</b>: função 09 (Previdência Social) da Declaração de Contas Anuais (SICONFI) dos 26 estados e do DF.
+      Os municípios também têm regimes próprios, mas a função 09 municipal ainda não está carregada — veja as pendências.
+      Para referência, a União gastou {bi(funcao09)} na função Previdência em {ANO}, somando INSS e regime próprio.
+    </p>
+  </div>
+
+  <h2>Quem se aposenta pelo INSS ({competencia})</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Tipo de aposentadoria</th><th class="num">Benefícios</th><th class="num">%</th><th class="num">Valor no mês</th><th class="num">Valor médio</th></tr></thead>
+      <tbody>
+        <tr><td>Por idade</td><td class="num">{num(esp.aposentadoria_idade.quantidade)}</td><td class="num">{pct1(esp.aposentadoria_idade.quantidade, aposent.quantidade)}</td><td class="num">{bi(esp.aposentadoria_idade.valor)}</td><td class="num">{brl0(esp.aposentadoria_idade.valor_medio)}</td></tr>
+        <tr><td>Por tempo de contribuição</td><td class="num">{num(esp.aposentadoria_tempo.quantidade)}</td><td class="num">{pct1(esp.aposentadoria_tempo.quantidade, aposent.quantidade)}</td><td class="num">{bi(esp.aposentadoria_tempo.valor)}</td><td class="num">{brl0(esp.aposentadoria_tempo.valor_medio)}</td></tr>
+        <tr><td>Por invalidez</td><td class="num">{num(esp.aposentadoria_invalidez.quantidade)}</td><td class="num">{pct1(esp.aposentadoria_invalidez.quantidade, aposent.quantidade)}</td><td class="num">{bi(esp.aposentadoria_invalidez.valor)}</td><td class="num">{brl0(esp.aposentadoria_invalidez.valor_medio)}</td></tr>
+        <tr class="grupo"><td><b>Total de aposentadorias do INSS</b></td><td class="num"><b>{num(aposent.quantidade)}</b></td><td class="num">100%</td><td class="num"><b>{bi(aposent.valor)}</b></td><td class="num"><b>{brl0(aposent.valor_medio)}</b></td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      A aposentadoria por tempo de contribuição paga quase o dobro da por idade porque exige mais anos contribuindo, com salários em
+      geral maiores; a reforma de 2019 (Emenda 103) acabou com a aposentadoria só por tempo e criou idade mínima, então esse grupo
+      tende a encolher com o tempo. Não inclui aposentadorias por acidente de trabalho ({num(esp.acidentarios.quantidade)} benefícios
+      acidentários no total, somando aposentadorias, pensões e auxílios). Fonte: BEPS, tabela 15.
+    </p>
+  </div>
+
+  <h2>Previdência nos estados: quanto cada um paga por habitante ({ANO})</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Estado</th><th class="num">Previdência paga</th><th class="num">Por habitante</th><th class="num">% da despesa do estado</th></tr></thead>
+      <tbody>{estadosOrd.map((e) => (<tr><td>{e.nome}</td><td class="num">{bi(e.pago)}</td><td class="num"><b>{brl0(e.porHab)}</b></td><td class="num">{e.pctTotal != null ? `${(e.pctTotal * 100).toFixed(1).replace(".", ",")}%` : "—"}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Função 09 (Previdência Social) da despesa paga em {ANO}, que nos estados é quase toda o regime próprio dos servidores: polícias,
+      professores, magistrados e servidores administrativos aposentados, mais as pensões deixadas por eles. Por habitante serve só para
+      comparar estados de tamanhos diferentes — quem recebe são os ex-servidores, não a população. Fonte: SICONFI/Tesouro Nacional,
+      Declaração de Contas Anuais, anexo I-E.
+    </p>
+  </div>
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>O INSS paga {num(aposent.quantidade)} aposentadorias, {brl0(aposent.valor_medio)} em média. Projetando o mês por 13 parcelas, são {bi(rgpsAno)} ao ano.</li>
+      <li>Só no orçamento da União, aposentados e pensionistas do regime próprio custaram {bi(rppsUniao)} em {ANO} — {rppsPorPoder.slice(0, 3).map((p) => `${p.poder} ${bi(p.pago)}`).join(", ")}.</li>
+      <li>Os governos estaduais pagaram {bi(prevEstados)} na função Previdência em {ANO}, de {brl0(estadosOrd[estadosOrd.length - 1].porHab)} por habitante em {estadosOrd[estadosOrd.length - 1].nome} a {brl0(estadosOrd[0].porHab)} em {estadosOrd[0].nome}.</li>
+      <li>A PNAD estima {mi(servidores)} de servidores estatutários e militares na ativa hoje — é desse grupo que sairão as próximas aposentadorias do regime próprio.</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>
+  </div>
+
+  <Glossario termos={["rgps", "rpps", "aposentadoria_idade_tempo", "despesa_paga"]} />
+</Base>
+<style>
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+  tr.grupo td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+</style>
