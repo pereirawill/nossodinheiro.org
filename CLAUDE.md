@@ -21,7 +21,7 @@ Workflows (`.github/workflows/`):
 - `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
-- `etl-{renda,educacao,seguranca,credito}.yml` — mensais (dias 7–10). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
+- `etl-{renda,seguranca,credito}.yml` — mensais (dias 7, 9, 10); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 Secrets existentes: os dois da Cloudflare + `PORTAL_TRANSPARENCIA_KEY`. Workflow permissions = read/write.
 
 Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026` (FONTE=bulk padrão),
@@ -108,7 +108,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   carteira 3.176 (2025); 1% com 11,0% da renda.
 - **Educação** `etl/educacao/extract.py` → `educacao.json`, `/educacao/`: INEP zips `divulgacao_{brasil,regioes_ufs}_ideb_<ano>` e
   `divulgacao_<etapa>_municipios_<ano>` (openpyxl; md5 do zip conferido; TLS do INEP falha → retry sem verify + md5; abreviações
-  "R. G. do Sul"). Município = rede pública. 2023 é a última edição (2025 sai em 2026).
+  "R. G. do Sul"). Município = rede pública. 2023 é a última edição (2025 sai em 2026). **INEP bloqueia runners do GitHub**
+  (connection reset) → workflow só com dispatch; rodar local e commitar o JSON, como o STF.
 - **Segurança** `etl/seguranca/extract.py` → `seguranca.json`, `/seguranca/`: MJSP Sinesp VDE `bancovde-<ano>.xlsx` (26 MB, servidor
   corta download → 4 tentativas; cache em data/raw), abrangência Estadual, eventos separados (sem MVI), vítimas × ocorrências,
   população SIDRA 6579 do mesmo ano; municípios ≥100 mil + capitais; série 2015+ por UF (baixa 11 arquivos, ~5 min).

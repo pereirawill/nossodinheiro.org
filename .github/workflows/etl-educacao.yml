@@ -1,11 +1,9 @@
 name: ETL Educação — IDEB (INEP)
 
+# O INEP (download.inep.gov.br) recusa conexões vindas dos runners do GitHub ("connection reset by peer"), como o STF.
+# Por isso não há agenda: rodar localmente `python -m etl.educacao.extract` quando o INEP publicar uma edição (bienal)
+# e commitar data/public/educacao.json + site/public/data/educacao.json. O dispatch fica para testar se o bloqueio caiu.
 on:
-  push:
-    branches: [main]
-    paths: [".github/workflows/etl-educacao.yml", "etl/educacao/**", "etl/ufs.py"]
-  schedule:
-    - cron: "47 11 8 * *"
   workflow_dispatch:
 
 permissions:

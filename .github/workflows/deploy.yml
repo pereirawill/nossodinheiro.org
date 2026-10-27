@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: deploy
-  cancel-in-progress: true
+  cancel-in-progress: false   # um deploy 'skipped' (ETL que falhou) não pode cancelar um deploy real em andamento
 
 jobs:
   deploy:

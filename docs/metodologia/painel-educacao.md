@@ -1,6 +1,6 @@
 # Painel — Educação: IDEB por estado e município
 
-Última revisão: 2026-10-26. Código: `etl/educacao/extract.py` → `data/public/educacao.json`. Atualização mensal (dia 8); o IDEB é bienal (edição 2023 divulgada em ago/2024; 2025 prevista para 2026).
+Última revisão: 2026-10-26. Código: `etl/educacao/extract.py` → `data/public/educacao.json`. Sem agenda no GitHub Actions: o INEP recusa conexões dos runners do GitHub (connection reset), como o STF; rodar `python -m etl.educacao.extract` localmente a cada edição (bienal: 2023 divulgada em ago/2024; 2025 prevista para 2026) e commitar o JSON.
 
 ## 1. Fonte
 
