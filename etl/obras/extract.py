@@ -1,0 +1,190 @@
+"""
+Obras — o cadastro federal de obras e projetos de investimento: quantas estão paradas, onde, e quanto já foi empenhado.
+
+    python -m etl.obras.extract                 # baixa tudo (≈1.000 requisições, ~10 min) e gera data/public/obras.json
+    python -m etl.obras.extract --so-transformar  # só reprocessa o que já está em data/raw
+
+Fonte: **Obrasgov/CIPI** (Cadastro Integrado de Projetos de Investimento), API pública do Ministério da Gestão, sem chave:
+- `https://api.obrasgov.gestao.gov.br/obrasgov/api/projeto-investimento` — um registro por obra: nome, situação, UF, espécie,
+  datas prevista e efetiva, eixo/tipo, executores e `fontesDeRecurso` com o valor **previsto** de investimento.
+- `https://api.obrasgov.gestao.gov.br/obrasgov/api/execucao-financeira` — empenhos federais por obra (`idProjetoInvestimento`,
+  `valorEmpenho`), que somamos por obra para ter quanto o Orçamento da União já comprometeu.
+
+Limites da API (medidos em 27/10/2026): página de no máximo 50 (100+ devolve HTTP 500); `totalElements` do endpoint de obras é
+falso (repete o que já foi servido), então andamos as páginas até vir uma incompleta; filtros por `uf` e `situacao` devolvem 500.
+O host antigo `api-publica.obrasgov.gestao.gov.br` saiu do ar — o que responde é `api.obrasgov.gestao.gov.br`.
+
+O que o cadastro é: obras com participação de recurso federal, declaradas pelos órgãos. Não é o conjunto de todas as obras
+públicas do país, e "valor previsto" não é valor gasto — por isso o painel mostra as duas colunas separadas.
+"""
+
+from __future__ import annotations
+
+import argparse
+import gzip
+import json
+import logging
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timezone
+from pathlib import Path
+
+import httpx
+
+from etl.ufs import UF_PARA_NOME
+
+log = logging.getLogger("etl.obras")
+PUB, RAW = Path("data/public"), Path("data/raw")
+API = "https://api.obrasgov.gestao.gov.br/obrasgov/api/{recurso}"
+UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
+PAGINA = 50
+WORKERS = 4
+PARADAS = {"Paralisada", "Inacabada"}          # situações que o CIPI usa para obra interrompida
+TOPO = 40
+
+
+def _pagina(c: httpx.Client, recurso: str, n: int) -> list[dict] | None:
+    for tentativa in range(4):
+        try:
+            r = c.get(API.format(recurso=recurso), params={"pagina": n, "tamanhoDaPagina": PAGINA})
+            if r.status_code == 200:
+                return r.json().get("content", [])
+            log.debug("%s página %d: HTTP %d", recurso, n, r.status_code)
+        except httpx.HTTPError as e:
+            log.debug("%s página %d: %s", recurso, n, e)
+    log.warning("%s página %d falhou nas 4 tentativas", recurso, n)
+    return None
+
+
+def _ler(arquivo: Path) -> list[dict]:
+    with gzip.open(arquivo, "rt", encoding="utf-8") as f:
+        return [json.loads(l) for l in f if l.strip()]
+
+
+def baixar(recurso: str, arquivo: Path, paginas_conhecidas: int | None = None) -> tuple[list[dict], int]:
+    """
+    Anda as páginas em paralelo e grava um jsonl.gz **a cada bloco**, com um arquivo `.pagina` ao lado: se o servidor derrubar a
+    coleta no meio (acontece: o Obrasgov devolve 500 e 524 com frequência), é só rodar de novo que continua de onde parou.
+    Só paramos quando um bloco inteiro responde 200 com lista vazia — bloco que só deu erro é tentado de novo, para não truncar
+    a base por causa de instabilidade. Devolve (registros, páginas que falharam).
+    """
+    if arquivo.exists():
+        linhas = _ler(arquivo)
+        log.info("%s: %d registros do cache (%s)", recurso, len(linhas), arquivo.name)
+        return linhas, 0
+    RAW.mkdir(parents=True, exist_ok=True)
+    parcial, marca = arquivo.with_suffix(".parcial.gz"), arquivo.with_suffix(".pagina")
+    registros: list[dict] = _ler(parcial) if parcial.exists() else []
+    pagina = int(marca.read_text()) if marca.exists() else 0
+    if pagina:
+        log.info("%s: retomando da página %d com %d registros já baixados", recurso, pagina, len(registros))
+    falhas, bloco = 0, WORKERS * 4
+    with httpx.Client(headers=UA, timeout=180, follow_redirects=True) as c:
+        while True:
+            faixa = range(pagina, pagina + bloco)
+            with ThreadPoolExecutor(max_workers=WORKERS) as ex:
+                paginas = list(ex.map(lambda n: _pagina(c, recurso, n), faixa))
+            obtidos = [r for p in paginas if p for r in p]
+            erros = sum(1 for p in paginas if p is None)
+            falhas += erros
+            registros += obtidos
+            with gzip.open(parcial, "at", encoding="utf-8") as f:
+                for r in obtidos:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+            pagina += bloco
+            marca.write_text(str(pagina))
+            log.info("%s: páginas %d–%d → %d registros (%d erros); total %d", recurso, faixa.start, faixa.stop - 1, len(obtidos), erros, len(registros))
+            # fim de verdade: todo o bloco respondeu e veio vazio. Se só houve erro, segue tentando os próximos.
+            if (not obtidos and erros == 0) or (paginas_conhecidas and pagina >= paginas_conhecidas):
+                break
+    parcial.replace(arquivo)
+    marca.unlink(missing_ok=True)
+    return registros, falhas
+
+
+def _previsto(o: dict) -> float:
+    return round(sum(float(f.get("valorInvestimentoPrevisto") or 0) for f in (o.get("fontesDeRecurso") or [])), 2)
+
+
+def _anos_desde(iso: str | None) -> float | None:
+    if not iso:
+        return None
+    try:
+        d = date.fromisoformat(str(iso)[:10])
+    except ValueError:
+        return None
+    return round((date.today() - d).days / 365.25, 1)
+
+
+def transformar(obras: list[dict], empenhos: list[dict]) -> dict:
+    por_obra_empenho: dict[str, float] = defaultdict(float)
+    for e in empenhos:
+        idp = e.get("idProjetoInvestimento")
+        if idp:
+            por_obra_empenho[idp] += float(e.get("valorEmpenho") or 0)
+
+    situacao: dict[str, dict] = defaultdict(lambda: {"n": 0, "previsto": 0.0, "empenhado": 0.0})
+    ufs: dict[str, dict] = defaultdict(lambda: {"n": 0, "paradas": 0, "previsto": 0.0, "previsto_paradas": 0.0, "empenhado_paradas": 0.0})
+    eixos: dict[str, dict] = defaultdict(lambda: {"n": 0, "previsto": 0.0, "paradas": 0})
+    tipos: dict[str, dict] = defaultdict(lambda: {"n": 0, "previsto": 0.0, "paradas": 0})
+    paradas: list[dict] = []
+    for o in obras:
+        s = (o.get("situacao") or "Sem informação").strip()
+        prev, emp = _previsto(o), round(por_obra_empenho.get(o.get("idUnico", ""), 0.0), 2)
+        parada = s in PARADAS
+        situacao[s]["n"] += 1; situacao[s]["previsto"] += prev; situacao[s]["empenhado"] += emp
+        uf = (o.get("uf") or "").strip().upper()
+        if uf in UF_PARA_NOME:
+            d = ufs[uf]; d["n"] += 1; d["previsto"] += prev
+            if parada:
+                d["paradas"] += 1; d["previsto_paradas"] += prev; d["empenhado_paradas"] += emp
+        for lista, destino in ((o.get("eixos") or [], eixos), (o.get("tipos") or [], tipos)):
+            for item in lista[:1]:                       # o CIPI traz um eixo/tipo principal por obra
+                k = (item.get("descricao") or "Sem informação").strip()
+                destino[k]["n"] += 1; destino[k]["previsto"] += prev
+                if parada:
+                    destino[k]["paradas"] += 1
+        if parada:
+            paradas.append({"id": o.get("idUnico"), "nome": (o.get("nome") or "").strip(), "uf": uf, "situacao": s,
+                            "especie": (o.get("especie") or "").strip(), "previsto": prev, "empenhado": emp,
+                            "desde": str(o.get("dataSituacao") or "")[:10], "anos_parada": _anos_desde(o.get("dataSituacao")),
+                            "fim_previsto": str(o.get("dataFinalPrevista") or "")[:10],
+                            "executor": ((o.get("executores") or [{}])[0].get("nome") or "").strip()})
+    anos = [p["anos_parada"] for p in paradas if p["anos_parada"] is not None]
+    return {
+        "total": len(obras), "obras_com_empenho": len(por_obra_empenho),
+        "por_situacao": sorted(({"situacao": k, **{x: round(v, 2) for x, v in d.items()}} for k, d in situacao.items()), key=lambda d: -d["n"]),
+        "por_uf": sorted(({"uf": k, "nome": UF_PARA_NOME[k], **{x: round(v, 2) for x, v in d.items()}} for k, d in ufs.items()), key=lambda d: d["uf"]),
+        "por_eixo": sorted(({"nome": k, **{x: round(v, 2) for x, v in d.items()}} for k, d in eixos.items()), key=lambda d: -d["n"]),
+        "por_tipo": sorted(({"nome": k, **{x: round(v, 2) for x, v in d.items()}} for k, d in tipos.items()), key=lambda d: -d["n"])[:15],
+        "paradas": {"n": len(paradas), "previsto": round(sum(p["previsto"] for p in paradas), 2),
+                    "empenhado": round(sum(p["empenhado"] for p in paradas), 2),
+                    "anos_mediana": round(sorted(anos)[len(anos) // 2], 1) if anos else None,
+                    "maiores": sorted(paradas, key=lambda p: -p["previsto"])[:TOPO]},
+    }
+
+
+def run(so_transformar: bool = False) -> Path:
+    PUB.mkdir(parents=True, exist_ok=True)
+    arq_obras, arq_emp = RAW / "obrasgov_projetos.jsonl.gz", RAW / "obrasgov_empenhos.jsonl.gz"
+    if so_transformar and not (arq_obras.exists() and arq_emp.exists()):
+        raise SystemExit("sem cache completo em data/raw: rode sem --so-transformar")
+    obras, falhas_obras = baixar("projeto-investimento", arq_obras)
+    empenhos, falhas_emp = baixar("execucao-financeira", arq_emp, paginas_conhecidas=420)
+    dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"),
+             "paginas_sem_resposta": {"obras": falhas_obras, "empenhos": falhas_emp}, **transformar(obras, empenhos),
+             "fontes": {"obras": "Obrasgov/CIPI, API pública do Ministério da Gestão: projetos de investimento com recurso federal",
+                        "empenhos": "Obrasgov/CIPI, execução financeira: empenhos federais por obra"}}
+    out = PUB / "obras.json"
+    out.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
+    log.info("%d obras; %d paradas (R$ %.1f bi previstos, R$ %.1f bi empenhados); situações: %s", dados["total"], dados["paradas"]["n"],
+             dados["paradas"]["previsto"] / 1e9, dados["paradas"]["empenhado"] / 1e9,
+             ", ".join(f"{s['situacao']} {s['n']}" for s in dados["por_situacao"][:5]))
+    return out
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    ap = argparse.ArgumentParser(); ap.add_argument("--so-transformar", action="store_true")
+    run(ap.parse_args().so_transformar)

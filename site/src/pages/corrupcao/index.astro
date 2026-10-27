@@ -11,19 +11,24 @@ const bi = (v: number) => v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ","
 const pct = (a: number, b: number) => `${((100 * a) / b).toFixed(1).replace(".", ",")}%`;
 const quando = new Date(d.gerado_em_utc);
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
-const W = 920;
+const W = 920, padL = 50;
 
 const ceis = d.ceis, cnep = d.cnep, ceaf = d.ceaf, len = d.leniencia;
-const ufMapa = Object.fromEntries(ceis.por_uf.map((u) => [u.uf, u.n]));
-const ufOrd = [...ceis.por_uf].sort((a, b) => b.n - a.n);
-const maxUf = Math.max(...ceis.por_uf.map((u) => u.n));
-const anos = Object.keys(ceis.por_ano).filter((a) => a >= "2010");
-const maxAno = Math.max(...anos.map((a) => ceis.por_ano[a] ?? 0));
-const AH = 220, padL = 50;
-const ax = (i: number) => padL + (i * (W - padL - 20)) / (anos.length - 1);
-const ay = (v: number) => 8 + (AH - 24 - 8) * (1 - v / maxAno);
-const larg = Math.max(10, (W - padL - 20) / anos.length - 6);
+const imp = ceis.improbidade;                     // sanções por improbidade administrativa (Lei 8.429)
+const corr = ceaf.corrupcao;                      // expulsões cuja decisão cita corrupção, desvio ou improbidade
+const naoCorrupcao = ceis.registros - imp.registros;
+
+// série: improbidade e expulsões por corrupção, por ano
+const anos = Array.from(new Set([...Object.keys(imp.por_ano), ...Object.keys(corr.por_ano)])).filter((a) => a >= "2010").sort();
 const anoCorrente = String(new Date().getFullYear());
+const maxAno = Math.max(...anos.map((a) => imp.por_ano[a] ?? 0));
+const AH = 230;
+const ax = (i: number) => padL + (i * (W - padL - 20)) / (anos.length - 1);
+const ay = (v: number) => 8 + (AH - 26 - 8) * (1 - v / maxAno);
+const larg = Math.max(10, (W - padL - 20) / anos.length - 6);
+
+const ufOrd = [...imp.por_uf].sort((a, b) => b.n - a.n);
+const maxUf = Math.max(...imp.por_uf.map((u) => u.n));
 
 // Índice de Percepção da Corrupção (Transparência Internacional), do painel Rankings
 const cpi = (rankings.indices as any[]).find((i) => i.id === "corrupcao");
@@ -31,158 +36,181 @@ const cpiBrasil = cpi?.brasil;
 const cpiSerie = ((cpi?.serie ?? []) as { ano: number; valor: number; posicao: number; total: number }[]).sort((a, b) => a.ano - b.ano);
 const SH = 200;
 const cx = (i: number) => padL + (i * (W - padL - 20)) / Math.max(1, cpiSerie.length - 1);
-const cy = (v: number) => 8 + (SH - 24 - 8) * (1 - v / 100);
+const cy = (v: number) => 8 + (SH - 26 - 8) * (1 - v / 100);
 ---
-<Base title="Corrupção: o que foi punido no Brasil — Nosso Dinheiro" accent="var(--s3)" description="Empresas impedidas de contratar com o poder público, punições da Lei Anticorrupção, acordos de leniência e servidores federais expulsos, por estado, ano e órgão.">
-  <h1>Corrupção: o que o poder público puniu</h1>
+<Base title="Corrupção: o que foi apurado e punido no Brasil — Nosso Dinheiro" accent="var(--s3)" description="Punições por improbidade administrativa, multas da Lei Anticorrupção, acordos de leniência e servidores expulsos por corrupção, por estado, ano e órgão, com a percepção internacional.">
+  <h1>Corrupção: o que foi apurado e punido</h1>
   <p class="lede">
-    Quantas empresas estão impedidas de contratar com o poder público, quantas foram punidas pela Lei Anticorrupção e quanto somam
-    as multas, quantos acordos de leniência a CGU assinou e quantos servidores federais foram demitidos ou tiveram a aposentadoria
-    cassada — por estado do órgão que puniu, por ano, por órgão e pelo artigo citado na decisão.
+    Não existe um número de "quanta corrupção há no Brasil" — ninguém mede o que não foi descoberto. O que existe é o registro do
+    que o próprio poder público apurou e puniu: condenações por <Termo t="improbidade">improbidade administrativa</Termo>, multas da
+    <Termo t="lei_anticorrupcao">Lei Anticorrupção</Termo>, acordos em que empresas admitiram o desvio e devolveram dinheiro, e
+    servidores demitidos por corrupção. É isso que está aqui, com estado, ano e órgão.
   </p>
-  <p class="meta">atualizado em {fmt.format(quando)} · Portal da Transparência (CEIS, CNEP, CEAF e acordos de leniência) · <a href="/metodologia/">metodologia</a></p>
+  <p class="meta">atualizado em {fmt.format(quando)} · Portal da Transparência (CEIS, CNEP, CEAF e acordos de leniência) · percepção: Transparência Internacional · <a href="/metodologia/">metodologia</a></p>
 
   <div class="hero">
-    <div class="stat big"><b>{num(ceis.vigentes)}</b><span>sanções que <b class="inline">hoje</b> impedem contratar com o poder público, das {num(ceis.registros)} já registradas no <Termo t="ceis">CEIS</Termo>; {pct(ceis.pessoa_juridica, ceis.registros)} são de empresas</span></div>
-    <div class="stat"><b>{bi(cnep.multas.total)}</b><span>em multas aplicadas pela <Termo t="lei_anticorrupcao">Lei Anticorrupção</Termo> e registradas no CNEP ({num(cnep.multas.registros_com_multa)} multas)</span></div>
-    <div class="stat"><b>{num(ceaf.registros)}</b><span>servidores federais <Termo t="expulsao">expulsos</Termo> desde que o cadastro existe: demissões, cassações de aposentadoria e destituições</span></div>
+    <div class="stat big"><b>{num(imp.registros)}</b><span>punições por improbidade administrativa valendo no cadastro de sancionados — {num(imp.pessoa_fisica)} delas contra <b class="inline">pessoas</b>, não empresas</span></div>
+    <div class="stat"><b>{bi(cnep.multas.total)}</b><span>em multas da Lei Anticorrupção aplicadas a empresas ({num(cnep.registros)} sanções), mais {num(len.registros)} <Termo t="leniencia">acordos de leniência</Termo></span></div>
+    <div class="stat"><b>{num(corr.registros)}</b><span>servidores federais expulsos por decisão que cita corrupção, desvio de dinheiro ou improbidade — {pct(corr.registros, ceaf.registros)} de todas as expulsões</span></div>
   </div>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
-    <div><b>Isto não mede corrupção: mede o que foi punido e registrado.</b> Um estado com mais sanções pode simplesmente fiscalizar e
-    registrar mais. Os cadastros dependem de cada órgão alimentar o sistema, as decisões podem ser revertidas na Justiça, e a sanção
-    aparece na data em que começou — não na data do fato. Também não publicamos nomes nem CPF de pessoas: desta página saem só
-    contagens, os nomes dos órgãos públicos e, nos acordos de leniência, a razão social das empresas, que é o objeto do acordo.</div>
+    <div><b>O que estes números são, e o que não são.</b> São punições <b>registradas</b>: dependem de alguém ter investigado, julgado
+    e lançado no cadastro, e podem ser revertidas na Justiça. Um estado com mais punições pode ter mais fiscalização, não mais crime.
+    A sanção entra na data em que começou, não na data do fato — que costuma ser anos antes. E nada aqui captura a corrupção que não
+    foi descoberta. Não publicamos nomes nem CPF de pessoas: desta página saem contagens, nomes de órgãos públicos e a razão social
+    das empresas com acordo de leniência, que é o objeto do acordo.</div>
   </div>
 
-  <h2>Empresas e pessoas impedidas de contratar, pelo estado do órgão que puniu</h2>
+  <h2>Improbidade administrativa: onde foram aplicadas as punições</h2>
   <div class="card">
-    <MapaBrasil valores={ufMapa} formato={(v) => num(v)} titulo="Sanções do CEIS por estado do órgão sancionador" legenda="sanções registradas no CEIS" />
+    <MapaBrasil valores={Object.fromEntries(imp.por_uf.map((u) => [u.uf, u.n]))} formato={(v) => num(v)}
+      titulo="Punições por improbidade administrativa por estado do órgão que puniu" legenda="punições por improbidade administrativa registradas" />
   </div>
   <div class="card" style="margin-top:14px">
-    <svg viewBox={`0 0 ${W} ${ufOrd.length * 20 + 10}`} width="100%" role="img" aria-label="Sanções do CEIS por estado">
+    <svg viewBox={`0 0 ${W} ${ufOrd.length * 20 + 10}`} width="100%" role="img" aria-label="Punições por improbidade administrativa por estado">
       {ufOrd.map((u, i) => (<g transform={`translate(0 ${i * 20 + 5})`}>
         <text x="150" y="13" text-anchor="end" font-size="12" fill="var(--ink)">{u.nome}</text>
         <rect x="160" y="2" width={Math.max(1, (u.n / maxUf) * 580)} height="14" fill="var(--s3)" rx="2" />
         <text x={166 + (u.n / maxUf) * 580} y="13" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{num(u.n)}</text>
       </g>))}
     </svg>
-    <p class="src">Das {num(ceis.registros)} sanções do cadastro, {num(ceis.vigentes)} ainda valem (incluindo {num(ceis.vigentes_sem_prazo)} sem prazo informado ou por tempo indeterminado) e {num(ceis.encerradas)} já venceram; o mapa e as barras contam todas, porque o cadastro é histórico. Fonte: Portal da Transparência, CEIS. O estado é o do <b>órgão que aplicou a sanção</b> (prefeitura, governo estadual, tribunal, órgão federal com sede no estado), não o da empresa punida. {num(ceis.sem_uf)} registros vêm sem UF. Por esfera: {ceis.por_esfera.map((e) => `${e.nome.toLowerCase()} ${num(e.n)}`).join(", ")}.</p>
+    <p class="src">
+      Sanções com fundamento na Lei 8.429/1992 (improbidade administrativa) registradas no cadastro de sancionados: enriquecimento
+      ilícito, prejuízo ao erário e violação de princípios da administração. São aplicadas pela <b>Justiça</b> e informadas ao cadastro
+      pelos órgãos. O estado é o do <b>órgão que puniu</b> — quase sempre a vara ou o tribunal onde correu a ação —, não o da pessoa ou
+      empresa punida. {num(ceis.sem_uf)} registros do cadastro chegam sem UF. Clique no cabeçalho das tabelas para ordenar.
+    </p>
   </div>
 
-  <h2>Que tipo de punição</h2>
-  <div class="card duas">
-    <div>
-      <h3>CEIS — impedimento de contratar</h3>
-      <table><thead><tr><th>Categoria</th><th class="num">Sanções</th></tr></thead>
-        <tbody>{ceis.por_categoria.map((c) => (<tr><td>{c.nome}</td><td class="num">{num(c.n)}</td></tr>))}</tbody></table>
-    </div>
-    <div>
-      <h3>CNEP — Lei Anticorrupção</h3>
-      <table><thead><tr><th>Categoria</th><th class="num">Sanções</th></tr></thead>
-        <tbody>{cnep.por_categoria.map((c) => (<tr><td>{c.nome}</td><td class="num">{num(c.n)}</td></tr>))}</tbody></table>
-    </div>
-    <p class="src" style="grid-column:1/-1">O CEIS reúne sanções da Lei de Licitações, da Lei do Pregão e da Lei de Improbidade; o CNEP, só as da Lei 12.846/2013, que pune a empresa (e não só a pessoa) por atos contra a administração. Uma mesma empresa pode ter mais de um registro.</p>
-  </div>
-
-  <h2>Sanções a empresas por ano</h2>
+  <h2>Quando as punições foram aplicadas</h2>
   <div class="card">
-    <svg viewBox={`0 0 ${W} ${AH}`} width="100%" role="img" aria-label="Sanções registradas por ano">
-      {[1000, 2000, 3000, 4000, 5000, 6000, 7000].filter((v) => v < maxAno * 0.98).map((v) => (<g><line x1={padL} x2={W - 20} y1={ay(v)} y2={ay(v)} stroke="var(--line)" /><text x={padL - 6} y={ay(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{num(v)}</text></g>))}
+    <svg viewBox={`0 0 ${W} ${AH}`} width="100%" role="img" aria-label="Punições por improbidade e expulsões por corrupção, por ano">
+      {[500, 1000, 1500, 2000].filter((v) => v < maxAno * 0.98).map((v) => (<g><line x1={padL} x2={W - 20} y1={ay(v)} y2={ay(v)} stroke="var(--line)" /><text x={padL - 6} y={ay(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{num(v)}</text></g>))}
       {anos.map((a, i) => (<g>
-        <rect x={ax(i) - larg / 2} y={ay(ceis.por_ano[a] ?? 0)} width={larg} height={Math.max(1, AH - 24 - ay(ceis.por_ano[a] ?? 0))} fill={a === anoCorrente ? "var(--neutro)" : "var(--s3)"} rx="1">
-          <title>{a}: {num(ceis.por_ano[a] ?? 0)} sanções no CEIS</title></rect>
-        <text x={ax(i)} y={AH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a.slice(2)}</text>
+        <rect x={ax(i) - larg / 2} y={ay(imp.por_ano[a] ?? 0)} width={larg} height={Math.max(1, AH - 26 - ay(imp.por_ano[a] ?? 0))} fill={a === anoCorrente ? "var(--neutro)" : "var(--s3)"} rx="1">
+          <title>{a}: {num(imp.por_ano[a] ?? 0)} punições por improbidade</title></rect>
+        <text x={ax(i)} y={AH - 8} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a.slice(2)}</text>
       </g>))}
+      <polyline points={anos.map((a, i) => `${ax(i).toFixed(1)},${ay(corr.por_ano[a] ?? 0).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s4)" stroke-width="2.5" />
     </svg>
-    <p class="src">Ano de início da sanção, não do fato que a gerou. {anoCorrente} em cinza: ano em andamento. O salto recente reflete também a digitalização do cadastro e a entrada de órgãos estaduais e municipais, não necessariamente mais punições.</p>
+    <div class="legend">
+      <span><i style="background:var(--s3)"></i>Punições por improbidade administrativa (ano em que a sanção começou)</span>
+      <span><i style="background:var(--s4);height:3px;margin-top:4px"></i>Servidores federais expulsos por corrupção ou desvio</span>
+      <span><i style="background:var(--neutro)"></i>{anoCorrente}: ano em andamento</span>
+    </div>
+    <p class="src">A alta dos últimos anos reflete também a digitalização do cadastro e a adesão de tribunais e órgãos estaduais — não necessariamente mais corrupção ou mais condenações.</p>
   </div>
 
-  <h2>Quem mais puniu empresas</h2>
+  <h2>Empresas: a Lei Anticorrupção e os acordos de leniência</h2>
   <div class="card duas">
     <div>
-      <h3>Órgãos com mais sanções no CEIS</h3>
-      <table><thead><tr><th>#</th><th>Órgão</th><th class="num">Sanções</th></tr></thead>
-        <tbody>{ceis.orgaos.map((o, i) => (<tr><td class="rank">{i + 1}</td><td>{o.nome}</td><td class="num">{num(o.n)}</td></tr>))}</tbody></table>
+      <h3>O que foi aplicado às empresas (CNEP)</h3>
+      <table><thead><tr><th>Punição</th><th class="num">Sanções</th></tr></thead>
+        <tbody>{cnep.por_categoria.map((c) => (<tr><td>{c.nome}</td><td class="num">{num(c.n)}</td></tr>))}</tbody></table>
+      <p class="src">A Lei 12.846/2013 pune a <b>empresa</b>, e não apenas a pessoa que agiu, por propina, fraude em licitação ou obstrução de investigação. {num(cnep.multas.registros_com_multa)} dessas sanções são multas, somando {bi(cnep.multas.total)}.</p>
     </div>
     <div>
-      <h3>Órgãos com mais sanções no CNEP</h3>
+      <h3>Quem aplicou</h3>
       <table><thead><tr><th>#</th><th>Órgão</th><th class="num">Sanções</th></tr></thead>
-        <tbody>{cnep.orgaos.map((o, i) => (<tr><td class="rank">{i + 1}</td><td>{o.nome}</td><td class="num">{num(o.n)}</td></tr>))}</tbody></table>
+        <tbody>{cnep.orgaos.slice(0, 10).map((o, i) => (<tr><td class="rank">{i + 1}</td><td>{o.nome}</td><td class="num">{num(o.n)}</td></tr>))}</tbody></table>
     </div>
   </div>
 
-  <h2>Acordos de leniência da CGU: {num(len.registros)}</h2>
-  <div class="card">
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 6px">{num(len.registros)} acordos de leniência</h3>
     <p class="explica">
-      No <Termo t="leniencia">acordo de leniência</Termo> a empresa admite a irregularidade, colabora com a investigação, devolve o
-      que ganhou e paga multa, em troca de redução da punição e do direito de continuar contratando. Os valores combinados aparecem
-      no texto de cada acordo no Portal da Transparência; aqui mostramos quantos são, em que situação estão e com quem foram feitos.
+      No acordo de leniência a empresa <b>admite a irregularidade</b>, colabora com a investigação, devolve o que ganhou e paga multa,
+      em troca de redução da punição e do direito de continuar contratando com o poder público. Quem assina pela União é a CGU, com a
+      AGU. Os valores de cada acordo estão no texto publicado pelo Portal da Transparência, em campo livre, por isso não somamos aqui.
     </p>
     <div class="situacoes">{len.por_situacao.map((s) => <span class="pill"><b>{num(s.n)}</b> {s.nome.toLowerCase()}</span>)}</div>
     <table style="margin-top:12px">
       <thead><tr><th>Empresa</th><th>Início</th><th>Fim previsto</th><th>Situação</th></tr></thead>
       <tbody>{(len.acordos as any[]).map((a) => (<tr><td>{a.empresa}</td><td class="mono">{a.inicio || "—"}</td><td class="mono">{a.fim || "—"}</td><td>{a.situacao}</td></tr>))}</tbody>
     </table>
-    <p class="src">Fonte: Portal da Transparência / CGU, acordos de leniência (Lei 12.846/2013). Ordenado do mais recente para o mais antigo; clique no cabeçalho para reordenar.</p>
   </div>
 
-  <h2>Servidores federais expulsos: {num(ceaf.registros)}</h2>
+  <h2>Servidores federais punidos por corrupção: {num(corr.registros)}</h2>
   <div class="card duas">
     <div>
-      <h3>Tipo de punição</h3>
-      <table><thead><tr><th>Categoria</th><th class="num">Casos</th></tr></thead>
-        <tbody>{ceaf.por_categoria.map((c) => (<tr><td>{c.nome}</td><td class="num">{num(c.n)}</td></tr>))}</tbody></table>
-      <h3 style="margin-top:16px">Artigos citados na decisão</h3>
+      <h3>Que punição receberam</h3>
+      <table><thead><tr><th>Punição</th><th class="num">Casos</th></tr></thead>
+        <tbody>{corr.por_categoria.map((c) => (<tr><td>{c.nome}</td><td class="num">{num(c.n)}</td></tr>))}</tbody></table>
+      <h3 style="margin-top:16px">Artigos citados nas decisões</h3>
       <table><thead><tr><th>Fundamento</th><th class="num">Decisões que citam</th></tr></thead>
         <tbody>{ceaf.motivos.map((m) => (<tr><td>{m.nome}</td><td class="num">{num(m.n)}</td></tr>))}</tbody></table>
     </div>
     <div>
-      <h3>Órgãos de onde saíram</h3>
+      <h3>De onde saíram</h3>
       <table><thead><tr><th>#</th><th>Órgão de lotação</th><th class="num">Casos</th></tr></thead>
-        <tbody>{ceaf.por_orgao_lotacao.map((o, i) => (<tr><td class="rank">{i + 1}</td><td>{o.nome}</td><td class="num">{num(o.n)}</td></tr>))}</tbody></table>
+        <tbody>{corr.por_orgao_lotacao.map((o, i) => (<tr><td class="rank">{i + 1}</td><td>{o.nome}</td><td class="num">{num(o.n)}</td></tr>))}</tbody></table>
     </div>
-    <p class="src" style="grid-column:1/-1">Fonte: Portal da Transparência, CEAF. Só servidores da administração <b>federal</b>: estados e municípios não têm cadastro nacional equivalente. Uma decisão cita vários artigos do Estatuto do Servidor, por isso a soma dos fundamentos é maior que o total de casos. Os nomes dos servidores são públicos no cadastro; aqui ficam de fora.</p>
+    <p class="src" style="grid-column:1/-1">
+      Expulsão é a punição máxima do processo disciplinar: demissão de quem está na ativa, cassação da aposentadoria de quem já saiu,
+      destituição de cargo. Contamos como "por corrupção" as decisões cuja fundamentação cita corrupção, improbidade, desvio, lesão aos
+      cofres públicos, valer-se do cargo em proveito próprio ou advocacia administrativa — de {num(ceaf.registros)} expulsões no total,
+      {num(corr.registros)} citam pelo menos um desses. Uma decisão cita vários artigos, então a tabela de fundamentos soma mais que o
+      total de casos. <b>Só a administração federal</b>: estados e municípios não têm cadastro nacional equivalente. Fonte: CEAF.
+    </p>
   </div>
 
   {cpiBrasil && <>
-    <h2>E no mundo: a percepção de corrupção</h2>
+    <h2>Como o Brasil é visto de fora</h2>
     <div class="card">
       <div class="hero" style="margin-top:0">
-        <div class="stat"><b>{cpiBrasil.posicao}º</b><span>lugar entre {cpiBrasil.total} países no Índice de Percepção da Corrupção de {cpiBrasil.ano}</span></div>
-        <div class="stat"><b>{cpiBrasil.valor}</b><span>pontos de 100 (quanto maior, menos corrupção percebida). Em {cpiSerie[0]?.ano} eram {cpiSerie[0]?.valor}, na {cpiSerie[0]?.posicao}ª posição</span></div>
+        <div class="stat"><b>{cpiBrasil.posicao}º</b><span>entre {cpiBrasil.total} países no <Termo t="cpi">Índice de Percepção da Corrupção</Termo> de {cpiBrasil.ano}</span></div>
+        <div class="stat"><b>{cpiBrasil.valor}</b><span>pontos de 100 (quanto maior, menos corrupção percebida). Em {cpiSerie[0]?.ano} eram {cpiSerie[0]?.valor} pontos, na {cpiSerie[0]?.posicao}ª posição</span></div>
       </div>
       {cpiSerie.length > 1 && <svg viewBox={`0 0 ${W} ${SH}`} width="100%" role="img" aria-label="Pontuação do Brasil no Índice de Percepção da Corrupção">
         {[25, 50, 75].map((v) => (<g><line x1={padL} x2={W - 20} y1={cy(v)} y2={cy(v)} stroke="var(--line)" /><text x={padL - 6} y={cy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}</text></g>))}
         <polyline points={cpiSerie.map((p, i) => `${cx(i).toFixed(1)},${cy(p.valor).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s3)" stroke-width="2.5" />
         {cpiSerie.map((p, i) => <circle cx={cx(i)} cy={cy(p.valor)} r="3" fill="var(--s3)"><title>{p.ano}: {p.valor} pontos, {p.posicao}º de {p.total}</title></circle>)}
-        {cpiSerie.map((p, i) => (i % 2 === 0 || i === cpiSerie.length - 1) && <text x={cx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{p.ano}</text>)}
+        {cpiSerie.map((p, i) => (i % 2 === 0 || i === cpiSerie.length - 1) && <text x={cx(i)} y={SH - 8} text-anchor="middle" font-size="11" fill="var(--ink-2)">{p.ano}</text>)}
       </svg>}
-      <p class="src">Fonte: <Termo t="cpi">Transparência Internacional</Termo>, Índice de Percepção da Corrupção. É uma organização não governamental, e o índice mede <b>percepção</b> de especialistas e executivos, não casos comprovados. Está aqui por ser a referência internacional mais usada; o resto desta página usa só registro oficial. Veja também <a href="/rankings/">Rankings</a>.</p>
+      <p class="src">Fonte: Transparência Internacional. É uma <b>organização não governamental</b>, e o índice mede <b>percepção</b> de especialistas e executivos sobre corrupção no setor público, não casos comprovados. Está aqui por ser a referência internacional mais usada e porque permite comparar o Brasil com outros países; o resto desta página usa só registro oficial brasileiro. Veja também <a href="/rankings/">Rankings</a>.</p>
     </div>
   </>}
+
+  <h2>Nem toda punição é corrupção</h2>
+  <div class="card">
+    <p class="explica">
+      O cadastro de empresas e pessoas impedidas de contratar com o poder público tem {num(ceis.registros)} registros, mas a maior parte
+      não trata de desvio de dinheiro: é descumprimento de contrato, problema de documentação ou irregularidade em licitação. Por isso
+      esta página usa só a parte de improbidade administrativa e deixa o resto aqui embaixo, separado.
+    </p>
+    <table>
+      <thead><tr><th>Fundamento da sanção</th><th class="num">Registros</th><th class="num">% do cadastro</th><th>É caso de corrupção?</th></tr></thead>
+      <tbody>{ceis.por_fundamento.map((f) => (<tr><td>{f.nome}</td><td class="num">{num(f.n)}</td><td class="num">{pct(f.n, ceis.registros)}</td>
+        <td class="desc">{f.nome.startsWith("Improbidade") ? "Sim — é a lei que pune enriquecimento ilícito e prejuízo ao erário" : f.nome.startsWith("Lei Anticorrupção") ? "Sim — Lei 12.846/2013" : "Não necessariamente: pune falhas em licitação e contrato, que podem ou não envolver desvio"}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Das {num(ceis.registros)} sanções, {num(ceis.vigentes)} ainda valem hoje e {num(ceis.encerradas)} já venceram. {num(naoCorrupcao)} têm fundamento diferente de improbidade. Categorias de punição: {ceis.por_categoria.slice(0, 3).map((c) => `${c.nome.toLowerCase()} (${num(c.n)})`).join(", ")}. Fonte: Portal da Transparência, CEIS.</p>
+  </div>
 
   <h2>O que os números dizem</h2>
   <div class="card">
     <ul class="conclusoes">
-      <li>Há {num(ceis.vigentes)} sanções de impedimento valendo hoje, de {num(ceis.registros)} já registradas, aplicadas por órgãos {ceis.por_esfera.map((e) => e.nome.toLowerCase()).slice(0, 3).join(", ")} — {pct(ceis.pessoa_juridica, ceis.registros)} delas contra empresas.</li>
-      <li>Os estados com mais sanções registradas são {ufOrd.slice(0, 3).map((u) => `${u.nome} (${num(u.n)})`).join(", ")}; os com menos, {ufOrd.slice(-2).map((u) => `${u.nome} (${num(u.n)})`).join(" e ")}. Isso diz onde se pune e se registra, não onde há mais corrupção.</li>
-      <li>Pela Lei Anticorrupção, {num(cnep.registros)} sanções e {bi(cnep.multas.total)} em multas. A CGU tem {num(len.registros)} acordos de leniência, {len.por_situacao.map((s) => `${num(s.n)} ${s.nome.toLowerCase()}`).join(" e ")}.</li>
-      <li>Entre os servidores federais, {num(ceaf.por_categoria[0]?.n ?? 0)} {ceaf.por_categoria[0]?.nome.toLowerCase()}s e {num(ceaf.por_categoria[1]?.n ?? 0)} {ceaf.por_categoria[1]?.nome.toLowerCase()}s. O órgão com mais casos é {ceaf.por_orgao_lotacao[0]?.nome}.</li>
+      <li>O registro oficial de punições por improbidade administrativa tem {num(imp.registros)} sanções, {pct(imp.pessoa_fisica, imp.registros)} delas contra pessoas físicas — agentes públicos e particulares que agiram com eles.</li>
+      <li>Os estados onde mais se puniu improbidade são {ufOrd.slice(0, 3).map((u) => `${u.nome} (${num(u.n)})`).join(", ")}. Isso mostra onde a Justiça julgou e o cadastro registrou, não onde há mais corrupção.</li>
+      <li>Contra empresas, a Lei Anticorrupção gerou {num(cnep.registros)} sanções e {bi(cnep.multas.total)} em multas; {num(len.registros)} empresas assinaram acordo de leniência, das quais {len.por_situacao.map((s) => `${num(s.n)} ${s.nome.toLowerCase()}`).join(" e ")}.</li>
+      <li>Entre servidores federais, {num(corr.registros)} expulsões citam corrupção ou desvio — {pct(corr.registros, ceaf.registros)} do total. O órgão com mais casos é {corr.por_orgao_lotacao[0]?.nome}.</li>
+      {cpiBrasil && <li>Na percepção internacional, o Brasil tem {cpiBrasil.valor} pontos de 100 e está em {cpiBrasil.posicao}º entre {cpiBrasil.total} países — {cpiSerie[0] && cpiBrasil.valor < cpiSerie[0].valor ? `pior que os ${cpiSerie[0].valor} pontos de ${cpiSerie[0].ano}` : `ante ${cpiSerie[0]?.valor} pontos em ${cpiSerie[0]?.ano}`}.</li>}
     </ul>
     <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>
   </div>
 
-  <Glossario termos={["ceis", "lei_anticorrupcao", "leniencia", "expulsao", "cpi"]} />
+  <Glossario termos={["improbidade", "lei_anticorrupcao", "leniencia", "expulsao", "ceis", "cpi"]} />
 </Base>
 <style>
   .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .duas h3 { margin: 0 0 8px; font-size: 15px; }
   @media (max-width: 900px) { .duas { grid-template-columns: 1fr; } }
   .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
-  .stat b.inline { display: inline; font-family: inherit; font-size: inherit; color: var(--ink); }
   .explica { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; max-width: 78ch; }
+  .explica b { color: var(--ink); }
   .situacoes { display: flex; gap: 10px; flex-wrap: wrap; }
   .pill { font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--accent) 8%, var(--card)); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
   .pill b { color: var(--accent); font-weight: 700; }
+  .stat b.inline { display: inline; font-family: inherit; font-size: inherit; color: var(--ink); }
   td.mono { font-family: var(--mono); font-size: 12.5px; }
+  td.desc { color: var(--ink-2); font-size: 12.5px; white-space: normal; max-width: 44ch; }
 </style>

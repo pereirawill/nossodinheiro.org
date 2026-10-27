@@ -16,6 +16,9 @@ Privacidade: o CEIS e o CNEP trazem o CPF de pessoas físicas sancionadas em cla
 publica só contagens e somas. De nomes, saem apenas os de órgãos públicos e, nos acordos de leniência, a razão social das
 empresas — que é o objeto do acordo e é publicada pela CGU.
 
+A página separa o que é **corrupção** (Lei Anticorrupção, improbidade administrativa, decisões que citam corrupção, desvio e lesão
+aos cofres) do que é **irregularidade comum em contrato** (descumprimento, documentação, pregão) — o CEIS mistura as duas coisas.
+
 O que estes números são: punições **registradas**, com a data em que a sanção começou. O que não são: medida de corrupção.
 Um estado com mais sanções pode ter mais fiscalização, não mais crime; e o cadastro depende de cada órgão alimentar o sistema.
 """
@@ -41,6 +44,14 @@ PUB = Path("data/public")
 BASE = "https://portaldatransparencia.gov.br/download-de-dados/{cadastro}/{data}"
 UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
 TOPO = 15
+# A fundamentação legal distingue o que é corrupção/improbidade do que é irregularidade comum em contrato. O CEIS mistura as duas:
+# a maior parte é descumprimento de contrato ou de licitação, não desvio de dinheiro.
+FUNDAMENTOS = {
+    "Improbidade administrativa (Lei 8.429)": r"LEI\s*8\.?429|IMPROBIDADE",
+    "Lei Anticorrupção (Lei 12.846)": r"LEI\s*12\.?846",
+    "Licitações e contratos (Leis 8.666 e 14.133)": r"LEI\s*8\.?666|LEI\s*14\.?133",
+    "Pregão (Lei 10.520)": r"LEI\s*10\.?520",
+}
 # palavras do campo "FUNDAMENTAÇÃO LEGAL" do CEAF. Uma decisão cita vários artigos ("ART. 132, XI - CORRUPÇÃO;ART. 132, IV -
 # IMPROBIDADE ADMINISTRATIVA"), então as contagens se sobrepõem: somam mais que o total de expulsões.
 MOTIVOS = {
@@ -112,14 +123,27 @@ def _vigente(fim: str) -> bool:
     return f"{m.group(3)}-{m.group(2)}-{m.group(1)}" >= datetime.now().strftime("%Y-%m-%d")
 
 
+def _fundamento(r: dict) -> str:
+    texto = (r.get("FUNDAMENTAÇÃO LEGAL") or "").upper()
+    for rotulo, padrao in FUNDAMENTOS.items():
+        if re.search(padrao, texto):
+            return rotulo
+    return "Outros fundamentos"
+
+
 def empresas(linhas: list[dict], cadastro: str) -> dict:
     vigentes = [r for r in linhas if _vigente(r.get("DATA FINAL SANÇÃO", ""))]
+    improbidade = [r for r in linhas if re.search(FUNDAMENTOS["Improbidade administrativa (Lei 8.429)"], (r.get("FUNDAMENTAÇÃO LEGAL") or "").upper())]
     d = {"registros": len(linhas), "vigentes": len(vigentes), "encerradas": len(linhas) - len(vigentes),
          "vigentes_sem_prazo": sum(1 for r in vigentes if not (r.get("DATA FINAL SANÇÃO") or "").strip()), "por_uf": _por_uf(linhas), "por_ano": _por_ano(linhas),
          "por_categoria": _contar(linhas, "CATEGORIA DA SANÇÃO"), "por_esfera": _contar(linhas, "ESFERA ÓRGÃO SANCIONADOR"),
          "orgaos": _contar(linhas, "ÓRGÃO SANCIONADOR", TOPO),
          "pessoa_juridica": sum(1 for r in linhas if (r.get("TIPO DE PESSOA") or "").strip() == "J"),
-         "sem_uf": sum(1 for r in linhas if (r.get("UF ÓRGÃO SANCIONADOR") or "").strip() not in UF_PARA_NOME)}
+         "sem_uf": sum(1 for r in linhas if (r.get("UF ÓRGÃO SANCIONADOR") or "").strip() not in UF_PARA_NOME),
+         "por_fundamento": sorted(({"nome": k, "n": v} for k, v in Counter(_fundamento(r) for r in linhas).items()), key=lambda d: -d["n"]),
+         "improbidade": {"registros": len(improbidade), "por_uf": _por_uf(improbidade), "por_ano": _por_ano(improbidade),
+                         "orgaos": _contar(improbidade, "ÓRGÃO SANCIONADOR", TOPO),
+                         "pessoa_fisica": sum(1 for r in improbidade if (r.get("TIPO DE PESSOA") or "").strip() == "F")}}
     if cadastro == "cnep":
         multas = [_brl(r.get("VALOR DA MULTA", "")) for r in linhas]
         d["multas"] = {"registros_com_multa": sum(1 for m in multas if m > 0), "total": round(sum(multas), 2)}
@@ -132,7 +156,11 @@ def expulsoes(linhas: list[dict]) -> dict:
         n = sum(1 for r in linhas if re.search(padrao, (r.get("FUNDAMENTAÇÃO LEGAL") or "").upper()))
         if n:
             motivos.append({"nome": rotulo, "n": n})
+    corrupcao = [r for r in linhas if re.search(r"\bCORRUP|IMPROBIDADE|APLICA..O IRREGULAR|LES.O AOS COFRES|DILAPIDA|VALER-SE DO CARGO|ADVOCACIA ADMINISTRATIVA",
+                                                (r.get("FUNDAMENTAÇÃO LEGAL") or "").upper())]
     return {"registros": len(linhas), "por_ano": _por_ano(linhas), "por_categoria": _contar(linhas, "CATEGORIA DA SANÇÃO"),
+            "corrupcao": {"registros": len(corrupcao), "por_ano": _por_ano(corrupcao), "por_orgao_lotacao": _contar(corrupcao, "ÓRGÃO DE LOTAÇÃO", TOPO),
+                          "por_categoria": _contar(corrupcao, "CATEGORIA DA SANÇÃO")},
             "por_orgao_lotacao": _contar(linhas, "ÓRGÃO DE LOTAÇÃO", TOPO), "por_uf": _por_uf(linhas),
             "motivos": sorted(motivos, key=lambda m: -m["n"])}
 
