@@ -38,7 +38,7 @@ PUB, RAW = Path("data/public"), Path("data/raw")
 API = "https://api.obrasgov.gestao.gov.br/obrasgov/api/{recurso}"
 UA = {"user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
 PAGINA = 50
-WORKERS = 4
+WORKERS = 10          # o Obrasgov leva ~85 s por requisição; sem paralelismo a coleta levaria horas
 PARADAS = {"Paralisada", "Inacabada"}          # situações que o CIPI usa para obra interrompida
 TOPO = 40
 
@@ -78,7 +78,7 @@ def baixar(recurso: str, arquivo: Path, paginas_conhecidas: int | None = None) -
     pagina = int(marca.read_text()) if marca.exists() else 0
     if pagina:
         log.info("%s: retomando da página %d com %d registros já baixados", recurso, pagina, len(registros))
-    falhas, bloco = 0, WORKERS * 4
+    falhas, bloco, vazios_seguidos, ultima_com_dado = 0, WORKERS * 2, 0, -1   # bloco curto = progresso salvo com frequência
     with httpx.Client(headers=UA, timeout=180, follow_redirects=True) as c:
         while True:
             faixa = range(pagina, pagina + bloco)
@@ -93,12 +93,17 @@ def baixar(recurso: str, arquivo: Path, paginas_conhecidas: int | None = None) -
                     f.write(json.dumps(r, ensure_ascii=False) + "\n")
             pagina += bloco
             marca.write_text(str(pagina))
+            if obtidos:
+                ultima_com_dado = max(n for n, p in zip(faixa, paginas) if p)
             log.info("%s: páginas %d–%d → %d registros (%d erros); total %d", recurso, faixa.start, faixa.stop - 1, len(obtidos), erros, len(registros))
-            # fim de verdade: todo o bloco respondeu e veio vazio. Se só houve erro, segue tentando os próximos.
-            if (not obtidos and erros == 0) or (paginas_conhecidas and pagina >= paginas_conhecidas):
+            # Fim de verdade: DOIS blocos seguidos respondendo 200 com lista vazia. Um só não basta — o Obrasgov, sob carga,
+            # devolve 200 com content vazio em vez de erro, e pararíamos no meio da base achando que acabou.
+            vazios_seguidos = vazios_seguidos + 1 if (not obtidos and erros == 0) else 0
+            if vazios_seguidos >= 2 or (paginas_conhecidas and pagina >= paginas_conhecidas):
                 break
     parcial.replace(arquivo)
     marca.unlink(missing_ok=True)
+    log.info("%s: %d registros, última página com dado: %d, %d páginas sem resposta", recurso, len(registros), ultima_com_dado, falhas)
     return registros, falhas
 
 
@@ -107,6 +112,7 @@ def _previsto(o: dict) -> float:
 
 
 def _anos_desde(iso: str | None) -> float | None:
+    """Anos entre a data e hoje (negativo se a data ainda não chegou)."""
     if not iso:
         return None
     try:
@@ -147,10 +153,12 @@ def transformar(obras: list[dict], empenhos: list[dict]) -> dict:
         if parada:
             paradas.append({"id": o.get("idUnico"), "nome": (o.get("nome") or "").strip(), "uf": uf, "situacao": s,
                             "especie": (o.get("especie") or "").strip(), "previsto": prev, "empenhado": emp,
-                            "desde": str(o.get("dataSituacao") or "")[:10], "anos_parada": _anos_desde(o.get("dataSituacao")),
-                            "fim_previsto": str(o.get("dataFinalPrevista") or "")[:10],
+                            # dataSituacao = quando o órgão atualizou o status pela última vez, não quando a obra parou
+                            "situacao_desde": str(o.get("dataSituacao") or "")[:10], "anos_sem_atualizacao": _anos_desde(o.get("dataSituacao")),
+                            "fim_previsto": str(o.get("dataFinalPrevista") or "")[:10], "anos_de_atraso": _anos_desde(o.get("dataFinalPrevista")),
                             "executor": ((o.get("executores") or [{}])[0].get("nome") or "").strip()})
-    anos = [p["anos_parada"] for p in paradas if p["anos_parada"] is not None]
+    anos = [p["anos_sem_atualizacao"] for p in paradas if p["anos_sem_atualizacao"] is not None]
+    atrasos = [p["anos_de_atraso"] for p in paradas if (p["anos_de_atraso"] or 0) > 0]
     return {
         "total": len(obras), "obras_com_empenho": len(por_obra_empenho),
         "por_situacao": sorted(({"situacao": k, **{x: round(v, 2) for x, v in d.items()}} for k, d in situacao.items()), key=lambda d: -d["n"]),
@@ -159,7 +167,9 @@ def transformar(obras: list[dict], empenhos: list[dict]) -> dict:
         "por_tipo": sorted(({"nome": k, **{x: round(v, 2) for x, v in d.items()}} for k, d in tipos.items()), key=lambda d: -d["n"])[:15],
         "paradas": {"n": len(paradas), "previsto": round(sum(p["previsto"] for p in paradas), 2),
                     "empenhado": round(sum(p["empenhado"] for p in paradas), 2),
-                    "anos_mediana": round(sorted(anos)[len(anos) // 2], 1) if anos else None,
+                    "anos_sem_atualizacao_mediana": round(sorted(anos)[len(anos) // 2], 1) if anos else None,
+                    "com_prazo_vencido": len(atrasos),
+                    "anos_de_atraso_mediana": round(sorted(atrasos)[len(atrasos) // 2], 1) if atrasos else None,
                     "maiores": sorted(paradas, key=lambda p: -p["previsto"])[:TOPO]},
     }
 
@@ -171,6 +181,9 @@ def run(so_transformar: bool = False) -> Path:
         raise SystemExit("sem cache completo em data/raw: rode sem --so-transformar")
     obras, falhas_obras = baixar("projeto-investimento", arq_obras)
     empenhos, falhas_emp = baixar("execucao-financeira", arq_emp, paginas_conhecidas=420)
+    if len(obras) < 15_000:
+        raise SystemExit(f"só {len(obras)} obras coletadas: o cadastro tem ~25 mil (TCU 2025), então a coleta truncou. "
+                         f"Apague data/raw/obrasgov_projetos.jsonl.gz e rode de novo.")
     dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"),
              "paginas_sem_resposta": {"obras": falhas_obras, "empenhos": falhas_emp}, **transformar(obras, empenhos),
              "fontes": {"obras": "Obrasgov/CIPI, API pública do Ministério da Gestão: projetos de investimento com recurso federal",
