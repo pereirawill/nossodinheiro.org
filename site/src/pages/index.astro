@@ -22,11 +22,10 @@ import renda from "../../public/data/renda.json";
 import educacao from "../../public/data/educacao.json";
 import seguranca from "../../public/data/seguranca.json";
 import credito from "../../public/data/credito.json";
-import saudeDados from "../../public/data/saude.json";
+import saudeDados from "../../public/data/saude.json";  // "saude" já é usado abaixo para a função 10 da União
 import inflacao from "../../public/data/inflacao.json";
 import corrupcao from "../../public/data/corrupcao.json";
 import previdencia from "../../public/data/previdencia.json";
-import obras from "../../public/data/obras.json";  // "saude" já é usado abaixo para a função 10 da União
 
 const ANO = 2025;
 const rendaPub = (renda.posicoes as any[]).find((p) => p.chave === "publico")?.valor ?? 0;
