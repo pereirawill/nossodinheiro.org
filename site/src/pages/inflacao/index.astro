@@ -45,6 +45,19 @@ const equivalente = (ano: string) => {
 };
 const ANOS_REF = ["1995", "2000", "2005", "2010", "2015", "2020", "2024"].filter((a) => indice[`${a}12`]);
 const desde1980 = indice[ultimo] / indice["198012"];
+
+// Poder de compra do real: quanto R$ 100 de julho de 1994 (quando a moeda nasceu) compram em cada mês desde então
+const REAL = "199407";
+const mesesReal = Object.keys(indice).filter((m) => m >= REAL).sort();
+const poder = (m: string) => (100 * indice[REAL]) / indice[m];       // em reais de hoje, o que R$ 100 de 1994 valem
+const poderHoje = (100 * indice[REAL]) / indice[ultimo];
+const perdaReal = 100 - poderHoje;                                    // % do poder de compra que se foi
+const PW = 920, PH = 240, pPadL = 44, pPadB = 24;
+const px = (i: number) => pPadL + (i * (PW - pPadL - 10)) / (mesesReal.length - 1);
+const py = (v: number) => 8 + (PH - pPadB - 8) * (1 - v / 100);
+const anosMarca = ["1995", "2000", "2005", "2010", "2015", "2020", "2025"].filter((a) => indice[`${a}12`]);
+// quanto o dinheiro parado perde com a inflação atual, se ela se repetir
+const guardado = (anos: number) => 100 * Math.pow(1 / (1 + ipca12 / 100), anos);
 const CORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "#59a14f", "#9c755f", "#b07aa1", "var(--neutro)"];
 const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
 ---
@@ -126,11 +139,50 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
     <p class="src">Fonte: IBGE, IPCA por região (SIDRA 7060). O IPCA é calculado em 16 áreas: 10 regiões metropolitanas e 6 municípios. O índice nacional é a média ponderada delas pelo peso de cada área no consumo — não existe IPCA de cada estado.</p>
   </div>
 
+  <h2>Quanto o real perdeu de poder de compra</h2>
+  <div class="card">
+    <div class="hero" style="margin-top:0">
+      <div class="stat big"><b>{brl(poderHoje)}</b><span>é o que R$ 100 de julho de 1994, quando o real foi criado, compram hoje. O resto a inflação levou</span></div>
+      <div class="stat"><b>{pct(perdaReal, 1)}</b><span>do <Termo t="poder_de_compra">poder de compra</Termo> da moeda se perdeu em {(parseInt(ultimo.slice(0, 4)) - 1994)} anos — o mesmo dinheiro compra {(100 / poderHoje).toFixed(1).replace(".", ",")}× menos</span></div>
+      <div class="stat"><b>R$ {(100 * desde1980 / 1e12).toFixed(1).replace(".", ",")} tri</b><span>é o que seria preciso hoje para comprar o que R$ 100 compravam em dezembro de 1980, antes de cinco trocas de moeda — a conta da hiperinflação</span></div>
+    </div>
+    <svg viewBox={`0 0 ${PW} ${PH}`} width="100%" role="img" aria-label="Poder de compra de R$ 100 de julho de 1994 ao longo do tempo">
+      {[25, 50, 75, 100].map((v) => (<g><line x1={pPadL} x2={PW - 10} y1={py(v)} y2={py(v)} stroke="var(--line)" /><text x={pPadL - 6} y={py(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">R$ {v}</text></g>))}
+      <polygon points={`${px(0)},${(PH - pPadB).toFixed(1)} ${mesesReal.map((m, i) => `${px(i).toFixed(1)},${py(poder(m)).toFixed(1)}`).join(" ")} ${px(mesesReal.length - 1)},${(PH - pPadB).toFixed(1)}`} fill="var(--s4)" opacity=".10" />
+      <polyline points={mesesReal.map((m, i) => `${px(i).toFixed(1)},${py(poder(m)).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s4)" stroke-width="2.5" />
+      {anosMarca.map((a) => { const m = `${a}12`; const i = mesesReal.indexOf(m); return i > 0 && (<g>
+        <circle cx={px(i)} cy={py(poder(m))} r="3" fill="var(--s4)" />
+        <text x={px(i)} y={py(poder(m)) - 8} text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl(poder(m))}</text>
+      </g>); })}
+      {mesesReal.filter((m) => m.endsWith("12") && +m.slice(0, 4) % 5 === 0).map((m) => <text x={px(mesesReal.indexOf(m))} y={PH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{m.slice(0, 4)}</text>)}
+    </svg>
+    <p class="src">
+      A linha mostra, mês a mês, quanto valem em compras os mesmos R$ 100 de julho de 1994 — não é cotação de moeda nem comparação com
+      o dólar, é só o quanto o dinheiro compra. A queda é mais íngreme nos primeiros anos do real, quando a inflação ainda rodava perto
+      de 20% ao ano, e vai ficando lenta depois de 1999. Calculado com o número-índice do IPCA (IBGE, SIDRA 1737).
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 6px">E o dinheiro parado, quanto perde?</h3>
+    <p class="explica">Se a inflação dos últimos 12 meses ({pct(ipca12)}) se repetisse, é isto que aconteceria com R$ 100 guardados em casa, sem render nada:</p>
+    <table>
+      <thead><tr><th>Depois de</th><th class="num">R$ 100 compram o equivalente a</th><th class="num">Perda acumulada</th></tr></thead>
+      <tbody>{[1, 2, 5, 10, 20].map((anos) => (<tr><td>{anos} {anos === 1 ? "ano" : "anos"}</td><td class="num">{brl(guardado(anos))}</td><td class="num">{pct(100 - guardado(anos), 1)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Projeção simples, não previsão: repete a inflação de 12 meses até {mesPorExtenso} para a frente. Serve para mostrar o efeito do juro composto ao contrário — a inflação futura pode ser maior ou menor, e dinheiro aplicado rende.</p>
+  </div>
+
   <h2>Quanto os preços subiram desde…</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Dezembro de</th><th class="num">Preços multiplicados por</th><th class="num">R$ 100 daquela época valem hoje</th><th class="num">R$ 100 de hoje valiam</th></tr></thead>
-      <tbody>{ANOS_REF.map((a) => { const f = equivalente(a)!; return (<tr><td>{a}</td><td class="num">{f.toFixed(2).replace(".", ",")}×</td><td class="num">{brl(100 * f)}</td><td class="num">{brl(100 / f)}</td></tr>); })}</tbody>
+      <thead><tr><th>Desde</th><th class="num">Preços multiplicados por</th><th class="num">Para comprar hoje o que R$ 100 compravam, preciso de</th><th class="num">R$ 100 de hoje compram o que comprava</th><th class="num">Poder de compra perdido</th></tr></thead>
+      <tbody>
+        <tr class="destaque"><td>julho de 1994 <span class="nota">nascimento do real</span></td><td class="num">{(100 / poderHoje).toFixed(2).replace(".", ",")}×</td>
+          <td class="num">{brl(100 * (100 / poderHoje))}</td><td class="num">{brl(poderHoje)}</td><td class="num"><b>{pct(perdaReal, 1)}</b></td></tr>
+        {ANOS_REF.map((a) => { const f = equivalente(a)!; return (<tr><td>dezembro de {a}</td><td class="num">{f.toFixed(2).replace(".", ",")}×</td>
+          <td class="num">{brl(100 * f)}</td><td class="num">{brl(100 / f)}</td><td class="num">{pct(100 - 100 / f, 1)}</td></tr>); })}
+      </tbody>
     </table>
     <p class="src">Calculado com o número-índice do IPCA (IBGE, SIDRA 1737), de dezembro do ano até {mesPorExtenso}. De dezembro de 1980 até hoje os preços foram multiplicados por {Math.round(desde1980).toLocaleString("pt-BR")} — o país trocou de moeda cinco vezes no caminho, então o número serve para mostrar a escala da hiperinflação, não para converter dinheiro antigo.</p>
   </div>
@@ -152,4 +204,7 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
 <style>
   .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
   td.tipo { color: var(--ink-2); font-size: 12.5px; }
+  .explica { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; max-width: 78ch; }
+  tr.destaque td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .nota { color: var(--ink-2); font-size: 12px; font-family: var(--mono); margin-left: 6px; }
 </style>

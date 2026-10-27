@@ -31,6 +31,19 @@ com base na POF 2017-2018).
 - Não existe IPCA por estado: o IBGE pesquisa 16 áreas, e o índice nacional é a média ponderada delas. Por isso esta página não
   tem mapa.
 
+## 2b. Poder de compra (acrescentado em 27/10/2026)
+
+- **Curva do poder de compra**: `poder(mês) = 100 × índice(jul/1994) ÷ índice(mês)`, ou seja, quanto compram em cada mês os mesmos
+  R$ 100 de julho de 1994, quando o real nasceu. Em set/2026: R$ 11,90, uma perda de 88,1% em 32 anos.
+- **Não é cotação de moeda**: não tem relação com o dólar nem com o valor do real no exterior; é só quanto o dinheiro compra dentro
+  do país, medido pelo IPCA. Dito na página e no glossário (`poder_de_compra`).
+- **A tabela "quanto os preços subiram desde…"** ganhou rótulos sem ambiguidade — "para comprar hoje o que R$ 100 compravam, preciso
+  de" e "R$ 100 de hoje compram o que comprava" —, uma coluna de poder de compra perdido e a linha de julho de 1994. Os títulos
+  antigos ("R$ 100 daquela época valem hoje" / "R$ 100 de hoje valiam") eram ambíguos: davam a entender tanto correção monetária
+  quanto dinheiro guardado no colchão. O dono apontou a ambiguidade em 27/10/2026.
+- **"E o dinheiro parado, quanto perde?"**: projeção simples que repete a inflação de 12 meses para a frente (1, 2, 5, 10 e 20 anos),
+  rotulada como projeção e não previsão, para mostrar o juro composto ao contrário.
+
 ## 3. Pendências
 
 1. IPCA-15 (prévia mensal) e a série de itens (457 subitens já disponíveis na tabela 7060).
