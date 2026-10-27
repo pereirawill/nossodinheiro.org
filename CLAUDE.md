@@ -32,7 +32,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Impostos, Inflação, Trabalho, Renda, Educação, Segurança, Saúde, Inadimplência, Punições, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Impostos, Inflação, Trabalho, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -129,7 +129,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   IPCA por estado (só 16 áreas). Pendências: IPCA-15, subitens, Selic (SGS 432 deu 502), IGP-M (FGV é paga).
 
 ## Painel Punições/Corrupção (NO AR, sem chave, mensal dia 13; feito 27/10/2026)
-- `etl/corrupcao/extract.py` → `corrupcao.json`, `/corrupcao/` (menu: "Punições", depois de Inadimplência). Portal da Transparência
+- `etl/corrupcao/extract.py` → `corrupcao.json`, `/corrupcao/` (menu: "Corrupção", depois de Inadimplência). Portal da Transparência
   `download-de-dados/{ceis,cnep,ceaf,acordos-leniencia}/AAAAMMDD` (ZIP+CSV latin-1, UA+referer, tenta 8 dias para trás; o ZIP de
   leniência tem 2 CSVs → escolher "Acordos"). Cabeçalhos com travessão cp1252 `\x96` → normalizados na leitura.
 - **Privacidade**: CEIS/CNEP trazem CPF em claro → só contagens no JSON; nomes apenas de órgãos e da razão social nos acordos.

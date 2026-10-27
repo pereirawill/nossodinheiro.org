@@ -1,4 +1,4 @@
-# Painel — Punições e sanções
+# Painel — Corrupção: punições e sanções registradas
 
 Última revisão: 2026-10-27. Código: `etl/corrupcao/extract.py` → `data/public/corrupcao.json`. Atualização mensal (dia 13). Página: `/corrupcao/`.
 
@@ -28,6 +28,9 @@ do acordo e é publicada pela CGU. Os nomes de servidores expulsos, embora públ
 - **Não é medida de corrupção.** É o que foi punido e registrado. Mais sanções num estado pode significar mais fiscalização.
 - O recorte por estado usa a coluna **"UF ÓRGÃO SANCIONADOR"** — onde fica o órgão que puniu, não a sede da empresa punida.
   857 registros do CEIS vêm sem UF e ficam fora do mapa (declarado na página).
+- **Vigente × encerrada**: a sanção vale até a "DATA FINAL SANÇÃO"; sem data, é por prazo indeterminado (caso da inidoneidade) ou
+  o órgão não informou. Em out/2026: 23.242 das 23.811 do CEIS ainda valiam, 2.029 delas sem prazo informado. O número do topo da
+  página é o de **vigentes**; o mapa e as barras por ano contam todo o histórico, porque o cadastro é histórico.
 - O ano é o de **início da sanção**, não o do fato. A alta recente reflete também a digitalização do cadastro e a adesão de
   órgãos estaduais e municipais.
 - O CEIS reúne sanções das três esferas (estadual 9.863, federal 8.509, municipal 5.289 em out/2026); o CEAF é **só federal** —

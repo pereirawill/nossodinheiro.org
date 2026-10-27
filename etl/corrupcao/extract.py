@@ -104,8 +104,18 @@ def _por_uf(linhas: list[dict]) -> list[dict]:
     return sorted(({"uf": uf, "nome": UF_PARA_NOME[uf], "n": n} for uf, n in cnt.items() if uf in UF_PARA_NOME), key=lambda d: d["uf"])
 
 
+def _vigente(fim: str) -> bool:
+    """Sem data final = sanção por prazo indeterminado (segue valendo); com data, vale até ela."""
+    m = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", (fim or "").strip())
+    if not m:
+        return True
+    return f"{m.group(3)}-{m.group(2)}-{m.group(1)}" >= datetime.now().strftime("%Y-%m-%d")
+
+
 def empresas(linhas: list[dict], cadastro: str) -> dict:
-    d = {"registros": len(linhas), "por_uf": _por_uf(linhas), "por_ano": _por_ano(linhas),
+    vigentes = [r for r in linhas if _vigente(r.get("DATA FINAL SANÇÃO", ""))]
+    d = {"registros": len(linhas), "vigentes": len(vigentes), "encerradas": len(linhas) - len(vigentes),
+         "vigentes_sem_prazo": sum(1 for r in vigentes if not (r.get("DATA FINAL SANÇÃO") or "").strip()), "por_uf": _por_uf(linhas), "por_ano": _por_ano(linhas),
          "por_categoria": _contar(linhas, "CATEGORIA DA SANÇÃO"), "por_esfera": _contar(linhas, "ESFERA ÓRGÃO SANCIONADOR"),
          "orgaos": _contar(linhas, "ÓRGÃO SANCIONADOR", TOPO),
          "pessoa_juridica": sum(1 for r in linhas if (r.get("TIPO DE PESSOA") or "").strip() == "J"),

@@ -18,7 +18,7 @@ const ufMapa = Object.fromEntries(ceis.por_uf.map((u) => [u.uf, u.n]));
 const ufOrd = [...ceis.por_uf].sort((a, b) => b.n - a.n);
 const maxUf = Math.max(...ceis.por_uf.map((u) => u.n));
 const anos = Object.keys(ceis.por_ano).filter((a) => a >= "2010");
-const maxAno = Math.max(...anos.map((a) => (ceis.por_ano[a] ?? 0) + (cnep.por_ano[a] ?? 0)));
+const maxAno = Math.max(...anos.map((a) => ceis.por_ano[a] ?? 0));
 const AH = 220, padL = 50;
 const ax = (i: number) => padL + (i * (W - padL - 20)) / (anos.length - 1);
 const ay = (v: number) => 8 + (AH - 24 - 8) * (1 - v / maxAno);
@@ -33,8 +33,8 @@ const SH = 200;
 const cx = (i: number) => padL + (i * (W - padL - 20)) / Math.max(1, cpiSerie.length - 1);
 const cy = (v: number) => 8 + (SH - 24 - 8) * (1 - v / 100);
 ---
-<Base title="Punições e sanções: o que foi punido no Brasil — Nosso Dinheiro" accent="var(--s3)" description="Empresas impedidas de contratar com o poder público, punições da Lei Anticorrupção, acordos de leniência e servidores federais expulsos, por estado, ano e órgão.">
-  <h1>O que foi punido: empresas, acordos e servidores</h1>
+<Base title="Corrupção: o que foi punido no Brasil — Nosso Dinheiro" accent="var(--s3)" description="Empresas impedidas de contratar com o poder público, punições da Lei Anticorrupção, acordos de leniência e servidores federais expulsos, por estado, ano e órgão.">
+  <h1>Corrupção: o que o poder público puniu</h1>
   <p class="lede">
     Quantas empresas estão impedidas de contratar com o poder público, quantas foram punidas pela Lei Anticorrupção e quanto somam
     as multas, quantos acordos de leniência a CGU assinou e quantos servidores federais foram demitidos ou tiveram a aposentadoria
@@ -43,7 +43,7 @@ const cy = (v: number) => 8 + (SH - 24 - 8) * (1 - v / 100);
   <p class="meta">atualizado em {fmt.format(quando)} · Portal da Transparência (CEIS, CNEP, CEAF e acordos de leniência) · <a href="/metodologia/">metodologia</a></p>
 
   <div class="hero">
-    <div class="stat big"><b>{num(ceis.registros)}</b><span>sanções que impedem contratar com o poder público em vigor ou registradas no <Termo t="ceis">CEIS</Termo>; {pct(ceis.pessoa_juridica, ceis.registros)} são de empresas</span></div>
+    <div class="stat big"><b>{num(ceis.vigentes)}</b><span>sanções que <b class="inline">hoje</b> impedem contratar com o poder público, das {num(ceis.registros)} já registradas no <Termo t="ceis">CEIS</Termo>; {pct(ceis.pessoa_juridica, ceis.registros)} são de empresas</span></div>
     <div class="stat"><b>{bi(cnep.multas.total)}</b><span>em multas aplicadas pela <Termo t="lei_anticorrupcao">Lei Anticorrupção</Termo> e registradas no CNEP ({num(cnep.multas.registros_com_multa)} multas)</span></div>
     <div class="stat"><b>{num(ceaf.registros)}</b><span>servidores federais <Termo t="expulsao">expulsos</Termo> desde que o cadastro existe: demissões, cassações de aposentadoria e destituições</span></div>
   </div>
@@ -67,7 +67,7 @@ const cy = (v: number) => 8 + (SH - 24 - 8) * (1 - v / 100);
         <text x={166 + (u.n / maxUf) * 580} y="13" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{num(u.n)}</text>
       </g>))}
     </svg>
-    <p class="src">Fonte: Portal da Transparência, CEIS. O estado é o do <b>órgão que aplicou a sanção</b> (prefeitura, governo estadual, tribunal, órgão federal com sede no estado), não o da empresa punida. {num(ceis.sem_uf)} registros vêm sem UF. Por esfera: {ceis.por_esfera.map((e) => `${e.nome.toLowerCase()} ${num(e.n)}`).join(", ")}.</p>
+    <p class="src">Das {num(ceis.registros)} sanções do cadastro, {num(ceis.vigentes)} ainda valem (incluindo {num(ceis.vigentes_sem_prazo)} sem prazo informado ou por tempo indeterminado) e {num(ceis.encerradas)} já venceram; o mapa e as barras contam todas, porque o cadastro é histórico. Fonte: Portal da Transparência, CEIS. O estado é o do <b>órgão que aplicou a sanção</b> (prefeitura, governo estadual, tribunal, órgão federal com sede no estado), não o da empresa punida. {num(ceis.sem_uf)} registros vêm sem UF. Por esfera: {ceis.por_esfera.map((e) => `${e.nome.toLowerCase()} ${num(e.n)}`).join(", ")}.</p>
   </div>
 
   <h2>Que tipo de punição</h2>
@@ -88,7 +88,7 @@ const cy = (v: number) => 8 + (SH - 24 - 8) * (1 - v / 100);
   <h2>Sanções a empresas por ano</h2>
   <div class="card">
     <svg viewBox={`0 0 ${W} ${AH}`} width="100%" role="img" aria-label="Sanções registradas por ano">
-      {[2000, 4000, 6000].filter((v) => v < maxAno).map((v) => (<g><line x1={padL} x2={W - 20} y1={ay(v)} y2={ay(v)} stroke="var(--line)" /><text x={padL - 6} y={ay(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{num(v)}</text></g>))}
+      {[1000, 2000, 3000, 4000, 5000, 6000, 7000].filter((v) => v < maxAno * 0.98).map((v) => (<g><line x1={padL} x2={W - 20} y1={ay(v)} y2={ay(v)} stroke="var(--line)" /><text x={padL - 6} y={ay(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{num(v)}</text></g>))}
       {anos.map((a, i) => (<g>
         <rect x={ax(i) - larg / 2} y={ay(ceis.por_ano[a] ?? 0)} width={larg} height={Math.max(1, AH - 24 - ay(ceis.por_ano[a] ?? 0))} fill={a === anoCorrente ? "var(--neutro)" : "var(--s3)"} rx="1">
           <title>{a}: {num(ceis.por_ano[a] ?? 0)} sanções no CEIS</title></rect>
@@ -165,7 +165,7 @@ const cy = (v: number) => 8 + (SH - 24 - 8) * (1 - v / 100);
   <h2>O que os números dizem</h2>
   <div class="card">
     <ul class="conclusoes">
-      <li>Há {num(ceis.registros)} sanções de impedimento de contratar registradas, aplicadas por órgãos {ceis.por_esfera.map((e) => e.nome.toLowerCase()).slice(0, 3).join(", ")} — {pct(ceis.pessoa_juridica, ceis.registros)} delas contra empresas.</li>
+      <li>Há {num(ceis.vigentes)} sanções de impedimento valendo hoje, de {num(ceis.registros)} já registradas, aplicadas por órgãos {ceis.por_esfera.map((e) => e.nome.toLowerCase()).slice(0, 3).join(", ")} — {pct(ceis.pessoa_juridica, ceis.registros)} delas contra empresas.</li>
       <li>Os estados com mais sanções registradas são {ufOrd.slice(0, 3).map((u) => `${u.nome} (${num(u.n)})`).join(", ")}; os com menos, {ufOrd.slice(-2).map((u) => `${u.nome} (${num(u.n)})`).join(" e ")}. Isso diz onde se pune e se registra, não onde há mais corrupção.</li>
       <li>Pela Lei Anticorrupção, {num(cnep.registros)} sanções e {bi(cnep.multas.total)} em multas. A CGU tem {num(len.registros)} acordos de leniência, {len.por_situacao.map((s) => `${num(s.n)} ${s.nome.toLowerCase()}`).join(" e ")}.</li>
       <li>Entre os servidores federais, {num(ceaf.por_categoria[0]?.n ?? 0)} {ceaf.por_categoria[0]?.nome.toLowerCase()}s e {num(ceaf.por_categoria[1]?.n ?? 0)} {ceaf.por_categoria[1]?.nome.toLowerCase()}s. O órgão com mais casos é {ceaf.por_orgao_lotacao[0]?.nome}.</li>
@@ -179,6 +179,7 @@ const cy = (v: number) => 8 + (SH - 24 - 8) * (1 - v / 100);
   .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .duas h3 { margin: 0 0 8px; font-size: 15px; }
   @media (max-width: 900px) { .duas { grid-template-columns: 1fr; } }
   .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+  .stat b.inline { display: inline; font-family: inherit; font-size: inherit; color: var(--ink); }
   .explica { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; max-width: 78ch; }
   .situacoes { display: flex; gap: 10px; flex-wrap: wrap; }
   .pill { font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--accent) 8%, var(--card)); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }

@@ -25,7 +25,7 @@ log = logging.getLogger("etl.mapa")
 MALHA = "https://servicodados.ibge.gov.br/api/v2/malhas/BR?resolucao=2&formato=application/vnd.geo+json"
 SAIDA = Path("site/src/lib/mapa-uf.ts")
 LARGURA = 1000.0
-TOLERANCIA = 0.06      # graus: distância mínima entre pontos mantidos
+TOLERANCIA = 0.10      # graus: distância mínima entre pontos mantidos (~11 km; o mapa é exibido com 660px de largura)
 AREA_MINIMA = 0.02     # graus²: descarta ilhas e recortes muito pequenos
 
 

@@ -179,7 +179,7 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   pode ser pouco registro.
 - Completo: `docs/metodologia/painel-seguranca.md`.
 
-## Punições e sanções — o que foi punido
+## Corrupção — o que foi punido
 
 - **O que é:** empresas e pessoas impedidas de contratar com o poder público (CEIS), empresas punidas pela Lei Anticorrupção e o
   total das multas (CNEP), acordos de leniência da CGU e servidores federais expulsos (CEAF) — por estado do órgão que puniu,
