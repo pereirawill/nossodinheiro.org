@@ -1,42 +1,42 @@
 {
  "ano": 2025,
  "ano_vagas": 2024,
- "gerado_em_utc": "2026-10-26T23:12+00:00",
+ "gerado_em_utc": "2026-10-27T02:48+00:00",
  "fonte": "SICONFI/Tesouro Nacional, Declaração de Contas Anuais (DCA), anexo I-E; TSE (vagas de vereador)",
  "municipios_total": 5570,
- "municipios_com_dca": 5489,
- "municipios_com_vereadores": 5476,
+ "municipios_com_dca": 5478,
+ "municipios_com_vereadores": 5465,
  "estados": 27,
  "totais": {
-  "pago_total": 1260079920466.55,
-  "pago_legislativo": 30422084485.85,
-  "populacao_coberta": 202943965,
-  "vereadores": 57469
+  "pago_total": 1255777720846.38,
+  "pago_legislativo": 30314758318.5,
+  "populacao_coberta": 202237875,
+  "vereadores": 57317
  },
  "medianas_por_faixa": {
   "até 10 mil": {
-   "municipios": 2426,
-   "por_hab_legislativo": 298.23,
+   "municipios": 2431,
+   "por_hab_legislativo": 297.68,
    "pct_legislativo": 0.0348,
-   "por_vereador": 160367.77
+   "por_vereador": 160114.42
   },
   "10 a 50 mil": {
-   "municipios": 2319,
+   "municipios": 2307,
    "por_hab_legislativo": 172.65,
-   "pct_legislativo": 0.0281,
-   "por_vereador": 314168.54
+   "pct_legislativo": 0.0282,
+   "por_vereador": 313974.26
   },
   "50 a 100 mil": {
-   "municipios": 334,
+   "municipios": 332,
    "por_hab_legislativo": 131.93,
    "pct_legislativo": 0.0249,
-   "por_vereador": 632342.24
+   "por_vereador": 631808.91
   },
   "100 a 500 mil": {
-   "municipios": 266,
+   "municipios": 264,
    "por_hab_legislativo": 120.86,
    "pct_legislativo": 0.0239,
-   "por_vereador": 1327725.67
+   "por_vereador": 1332942.94
   },
   "mais de 500 mil": {
    "municipios": 43,
