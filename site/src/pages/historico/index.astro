@@ -1,0 +1,136 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/historico.json";
+
+const base = d.ano_base;
+const defl = d.deflator as Record<string, number>;
+const real = (v: number, ano: number) => v * (defl[String(ano)] ?? 1);
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : v >= 1e9 ? `R$ ${(v / 1e9).toFixed(0)} bi` : `R$ ${(v / 1e6).toFixed(0)} mi`;
+const mi = (v: number) => `${(v / 1e6).toFixed(1).replace(".", ",")} mi`;
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const anoCorrente = new Date().getFullYear();
+
+type U = { ano: number; total: number; encargos: number; funcoes: Record<string, { nome: string; pago: number }> };
+const uniao = (d.uniao as U[]).filter((u) => u.ano <= base);              // só anos fechados nas séries reais
+const parcial = (d.uniao as U[]).find((u) => u.ano === anoCorrente);
+const FUNCOES = [["09", "Previdência Social", "#1d5a8a"], ["10", "Saúde", "#1f9d55"], ["12", "Educação", "#e07b00"], ["08", "Assistência Social", "#c2185b"],
+  ["05", "Defesa Nacional", "#6a1b9a"], ["11", "Trabalho", "#00a3c4"], ["02", "Judiciária", "#8d6e63"], ["04", "Administração", "#9e9e9e"]] as const;
+const outrasDe = (u: U) => Object.entries(u.funcoes).filter(([c]) => c !== "28" && !FUNCOES.some(([k]) => k === c)).reduce((s, [, f]) => s + f.pago, 0);
+const serieU = uniao.map((u) => ({ ano: u.ano, semEncargos: real(u.total - u.encargos, u.ano), encargos: real(u.encargos, u.ano), total: real(u.total, u.ano),
+  partes: [...FUNCOES.map(([c, n, cor]) => ({ n, cor, v: real(u.funcoes[c]?.pago ?? 0, u.ano) })), { n: "Demais funções", cor: "#cfd8dc", v: real(outrasDe(u), u.ano) }] }));
+const maxU = Math.max(...serieU.map((s) => s.total));
+const primeiro = serieU[0], ultimo = serieU[serieU.length - 1];
+const cresc = (a: number, b: number) => `${((b / a - 1) * 100).toFixed(0)}%`;
+
+type R = { ano: number; meses: number; total: number; bases: Record<string, number> };
+const receita = (d.receita as R[]).filter((r) => r.meses === 12 && r.ano <= base).map((r) => ({ ano: r.ano, real: real(r.total, r.ano), nominal: r.total }));
+const maxR = Math.max(...receita.map((r) => r.real));
+type I = { ano: number; mes: string; total: number; rgps: number; assistencial: number };
+const inss = d.inss as I[];
+const maxI = Math.max(...inss.map((i) => i.total));
+const W = 920, L = 60, R_ = 20, H = 260, T = 16, B = 30;
+const x = (i: number, n: number) => L + (i / Math.max(1, n - 1)) * (W - L - R_);
+const linha = (vals: number[], max: number) => vals.map((v, i) => `${x(i, vals.length).toFixed(1)},${(T + (1 - v / max) * (H - T - B)).toFixed(1)}`).join(" ");
+const decadas = (anos: number[]) => anos.map((a, i) => ({ a, i })).filter(({ a }) => a % 5 === 0);
+const FONTES = [
+  ["União por função e por Poder", "SIOP", "2000", "Balanço Geral da União em PDF; séries agregadas do Tesouro desde 1997"],
+  ["Arrecadação federal", "Receita Federal (CSV)", "2000", "planilhas da Receita desde 1995"],
+  ["Benefícios do INSS", "BEPS, tabela 14", "2000", "anuários antigos em PDF"],
+  ["Estados e municípios por função", "SICONFI (DCA)", "2013", "Finbra antigo, arquivos anuais desde 1989, formato diferente (em avaliação)"],
+  ["Cota dos deputados e senadores", "Câmara, Senado", "2008", "a cota não existia nesse formato"],
+  ["Folha do STF", "portal do STF", "~2012", "não publicada"],
+  ["Cartão corporativo", "Portal da Transparência", "2003", "cartão criado em 2001"],
+  ["Emendas por autor", "Portal da Transparência (API)", "2014", "SIOP tem emendas desde 2000, sem autor detalhado no início"],
+  ["Trabalho (PNAD Contínua)", "IBGE", "2012", "PNAD anual 1992–2011, metodologia diferente"],
+  ["Empresas ativas (Mapa de Empresas)", "governo federal", "2019", "base do CNPJ sem série pronta"],
+  ["Rankings", "Banco Mundial / PNUD / TI", "1960 / 1990 / 2012", "já no histórico de rankings"],
+];
+---
+<Base title="Histórico: as séries longas — Nosso Dinheiro" accent="var(--s1)">
+  <h1>Histórico: do primeiro ano que cada fonte permite</h1>
+  <p class="lede">
+    As séries mais longas que as fontes oficiais oferecem em formato aberto, todas em <strong>reais de {base}</strong> (corrigidas
+    pelo IPCA do IBGE), para separar crescimento real de inflação. Nenhuma chega a 1988; a maioria começa em 2000. A tabela no fim diz
+    até onde cada fonte volta e por quê.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fontes: SIOP, Receita Federal, Ministério da Previdência, IBGE (IPCA) · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{cresc(primeiro.semEncargos, ultimo.semEncargos)}</b><span>cresceu, acima da inflação, o que a União paga em políticas públicas e máquina entre {primeiro.ano} e {ultimo.ano}: de {compact(primeiro.semEncargos)} para {compact(ultimo.semEncargos)} (reais de {base})</span></div>
+    <div class="stat"><b>{cresc(receita[0].real, receita[receita.length - 1].real)}</b><span>cresceu a arrecadação federal, em termos reais, entre {receita[0].ano} e {receita[receita.length - 1].ano}</span></div>
+    <div class="stat"><b>{cresc(inss[0].total, inss[inss.length - 1].total)}</b><span>cresceu o número de benefícios pagos pelo INSS: de {mi(inss[0].total)} ({inss[0].ano}) para {mi(inss[inss.length - 1].total)} ({inss[inss.length - 1].mes.toLowerCase()}/{inss[inss.length - 1].ano})</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Valores em reais de {base}.</b> Cada ano foi multiplicado pelo IPCA acumulado até dezembro de {base}; R$ 1 de 2000 vale R$ {defl["2000"].toFixed(2).replace(".", ",")} de {base}.
+    {parcial ? `O ano corrente (${parcial.ano}) aparece só nas tabelas, como parcial.` : ""} Dívida e transferências ("encargos especiais") estão separadas porque distorcem qualquer comparação.</div>
+  </div>
+
+  <h2>União: políticas públicas e máquina, por função ({primeiro.ano}–{ultimo.ano}, reais de {base})</h2>
+  <div class="card">
+    <div class="legend">{[...FUNCOES.map(([, n, cor]) => ({ n, cor })), { n: "Demais funções", cor: "#cfd8dc" }].map((f) => <span><i style={`background:${f.cor}`}></i>{f.n}</span>)}</div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Despesa da União por função, por ano, em valores reais">
+      {[0.25, 0.5, 0.75, 1].map((t) => <g><line x1={L} x2={W - R_} y1={T + (1 - t) * (H - T - B)} y2={T + (1 - t) * (H - T - B)} stroke="var(--line)" /><text x={L - 6} y={T + (1 - t) * (H - T - B) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{compact(t * maxU)}</text></g>)}
+      {serieU.map((s, i) => { const bw = (W - L - R_) / serieU.length - 3; let y = T + (H - T - B); return (<g>
+        {s.partes.map((p) => { const h = (p.v / maxU) * (H - T - B); y -= h; return <rect x={L + i * ((W - L - R_) / serieU.length) + 1} y={y} width={bw} height={h} fill={p.cor}><title>{s.ano} · {p.n}: {compact(p.v)}</title></rect>; })}
+        {s.ano % 5 === 0 && <text x={L + i * ((W - L - R_) / serieU.length) + bw / 2 + 1} y={H - 10} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{s.ano}</text>}
+      </g>); })}
+    </svg>
+    <p class="src">Sem encargos especiais (dívida e transferências). Passe o mouse para ver cada função. Fonte: SIOP, grafo anual da execução orçamentária.</p>
+  </div>
+
+  <h2>União: total pago × encargos (dívida e transferências)</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--s1)"></i>Total pago</span><span><i style="background:var(--neutro)"></i>Encargos especiais</span><span><i style="background:var(--s2)"></i>Políticas e máquina</span></div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Total pago pela União, encargos e resto, por ano, reais">
+      {[0.25, 0.5, 0.75, 1].map((t) => <g><line x1={L} x2={W - R_} y1={T + (1 - t) * (H - T - B)} y2={T + (1 - t) * (H - T - B)} stroke="var(--line)" /><text x={L - 6} y={T + (1 - t) * (H - T - B) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{compact(t * maxU)}</text></g>)}
+      <polyline points={linha(serieU.map((s) => s.total), maxU)} fill="none" stroke="var(--s1)" stroke-width="2.2" />
+      <polyline points={linha(serieU.map((s) => s.encargos), maxU)} fill="none" stroke="var(--neutro)" stroke-width="2.2" />
+      <polyline points={linha(serieU.map((s) => s.semEncargos), maxU)} fill="none" stroke="var(--s2)" stroke-width="2.2" />
+      {serieU.map((s, i) => <circle cx={x(i, serieU.length)} cy={T + (1 - s.total / maxU) * (H - T - B)} r="3" fill="var(--s1)" opacity="0"><title>{s.ano}: total {compact(s.total)} · encargos {compact(s.encargos)} · políticas e máquina {compact(s.semEncargos)}</title></circle>)}
+      {decadas(serieU.map((s) => s.ano)).map(({ a, i }) => <text x={x(i, serieU.length)} y={H - 10} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text>)}
+    </svg>
+    <table style="margin-top:12px">
+      <thead><tr><th>Ano</th><th class="num">Total pago (nominal)</th><th class="num">Total (reais de {base})</th><th class="num">Encargos (reais)</th><th class="num">Políticas e máquina (reais)</th><th class="num">% encargos</th></tr></thead>
+      <tbody>{[...(d.uniao as U[])].reverse().map((u) => (<tr><td>{u.ano}{u.ano > base ? " (parcial)" : ""}</td><td class="num">{compact(u.total)}</td><td class="num">{compact(real(u.total, u.ano))}</td><td class="num">{compact(real(u.encargos, u.ano))}</td><td class="num">{compact(real(u.total - u.encargos, u.ano))}</td><td class="num">{Math.round(100 * u.encargos / u.total)}%</td></tr>))}</tbody>
+    </table>
+  </div>
+
+  <h2>Arrecadação federal ({receita[0].ano}–{receita[receita.length - 1].ano}, reais de {base})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Arrecadação federal por ano, valores reais">
+      {[0.25, 0.5, 0.75, 1].map((t) => <g><line x1={L} x2={W - R_} y1={T + (1 - t) * (H - T - B)} y2={T + (1 - t) * (H - T - B)} stroke="var(--line)" /><text x={L - 6} y={T + (1 - t) * (H - T - B) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{compact(t * maxR)}</text></g>)}
+      {receita.map((r, i) => { const bw = (W - L - R_) / receita.length - 3; const h = (r.real / maxR) * (H - T - B); return (<g>
+        <rect x={L + i * ((W - L - R_) / receita.length) + 1} y={T + (H - T - B) - h} width={bw} height={h} fill="var(--s2)"><title>{r.ano}: {compact(r.real)} (nominal {compact(r.nominal)})</title></rect>
+        {r.ano % 5 === 0 && <text x={L + i * ((W - L - R_) / receita.length) + bw / 2 + 1} y={H - 10} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{r.ano}</text>}</g>); })}
+    </svg>
+    <p class="src">Só anos com 12 meses. Fonte: Receita Federal, arrecadação por estado (impostos e contribuições federais, inclusive previdência). Detalhe por tributo em <a href="/impostos/">Impostos</a>.</p>
+  </div>
+
+  <h2>Benefícios pagos pelo INSS por mês ({inss[0].ano}–{inss[inss.length - 1].ano})</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--s1)"></i>Previdenciários (RGPS)</span><span><i style="background:var(--s4)"></i>Assistenciais (BPC)</span></div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Benefícios emitidos pelo INSS em dezembro de cada ano">
+      {[0.25, 0.5, 0.75, 1].map((t) => <g><line x1={L} x2={W - R_} y1={T + (1 - t) * (H - T - B)} y2={T + (1 - t) * (H - T - B)} stroke="var(--line)" /><text x={L - 6} y={T + (1 - t) * (H - T - B) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{mi(t * maxI)}</text></g>)}
+      {inss.map((s, i) => { const bw = (W - L - R_) / inss.length - 3; const hr = (s.rgps / maxI) * (H - T - B), ha = (s.assistencial / maxI) * (H - T - B); const x0 = L + i * ((W - L - R_) / inss.length) + 1; return (<g>
+        <rect x={x0} y={T + (H - T - B) - hr} width={bw} height={hr} fill="var(--s1)"><title>{s.mes}/{s.ano}: RGPS {mi(s.rgps)}</title></rect>
+        <rect x={x0} y={T + (H - T - B) - hr - ha} width={bw} height={ha} fill="var(--s4)"><title>{s.mes}/{s.ano}: BPC {mi(s.assistencial)}</title></rect>
+        {s.ano % 5 === 0 && <text x={x0 + bw / 2} y={H - 10} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{s.ano}</text>}</g>); })}
+    </svg>
+    <p class="src">Quantidade de benefícios emitidos em dezembro de cada ano (último mês disponível no ano corrente). Fonte: BEPS, tabela 14. Não inclui regimes próprios de servidores.</p>
+  </div>
+
+  <h2>Até onde cada fonte volta no tempo</h2>
+  <table>
+    <thead><tr><th>Painel</th><th>Fonte aberta</th><th>Desde</th><th>Antes disso</th></tr></thead>
+    <tbody>{FONTES.map(([p, f, a, b]) => (<tr><td>{p}</td><td>{f}</td><td class="num">{a}</td><td style="white-space:normal;color:var(--ink-2);font-size:13px">{b}</td></tr>))}</tbody>
+  </table>
+  <p class="src">"Desde" = primeiro ano disponível em formato legível por máquina na fonte oficial. A Constituição é de 1988; o SIOP e a Receita publicam dados abertos a partir de 2000, e os municípios têm o Finbra antigo desde 1989, em avaliação.</p>
+
+  <Glossario termos={["pago", "despesa_paga", "divida_transferencias", "per_capita"]} />
+</Base>

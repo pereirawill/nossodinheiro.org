@@ -101,6 +101,12 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Saída `impostos.json`: anual (2000→), mensal (24 m), por UF, tributos do ano. Página `/impostos/`. Pendente: estados e
   municípios via SICONFI para "quanto já foi arrecadado" oficial (Impostômetro da ACSP é privado — não usar).
 
+## Painel Histórico (NO AR, sem chave, mensal dia 6)
+- `etl/historico/extract.py`: SIOP por função, 1 grafo por ano desde 2000 (26+ consultas SPARQL); IPCA SIDRA 1737/2266
+  (índice de dezembro → `deflator[ano]` para reais do último ano fechado); BEPS tabela 14 (dezembro de cada ano); receita vem
+  de `impostos.json`. Saída `historico.json` com nominais; a página deflaciona. `/historico/` + tabela "até onde cada fonte volta"
+  (também na Metodologia). Pendentes: Finbra 1989–2012, CPGF 2003+, CEAP 2008+, PNAD anual.
+
 ## Painel Trabalho (NO AR, sem chave, mensal dia 5)
 - `etl/trabalho/extract.py`: IBGE SIDRA (6318, 4097, 6381), Mapa de Empresas (xlsx do gov.br/memp, aba NJ × porte), BEPS
   tabela 14 (xls via xlrd; anos como texto a partir de 2016; células mescladas). Saída `trabalho.json`; página `/trabalho/`.

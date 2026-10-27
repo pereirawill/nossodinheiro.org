@@ -144,6 +144,32 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Atenção:** "Xº de N" é entre os países com dado, não entre todos; o ano pode variar por país e aparece na tabela.
 - Completo: `docs/metodologia/painel-rankings.md`.
 
+## Histórico — séries longas, em reais de hoje
+
+- **O que é:** União por função desde 2000 (SIOP), arrecadação federal desde 2000 (Receita), benefícios do INSS desde 2000
+  (BEPS), tudo corrigido pelo IPCA (IBGE) para reais do último ano fechado. Encargos especiais (dívida e transferências)
+  separados. Ano corrente como parcial.
+- Completo: `docs/metodologia/painel-historico.md`.
+
+## Até onde cada fonte volta no tempo
+
+Nenhuma fonte oficial em formato aberto chega a 1988. "Desde" é o primeiro ano legível por máquina; antes disso, quase
+sempre só PDF ou metodologia diferente.
+
+| Painel | Fonte aberta | Desde | Antes disso |
+|---|---|---|---|
+| União por função e por Poder | SIOP | 2000 | Balanço Geral da União em PDF; séries agregadas do Tesouro desde 1997 |
+| Arrecadação federal | Receita Federal (CSV) | 2000 | planilhas da Receita desde 1995 |
+| Benefícios do INSS | BEPS, tabela 14 | 2000 | anuários antigos em PDF |
+| Estados e municípios por função | SICONFI (DCA) | 2013 | Finbra antigo, arquivos anuais desde 1989, formato diferente (em avaliação) |
+| Cota dos deputados e senadores | Câmara, Senado | 2008 | a cota não existia nesse formato |
+| Folha do STF | portal do STF | ~2012 | não publicada |
+| Cartão corporativo | Portal da Transparência | 2003 | cartão criado em 2001 |
+| Emendas por autor | Portal da Transparência (API) | 2014 | SIOP tem emendas desde 2000, sem autor detalhado no início |
+| Trabalho (PNAD Contínua) | IBGE | 2012 | PNAD anual 1992–2011, metodologia diferente |
+| Empresas ativas (Mapa de Empresas) | governo federal | 2019 | base do CNPJ sem série pronta |
+| Rankings | Banco Mundial / PNUD / Transparência Internacional | 1960 / 1990 / 2012 | já no histórico de rankings |
+
 ## Como conferir
 
 Cada página tem a fonte no topo, um aviso com as premissas e um glossário no fim. Todo número fixo (subsídio,
