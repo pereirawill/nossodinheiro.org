@@ -21,7 +21,7 @@ Workflows (`.github/workflows/`):
 - `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
-- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao,previdencia,obras}.yml` — mensais (dias 7, 9, 10, 11, 12, 13, 14, 15); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
+- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao,previdencia,obras}.yml` — mensais (dias 7, 9, 10, 11, 12, 13, 14, 15); `etl-cambio.yml` — dias úteis; `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 Secrets existentes: os dois da Cloudflare + `PORTAL_TRANSPARENCIA_KEY`. Workflow permissions = read/write.
 
 Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026` (FONTE=bulk padrão),
@@ -163,6 +163,15 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   CEAF 4.044 expulsões (só federal), 152 acordos de leniência. UF = do **órgão sancionador**, não da empresa; ano = início da sanção.
   Fundamentos do CEAF se sobrepõem (uma decisão cita vários artigos). CPI da Transparência Internacional vem de `rankings.json`.
 - Pendências: valor devolvido nos acordos (texto livre), CEPIM (403), lista do TCU, improbidade na Justiça estadual.
+
+## Câmbio e poder de compra (dentro de /inflacao/, feitos 27/10/2026)
+- **Poder de compra**: calculado na página a partir do índice do IPCA — R$ 100 de jul/1994 compram R$ 11,90 hoje (perda de 88,1%);
+  curva mensal desde o Plano Real e projeção do "dinheiro parado". A tabela "quanto os preços subiram desde…" teve os rótulos
+  ambíguos trocados (o dono apontou: "R$ 100 daquela época valem hoje" dava a entender dinheiro guardado no colchão).
+- **Câmbio** `etl/cambio/extract.py` → `cambio.json` (workflow diário em dias úteis, 14:40 BRT): BCB SGS 3698 (dólar venda, média
+  mensal desde jul/1994: 0,9333 → 5,14, +451%), SGS 11752 (câmbio efetivo real, deflacionado pelo IPCA; máx 171 em out/2002, mín 67
+  em abr/1997, hoje ~120) e PTAX para 7 moedas com variação em 1, 5 e 10 anos. **PTAX só tem 10 moedas — sem yuan e sem peso
+  argentino** (declarado na página). Aviso fixo: câmbio ≠ inflação, e o dólar também perde valor.
 
 ## Componente MapaBrasil (feito 27/10/2026)
 - `site/src/lib/mapa-uf.ts` (105 KB, 27 paths + centroide) gerado por `python -m etl.mapa.gerar` das malhas do IBGE (API v2,

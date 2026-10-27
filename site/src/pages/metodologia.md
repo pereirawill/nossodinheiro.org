@@ -212,7 +212,10 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Fontes:** IBGE (IPCA e INPC) e Banco Central (meta definida pelo Conselho Monetário Nacional).
 - **Atenção:** nenhum índice é "a sua inflação" — o IPCA é a cesta média de quem ganha de 1 a 40 salários mínimos nas 16 áreas
   pesquisadas. A comparação com a meta usa só o valor central, sem a margem de tolerância. Não existe IPCA por estado.
-- Completo: `docs/metodologia/painel-inflacao.md`.
+- **Poder de compra:** a página mostra quanto compram hoje R$ 100 de julho de 1994, mês a mês, e quanto a moeda perdeu desde então.
+- **Câmbio:** o real frente ao dólar (média mensal desde 1994) e a outras moedas (PTAX), mais o índice de câmbio efetivo real do
+  Banco Central, que corrige a inflação dos dois lados. Câmbio **não** é inflação, e a página separa as duas coisas.
+- Completo: `docs/metodologia/painel-inflacao.md` e `docs/metodologia/painel-cambio.md`.
 
 ## INSS e Aposentadoria — duas abas, de propósito
 
@@ -270,6 +273,7 @@ sempre só PDF ou metodologia diferente.
 | Inadimplência (SCR.data) | Banco Central | 2012 (v2 desde 2023; aqui 24 meses) | séries do SGS desde 2011 |
 | Cobertura de planos de saúde | ANS | 2014 (aqui a competência mais recente) | cadastro de beneficiários desde 2000, sem série pronta por município |
 | IPCA (inflação) | IBGE | dez/1979 (por grupo e região, 2020) | índices anteriores com outra metodologia e outras moedas |
+| Câmbio (dólar) | Banco Central | jul/1994 | cotações anteriores em cruzeiro, cruzado e cruzeiro real |
 | Punições e sanções (CEIS, CNEP, CEAF) | Portal da Transparência | o cadastro traz a sanção pela data de início; os registros mais antigos são dos anos 2000 | processos em papel, sem cadastro nacional |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 

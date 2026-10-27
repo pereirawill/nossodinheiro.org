@@ -3,6 +3,7 @@ import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
 import d from "../../../public/data/inflacao.json";
+import cambio from "../../../public/data/cambio.json";
 
 const pct = (v: number | null | undefined, c = 2) => v == null ? "—" : `${v.toFixed(c).replace(".", ",")}%`;
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
@@ -56,6 +57,28 @@ const PW = 920, PH = 240, pPadL = 44, pPadB = 24;
 const px = (i: number) => pPadL + (i * (PW - pPadL - 10)) / (mesesReal.length - 1);
 const py = (v: number) => 8 + (PH - pPadB - 8) * (1 - v / 100);
 const anosMarca = ["1995", "2000", "2005", "2010", "2015", "2020", "2025"].filter((a) => indice[`${a}12`]);
+// Câmbio: dólar mês a mês desde o Plano Real e o índice de câmbio efetivo real
+const usd = cambio.usd_mensal as Record<string, number>;
+const mesesUsd = Object.keys(usd).sort();
+const usdIni = usd[cambio.usd_primeiro_mes], usdFim = usd[cambio.usd_ultimo_mes];
+const efetiva = cambio.efetiva_real as Record<string, number>;
+const mesesEf = Object.keys(efetiva).sort();
+const efHoje = efetiva[mesesEf[mesesEf.length - 1]];
+const efMin = mesesEf.reduce((m, k) => (efetiva[k] < efetiva[m] ? k : m), mesesEf[0]);
+const efMax = mesesEf.reduce((m, k) => (efetiva[k] > efetiva[m] ? k : m), mesesEf[0]);
+const CW = 920, CH = 230, cPadL = 46, cPadB = 24;
+const maxUsd = Math.max(...Object.values(usd)) * 1.08;
+const ux = (i: number) => cPadL + (i * (CW - cPadL - 10)) / (mesesUsd.length - 1);
+const uy = (v: number) => 8 + (CH - cPadB - 8) * (1 - v / maxUsd);
+const EH = 160;
+const maxEf = Math.max(...Object.values(efetiva)) * 1.05;
+const ex = (i: number) => cPadL + (i * (CW - cPadL - 10)) / (mesesEf.length - 1);
+const ey = (v: number) => 8 + (EH - cPadB - 8) * (1 - v / maxEf);
+const mesNome = (m: string) => `${MESES[+m.slice(4) - 1]}/${m.slice(0, 4)}`;
+const moedas = cambio.moedas as any[];
+const brl4 = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: v < 1 ? 4 : 2, maximumFractionDigits: v < 1 ? 4 : 2 })}`;
+const varPct = (v: number | null) => v == null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1).replace(".", ",")}%`;
+
 // quanto o dinheiro parado perde com a inflação atual, se ela se repetir
 const guardado = (anos: number) => 100 * Math.pow(1 / (1 + ipca12 / 100), anos);
 const CORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "#59a14f", "#9c755f", "#b07aa1", "var(--neutro)"];
@@ -171,6 +194,58 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
       <tbody>{[1, 2, 5, 10, 20].map((anos) => (<tr><td>{anos} {anos === 1 ? "ano" : "anos"}</td><td class="num">{brl(guardado(anos))}</td><td class="num">{pct(100 - guardado(anos), 1)}</td></tr>))}</tbody>
     </table>
     <p class="src">Projeção simples, não previsão: repete a inflação de 12 meses até {mesPorExtenso} para a frente. Serve para mostrar o efeito do juro composto ao contrário — a inflação futura pode ser maior ou menor, e dinheiro aplicado rende.</p>
+  </div>
+
+  <h2>O real frente ao dólar e às outras moedas</h2>
+  <div class="card">
+    <div class="hero" style="margin-top:0">
+      <div class="stat big"><b>{brl4(usdFim)}</b><span>era o dólar na média de {mesNome(cambio.usd_ultimo_mes)}; em {mesNome(cambio.usd_primeiro_mes)}, quando o real nasceu, era {brl4(usdIni)} — alta de {((usdFim / usdIni - 1) * 100).toFixed(0)}%</span></div>
+      <div class="stat"><b>US$ {(1 / usdFim).toFixed(2).replace(".", ",")}</b><span>é o que R$ 1 compra hoje em dólar; em {mesNome(cambio.usd_primeiro_mes)} comprava US$ {(1 / usdIni).toFixed(2).replace(".", ",")}</span></div>
+      <div class="stat"><b>{efHoje.toFixed(0)}</b><span>é o índice de <Termo t="cambio_efetivo">câmbio efetivo real</Termo> em {mesNome(mesesEf[mesesEf.length - 1])}: o real já esteve bem mais barato ({efetiva[efMax].toFixed(0)} em {mesNome(efMax)}) e bem mais caro ({efetiva[efMin].toFixed(0)} em {mesNome(efMin)})</span></div>
+    </div>
+    <div class="disclaimer" style="margin-top:4px"><span aria-hidden="true">ⓘ</span>
+      <div><b>Câmbio não é a mesma coisa que inflação.</b> O dólar subir não significa que o real perdeu esse tanto de poder de compra
+      dentro do país, e o próprio dólar também perde valor com o tempo lá fora. Comparar a cotação de 1994 com a de hoje mistura trinta
+      anos de inflação brasileira com trinta de inflação americana. Quem corrige as duas pontas é o índice de câmbio efetivo real do
+      Banco Central, no segundo gráfico.</div>
+    </div>
+    <svg viewBox={`0 0 ${CW} ${CH}`} width="100%" role="img" aria-label="Dólar em reais, média mensal, desde julho de 1994">
+      {[1, 2, 3, 4, 5].filter((v) => v < maxUsd).map((v) => (<g><line x1={cPadL} x2={CW - 10} y1={uy(v)} y2={uy(v)} stroke="var(--line)" /><text x={cPadL - 6} y={uy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">R$ {v}</text></g>))}
+      <polyline points={mesesUsd.map((m, i) => `${ux(i).toFixed(1)},${uy(usd[m]).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s1)" stroke-width="2.2" />
+      {mesesUsd.filter((m) => m.endsWith("12") && +m.slice(0, 4) % 5 === 0).map((m) => <text x={ux(mesesUsd.indexOf(m))} y={CH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{m.slice(0, 4)}</text>)}
+    </svg>
+    <p class="src">Dólar de venda, média de cada mês (Banco Central, SGS 3698). A linha reflete crises, eleições, juros e preço de commodities — não é um retrato do custo de vida no Brasil.</p>
+
+    <h3 style="margin:18px 0 6px">O mesmo real, já descontada a inflação dos dois lados</h3>
+    <svg viewBox={`0 0 ${CW} ${EH}`} width="100%" role="img" aria-label="Índice de câmbio efetivo real">
+      {[75, 100, 125, 150].filter((v) => v < maxEf).map((v) => (<g><line x1={cPadL} x2={CW - 10} y1={ey(v)} y2={ey(v)} stroke="var(--line)" /><text x={cPadL - 6} y={ey(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}</text></g>))}
+      <polyline points={mesesEf.map((m, i) => `${ex(i).toFixed(1)},${ey(efetiva[m]).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s4)" stroke-width="2.2" />
+      {mesesEf.filter((m) => m.endsWith("12") && +m.slice(0, 4) % 5 === 0).map((m) => <text x={ex(mesesEf.indexOf(m))} y={EH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{m.slice(0, 4)}</text>)}
+    </svg>
+    <p class="src">
+      Índice do Banco Central (SGS 11752) que compara o real com uma cesta de moedas dos principais parceiros comerciais, corrigindo
+      pela inflação do Brasil e pela de cada parceiro. <b>Quanto maior, mais barato está o real</b>. Por essa medida a moeda hoje
+      ({efHoje.toFixed(0)}) está longe do recorde de desvalorização ({efetiva[efMax].toFixed(0)}, em {mesNome(efMax)}) e bem acima do
+      momento em que esteve mais valorizada ({efetiva[efMin].toFixed(0)}, em {mesNome(efMin)}) — ou seja, a desvalorização "real" é
+      bem menor que os {((usdFim / usdIni - 1) * 100).toFixed(0)}% da cotação nominal.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 10px">Quanto custa cada moeda hoje, e quanto mudou</h3>
+    <table>
+      <thead><tr><th>Moeda</th><th class="num">Hoje</th><th class="num">Há 1 ano</th><th class="num">Há 5 anos</th><th class="num">Há 10 anos</th><th class="num">Variação em 1 ano</th><th class="num">Em 5 anos</th><th class="num">Em 10 anos</th></tr></thead>
+      <tbody>{moedas.map((m) => (<tr class={m.simbolo === "USD" ? "destaque" : ""}>
+        <td>{m.nome} <span class="nota">{m.simbolo}</span></td>
+        <td class="num"><b>{brl4(m.hoje)}</b></td><td class="num">{m.um_ano ? brl4(m.um_ano) : "—"}</td>
+        <td class="num">{m.cinco_anos ? brl4(m.cinco_anos) : "—"}</td><td class="num">{m.dez_anos ? brl4(m.dez_anos) : "—"}</td>
+        <td class="num">{varPct(m.var_1_ano)}</td><td class="num">{varPct(m.var_5_anos)}</td><td class="num">{varPct(m.var_10_anos)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Cotação de venda do fechamento (Banco Central, PTAX), em reais por unidade da moeda. Variação positiva = a moeda estrangeira
+      ficou mais cara, ou seja, o real se desvalorizou frente a ela. O PTAX cobre dez moedas e <b>não inclui o yuan chinês nem o peso
+      argentino</b>, apesar de China e Argentina serem parceiros comerciais grandes — por isso eles não aparecem aqui.
+    </p>
   </div>
 
   <h2>Quanto os preços subiram desde…</h2>
