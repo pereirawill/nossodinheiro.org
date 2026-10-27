@@ -40,12 +40,31 @@ const sx = (i: number) => padL + (i * (SW - padL - 10)) / (anos.length - 1);
 const sy = (val: number) => 8 + (SH - padB - 8) * (1 - val / maxS);
 const linha = (k: string) => anos.map((a, i) => `${sx(i).toFixed(1)},${sy((P[k].serie as any)[a]).toFixed(1)}`).join(" ");
 
-// distribuição
-const classesSimples = dist.classes.filter((c) => !["p90_p95", "p95_p99"].includes(c.classe) && c.classe !== "p90_mais");
-const top = { p90: dist.classes.find((c) => c.classe === "p90_mais"), p99: dist.classes.find((c) => c.classe === "p99_mais"), p10: dist.classes.find((c) => c.classe === "ate_p10") };
-const massaMax = Math.max(...classesSimples.map((c) => c.massa_pct ?? 0));
+// distribuição: a renda do domicílio dividida pelos moradores, do grupo mais pobre ao mais rico
+const porClasse = Object.fromEntries((dist.classes as any[]).map((c) => [c.classe, c])) as Record<string, any>;
 const lim = dist.limites as Record<string, number>;
 const oc = dist.ocupados_por_classe as Record<string, number>;
+const faixa = (de: number | null, ate: number | null) =>
+  de == null ? `até ${brl0(ate)}` : ate == null ? `acima de ${brl0(de)}` : `${brl0(de)} a ${brl0(ate)}`;
+const GRUPOS = [
+  { k: "ate_p10", nome: "Os 10% mais pobres", de: null, ate: lim.P10, tam: "10%" },
+  { k: "p10_p20", nome: "2º grupo", de: lim.P10, ate: lim.P20, tam: "10%" },
+  { k: "p20_p30", nome: "3º grupo", de: lim.P20, ate: lim.P30, tam: "10%" },
+  { k: "p30_p40", nome: "4º grupo", de: lim.P30, ate: lim.P40, tam: "10%" },
+  { k: "p40_p50", nome: "5º grupo", de: lim.P40, ate: lim.P50, tam: "10%" },
+  { k: "p50_p60", nome: "6º grupo", de: lim.P50, ate: lim.P60, tam: "10%" },
+  { k: "p60_p70", nome: "7º grupo", de: lim.P60, ate: lim.P70, tam: "10%" },
+  { k: "p70_p80", nome: "8º grupo", de: lim.P70, ate: lim.P80, tam: "10%" },
+  { k: "p80_p90", nome: "9º grupo", de: lim.P80, ate: lim.P90, tam: "10%" },
+  { k: "p90_mais", nome: "Os 10% mais ricos", de: lim.P90, ate: null, tam: "10%", destaque: true },
+].map((g) => ({ ...porClasse[g.k], ...g }));
+const TOPO = [
+  { k: "p90_p95", nome: "Entre os 10% e os 5% mais ricos", de: lim.P90, ate: lim.P95, tam: "5%" },
+  { k: "p95_p99", nome: "Entre os 5% e o 1% mais ricos", de: lim.P95, ate: lim.P99, tam: "4%" },
+  { k: "p99_mais", nome: "O 1% mais rico", de: lim.P99, ate: null, tam: "1%", destaque: true },
+].map((g) => ({ ...porClasse[g.k], ...g }));
+const top = { p90: porClasse.p90_mais, p99: porClasse.p99_mais, p10: porClasse.ate_p10 };
+const massaMax = Math.max(...GRUPOS.map((c) => c.massa_pct ?? 0));
 const anosD = Object.keys(dist.massa_serie.p99_mais);
 const serieD = [
   { nome: "10% mais ricos", vals: dist.massa_serie.p90_mais as Record<string, number>, cor: "var(--s3)" },
@@ -72,7 +91,7 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
   <div class="hero">
     <div class="stat big"><b>{brl0(v("publico"))}</b><span><Termo t="rendimento_habitual">rendimento médio</Termo> de quem trabalha no <Termo t="setor_publico_pnad">setor público</Termo> ({d.ano}) · {x(v("publico"), v("privado_com_carteira"))} o do setor privado com carteira ({brl0(v("privado_com_carteira"))})</span></div>
     <div class="stat"><b>{pct1(top.p99?.massa_pct)}</b><span>da renda de todos os brasileiros fica com o <Termo t="percentil">1% mais rico</Termo> ({d.ano_distribuicao}); os 10% mais ricos ficam com {pct1(top.p90?.massa_pct)}</span></div>
-    <div class="stat"><b>{brl0(lim.P99)}</b><span><Termo t="renda_domiciliar_pc">renda domiciliar por pessoa</Termo> acima da qual se está no 1% mais rico; para os 10%: {brl0(lim.P90)}; metade do país vive com até {brl0(lim.P50)}</span></div>
+    <div class="stat"><b>{brl0(lim.P99)}</b><span>é quanto precisa sobrar por morador, somando toda a <Termo t="renda_domiciliar_pc">renda do domicílio</Termo>, para estar no 1% mais rico. Para os 10% mais ricos bastam {brl0(lim.P90)}; metade do país vive com até {brl0(lim.P50)}</span></div>
   </div>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
@@ -114,32 +133,54 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
     <p class="src">Fonte: IBGE, PNAD Contínua, tabelas 4659 (rendimento por posição), 7533 (renda domiciliar por pessoa), 7435 (Gini) e 7527 (parcela da renda por classe). Clique no cabeçalho para ordenar.</p>
   </div>
 
-  <h2>Os 10% e o 1% mais ricos: quanto da renda fica com cada faixa ({d.ano_distribuicao})</h2>
+  <h2>Como a renda se divide: dos 10% mais pobres ao 1% mais rico ({d.ano_distribuicao})</h2>
+  <p class="ponte">
+    <b>Atenção: daqui para baixo a medida muda.</b> Até aqui, o rendimento de quem trabalha. Daqui em diante, a renda de
+    <b>todas as fontes</b> do domicílio (salários, aposentadorias, aluguéis, programas sociais) dividida pelo número de moradores —
+    é assim que o IBGE mede desigualdade, porque é o que sobra para cada pessoa da casa, trabalhe ela ou não.
+  </p>
   <div class="card">
-    <svg viewBox={`0 0 ${W} ${classesSimples.length * 28 + 10}`} width="100%" role="img" aria-label="Parcela da renda por classe de percentual">
-      {classesSimples.map((c, i) => (<g transform={`translate(0 ${i * 28 + 5})`}>
-        <text x="330" y="17" text-anchor="end" font-size="12" font-weight={c.classe === "p99_mais" ? "700" : "400"} fill="var(--ink)">{c.nome.replace("Maior que o ", "> ").replace(" até o ", " a ")}</text>
-        <rect x="340" y="3" width={Math.max(1, ((c.massa_pct ?? 0) / massaMax) * 330)} height="20" fill={c.classe === "p99_mais" ? "var(--s4)" : c.classe === "p80_p90" ? "var(--s3)" : "var(--s1)"} rx="2" />
-        <text x={346 + ((c.massa_pct ?? 0) / massaMax) * 330} y="17" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{pct1(c.massa_pct)} da renda · média {brl0(c.renda_media)}/pessoa</text>
-      </g>))}
-    </svg>
-    <p class="src">Fonte: IBGE, PNAD Contínua, tabelas 7527 (distribuição da massa de rendimento domiciliar per capita) e 7533 (rendimento médio por classe). "P" = percentil: "> P99" é o 1% mais rico. As faixas de 10% somam 100%; o 1% está contido nos 10%.</p>
+    <p class="explica">
+      Imagine os brasileiros em fila, do que tem menos renda para o que tem mais, divididos em dez grupos do mesmo tamanho.
+      A tabela mostra, para cada grupo, de quanto a quanto vai a renda por morador, quanto cada um recebe em média e que pedaço
+      de toda a renda do país fica com ele.
+    </p>
+    <table>
+      <thead><tr><th>Grupo, do mais pobre ao mais rico</th><th>Fatia do país</th><th class="num">Renda por morador</th><th class="num">Média do grupo</th><th class="num">Fica com</th><th class="barra-cab"></th></tr></thead>
+      <tbody>
+        {GRUPOS.map((g) => (<tr class={g.destaque ? "destaque" : ""}>
+          <td>{g.nome}</td><td class="tam">{g.tam}</td><td class="num">{faixa(g.de, g.ate)}</td><td class="num">{brl0(g.renda_media)}</td>
+          <td class="num"><b>{pct1(g.massa_pct)}</b></td>
+          <td class="barra-cel"><span class="barra" style={`width:${((g.massa_pct ?? 0) / massaMax) * 100}%;background:${g.destaque ? "var(--s3)" : "var(--s1)"}`}></span></td></tr>))}
+        <tr class="sub-cab"><td colspan="6">Dentro dos 10% mais ricos</td></tr>
+        {TOPO.map((g) => (<tr class={g.destaque ? "destaque" : ""}>
+          <td class="sub">{g.nome}</td><td class="tam">{g.tam}</td><td class="num">{faixa(g.de, g.ate)}</td><td class="num">{brl0(g.renda_media)}</td>
+          <td class="num"><b>{pct1(g.massa_pct)}</b></td>
+          <td class="barra-cel"><span class="barra" style={`width:${((g.massa_pct ?? 0) / massaMax) * 100}%;background:${g.destaque ? "var(--s4)" : "#9ec5e8"}`}></span></td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Os dez grupos somam 100% da renda. Os três últimos estão <b>dentro</b> dos 10% mais ricos e por isso não entram na soma;
+      repare que têm tamanhos diferentes (5%, 4% e 1% da população). "Renda por morador" é o intervalo que define o grupo:
+      quem tem mais de {brl0(lim.P90)} por morador está entre os 10% mais ricos. Fonte: IBGE, PNAD Contínua, tabelas 7527
+      (quanto da renda total fica com cada grupo), 7533 (renda média de cada grupo) e 7438 (os limites de cada grupo), tudo a
+      preços médios de {d.ano_distribuicao}. Em termos técnicos, o limite dos 10% mais ricos é o <Termo t="percentil">percentil 90</Termo> (P90) e o do 1%, o P99.
+    </p>
   </div>
 
   <div class="card" style="margin-top:14px">
-    <h3 style="margin:0 0 10px">O que é preciso ter para estar em cada faixa, e quanto ganha quem trabalha</h3>
+    <h3 style="margin:0 0 6px">E entre quem trabalha? O 1% que mais ganha</h3>
+    <p class="explica">Aqui a fila é outra: só as pessoas ocupadas, ordenadas pelo que recebem <b>no próprio trabalho</b> (não pela renda da casa).</p>
     <table>
-      <thead><tr><th>Faixa</th><th class="num">Renda domiciliar por pessoa (limite)</th><th class="num">Rendimento médio de quem trabalha nessa faixa</th></tr></thead>
+      <thead><tr><th>Grupo de trabalhadores</th><th class="num">Rendimento médio mensal</th></tr></thead>
       <tbody>
-        <tr><td>10% mais pobres (até o P10)</td><td class="num">até {brl0(lim.P10)}</td><td class="num">{brl0(oc.ate_p10)}</td></tr>
-        <tr><td>Metade do país (até o P50)</td><td class="num">até {brl0(lim.P50)}</td><td class="num">—</td></tr>
-        <tr><td>10% mais ricos (acima do P90)</td><td class="num">acima de {brl0(lim.P90)}</td><td class="num">{brl0(oc.p90_mais)}</td></tr>
-        <tr><td>5% mais ricos (acima do P95)</td><td class="num">acima de {brl0(lim.P95)}</td><td class="num">{brl0(oc.p95_p99)} (P95–P99)</td></tr>
-        <tr><td>1% mais rico (acima do P99)</td><td class="num">acima de {brl0(lim.P99)}</td><td class="num">{brl0(oc.p99_mais)}</td></tr>
-        <tr><td>Todos os trabalhadores</td><td class="num">—</td><td class="num">{brl0(oc.total)}</td></tr>
+        <tr><td>Os 10% que menos ganham</td><td class="num">{brl0(oc.ate_p10)}</td></tr>
+        <tr><td>Média de todos os ocupados</td><td class="num">{brl0(oc.total)}</td></tr>
+        <tr><td>Os 10% que mais ganham</td><td class="num">{brl0(oc.p90_mais)}</td></tr>
+        <tr class="destaque"><td class="sub">dos quais o 1% que mais ganha</td><td class="num"><b>{brl0(oc.p99_mais)}</b></td></tr>
       </tbody>
     </table>
-    <p class="src">Fonte: IBGE, PNAD Contínua, tabelas 7438 (limites das classes de renda domiciliar per capita) e 7535 (rendimento de todos os trabalhos dos ocupados, por classe de percentual dos próprios ocupados). As duas colunas usam ordenações diferentes (pessoas por renda do domicílio × trabalhadores por renda do trabalho).</p>
+    <p class="src">Fonte: IBGE, PNAD Contínua, tabela 7535 (rendimento de todos os trabalhos das pessoas ocupadas, por classe de percentual dos próprios ocupados), a preços médios de {d.ano_distribuicao}. Como a fila é de trabalhadores e não de domicílios, estes valores não são comparáveis linha a linha com os da tabela acima.</p>
   </div>
 
   <h2>Desigualdade desde 2012: parcela da renda de cada grupo</h2>
@@ -158,7 +199,7 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
     <ul class="conclusoes">
       <li>Em {d.ano}, o rendimento médio no setor público ({brl0(v("publico"))}) foi {x(v("publico"), v("privado_com_carteira"))} o do setor privado com carteira ({brl0(v("privado_com_carteira"))}) e {x(v("publico"), v("total"))} a média de todos os ocupados ({brl0(v("total"))}). Estatutários e militares: {brl0(v("publico_estatutario_militar"))}.</li>
       <li>Quem mais ganha, em média, são empregadores com CNPJ ({brl0(v("empregador_cnpj"))}); quem menos ganha, trabalhadores domésticos ({brl0(v("domestico"))}) e conta própria sem CNPJ ({brl0(v("conta_propria_sem_cnpj"))}).</li>
-      <li>O 1% mais rico ({top.p99 ? brl0(top.p99.renda_media) : "—"} por pessoa do domicílio, em média) fica com {pct1(top.p99?.massa_pct)} da renda; os 10% mais pobres ({top.p10 ? brl0(top.p10.renda_media) : "—"} por pessoa) ficam com {pct1(top.p10?.massa_pct)}. Os 10% mais ricos têm {pct1(top.p90?.massa_pct)}; a metade mais pobre, {pct1(dist.metade_mais_pobre_serie[d.ano_distribuicao])}.</li>
+      <li>O 1% mais rico fica com {pct1(top.p99?.massa_pct)} de toda a renda do país e tem, em média, {top.p99 ? brl0(top.p99.renda_media) : "—"} por morador do domicílio — {top.p99 && top.p10 ? x(top.p99.renda_media, top.p10.renda_media) : "—"} o que têm os 10% mais pobres ({top.p10 ? brl0(top.p10.renda_media) : "—"}), que ficam com {pct1(top.p10?.massa_pct)}. Os 10% mais ricos juntos têm {pct1(top.p90?.massa_pct)} da renda; a metade mais pobre do país, {pct1(dist.metade_mais_pobre_serie[d.ano_distribuicao])}.</li>
       <li>A razão público ÷ privado é maior em {ufs[0].nome} ({x(ufs[0].publico, ufs[0].privado_com_carteira)}) e menor em {ufs[ufs.length - 1].nome} ({x(ufs[ufs.length - 1].publico, ufs[ufs.length - 1].privado_com_carteira)}). O estado mais desigual pelo Gini é {ufMaisDesigual.nome} ({ufMaisDesigual.gini?.toFixed(3).replace(".", ",")}); o menos, {ufMenosDesigual.nome} ({ufMenosDesigual.gini?.toFixed(3).replace(".", ",")}).</li>
     </ul>
     <p class="src">Frases calculadas automaticamente a partir dos dados acima; nenhum número é digitado à mão.</p>
@@ -168,4 +209,14 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
 </Base>
 <style>
   .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+  .ponte { background: color-mix(in srgb, var(--accent) 7%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+    border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--ink-2); margin: 0 0 14px; }
+  .ponte b { color: var(--ink); }
+  .explica { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; max-width: 78ch; }
+  td.tam, th:nth-child(2) { color: var(--ink-2); font-size: 12.5px; }
+  td.sub { padding-left: 22px; color: var(--ink-2); }
+  tr.destaque td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  tr.sub-cab td { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); border-top: 2px solid var(--line); padding-top: 10px; }
+  .barra-cab { width: 180px; } .barra-cel { padding-left: 8px; }
+  .barra { display: block; height: 12px; border-radius: 2px; min-width: 2px; }
 </style>
