@@ -1,0 +1,317 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/irpf.json";
+import imp from "../../../public/data/impostos.json";
+
+const num = (v: number) => Math.round(v).toLocaleString("pt-BR");
+const brl0 = (v: number) => `R$ ${Math.round(v).toLocaleString("pt-BR")}`;
+const mil = (v: number) =>
+  v >= 1e6 ? `R$ ${(v / 1e6).toFixed(2).replace(".", ",")} mi`
+  : v >= 1000 ? `R$ ${(v / 1000).toFixed(1).replace(".", ",")} mil`
+  : `R$ ${Math.round(v)}`;
+const bi = (v: number) => v >= 1e12 ? `R$ ${(v / 1e12).toFixed(3).replace(".", ",")} tri` : `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi`;
+const mi1 = (v: number) => (v / 1e6).toFixed(1).replace(".", ",");
+const pct1 = (f: number | null) => f == null ? "—" : `${(100 * f).toFixed(1).replace(".", ",")}%`;
+const pct2 = (f: number | null) => f == null ? "—" : `${(100 * f).toFixed(2).replace(".", ",")}%`;
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+
+const W = 920, padL = 52;
+const faixas = d.faixas;
+const sub = d.subsidio_deputado;
+const topo = faixas[faixas.length - 1];
+const pico = faixas.reduce((a, f) => (f.aliquota_efetiva ?? 0) > (a.aliquota_efetiva ?? 0) ? f : a, faixas[0]);
+
+// rótulo da faixa em renda MENSAL equivalente (a faixa da Receita é anual, em salários mínimos)
+const fxMes = (f: typeof faixas[number]) =>
+  f.teto_anual == null ? `acima de ${mil(f.piso_anual / 12)}`
+  : f.piso_anual === 0 ? `até ${mil(f.teto_anual / 12)}`
+  : `${mil(f.piso_anual / 12)} a ${mil(f.teto_anual / 12)}`;
+
+// --- gráfico 1: alíquota efetiva e renda isenta por faixa -------------------------------------------------
+const AH = 300, base1 = AH - 54, topo1 = 14;
+const maxA = Math.max(...faixas.map((f) => Math.max(f.aliquota_efetiva ?? 0, f.pct_isenta ?? 0)));
+const gx = (i: number) => padL + ((i + 0.5) * (W - padL - 16)) / faixas.length;
+const gy = (v: number) => topo1 + (base1 - topo1) * (1 - v / maxA);
+const larg = (W - padL - 16) / faixas.length - 5;
+
+// --- gráfico 2: quem paga (renda x imposto) ---------------------------------------------------------------
+const ordemPeso = [...faixas].filter((f) => (f.pct_do_imposto ?? 0) > 0.001 || (f.pct_da_renda ?? 0) > 0.005);
+const maxPeso = Math.max(...ordemPeso.map((f) => Math.max(f.pct_do_imposto ?? 0, f.pct_da_renda ?? 0)));
+const BW = 560, rotuloW = 185;
+
+// banda que concentra o imposto: faixas de 7 a 30 salários mínimos
+const banda = faixas.filter((f) => f.piso_sm >= 7 && (f.teto_sm ?? 999) <= 30);
+const bandaImposto = banda.reduce((s, f) => s + (f.pct_do_imposto ?? 0), 0);
+const bandaRenda = banda.reduce((s, f) => s + (f.pct_da_renda ?? 0), 0);
+const bandaGente = banda.reduce((s, f) => s + f.contribuintes, 0);
+const bandaDe = banda[0].piso_anual / 12, bandaAte = (banda[banda.length - 1].teto_anual ?? 0) / 12;
+
+// --- gráfico 3: composição da renda isenta no topo --------------------------------------------------------
+const CORES = ["var(--s1)", "var(--s4)", "var(--s3)", "var(--s5)", "var(--s2)", "#9ec5e8", "#c9b8e8", "#f0c46a", "var(--neutro)"];
+const rotulosIsentos = Object.keys(topo.isentos);
+const ordemIsentos = [...rotulosIsentos].sort((a, b) => (topo.isentos as any)[b] - (topo.isentos as any)[a]);
+const faixasIsentos = faixas.filter((f) => f.piso_sm >= 20).reverse();
+
+// --- natureza da ocupação ---------------------------------------------------------------------------------
+const nat = [...d.natureza_ocupacao].filter((n) => n.contribuintes >= 50_000).sort((a, b) => (b.renda_media_mensal ?? 0) - (a.renda_media_mensal ?? 0));
+const maxNat = Math.max(...nat.map((n) => n.renda_media_mensal ?? 0));
+const CORGRUPO: Record<string, string> = {
+  "Setor público": "var(--s2)", "Estatais e bancos": "#9ec5e8", "Setor privado": "var(--s1)",
+  "Donos de negócio": "var(--s4)", "Capital": "var(--s3)", "Autônomos": "var(--s5)",
+  "Aposentados e pensionistas": "#f0c46a", "Outros": "var(--neutro)",
+};
+const grupos = [...new Set(nat.map((n) => n.grupo))];
+
+// --- ocupações -------------------------------------------------------------------------------------------
+const ocup = d.ocupacoes.filter((o) => o.contribuintes >= 5000 && o.nome !== "Não informada");
+const topOcup = [...ocup].sort((a, b) => (b.renda_media_mensal ?? 0) - (a.renda_media_mensal ?? 0)).slice(0, 20);
+const CARREIRAS = ["Membro do Poder Judiciário", "Membro do Ministério Público", "Membro do Poder Legislativo",
+  "Servidor das carreiras do Poder Legislativo", "Servidor das carreiras do Poder Judiciário",
+  "Servidor das carreiras de auditoria fiscal", "Dirigente superior da adm. pública", "Titular de Cartório",
+  "Advogado do setor público", "Servidor das demais carreiras da admin"];
+const publicas = CARREIRAS.map((p) => ocup.find((o) => o.nome.startsWith(p))).filter(Boolean) as typeof ocup;
+
+// --- bases de incidência (painel Impostos, tabela oficial da Receita) ------------------------------------
+const bases = (imp as any).carga?.bases;
+const basesOrd = bases ? [...bases.linhas].filter((b: any) => b.pct >= 0.0005).sort((a: any, b: any) => b.pct - a.pct) : [];
+const naoRenda = basesOrd.filter((b: any) => b.base !== "Renda").reduce((s: number, b: any) => s + b.pct, 0);
+---
+<Base title="Imposto de Renda: o que os brasileiros declaram ganhar — Nosso Dinheiro" accent="var(--s4)"
+  description="Quantos brasileiros declaram cada faixa de renda, quanto cada faixa paga de imposto, de onde vem a renda do topo e quantas pessoas declaram ganhar mais que um deputado federal. Dados da Receita Federal.">
+  <h1>Imposto de Renda: o que os brasileiros declaram ganhar</h1>
+  <p class="lede">
+    Toda declaração de Imposto de Renda vira estatística. A Receita Federal publica, sem nome e sem CPF, quantas pessoas
+    declararam cada faixa de renda, de onde vem esse dinheiro e quanto de imposto cada faixa pagou. É a única fonte que
+    coloca o salário de um deputado, o rendimento de um médico e o lucro de um empresário na mesma régua.
+  </p>
+  <p class="meta">
+    ano-calendário {d.ano_calendario} · atualizado em {fmt.format(quando)} · Receita Federal, Grandes Números do IRPF {d.edicao} ·
+    <a href="/metodologia/">metodologia</a>
+  </p>
+
+  <div class="hero">
+    <div class="stat big"><b>{mi1(d.declarantes)} mi</b><span>pessoas entregaram declaração sobre o ano de {d.ano_calendario}, com {bi(d.renda_total)} de renda declarada</span></div>
+    <div class="stat"><b>{pct1(topo.aliquota_efetiva)}</b><span>de <Termo t="aliquota_efetiva">alíquota efetiva</Termo> no topo, contra {pct1(pico.aliquota_efetiva)} de quem ganha perto de {mil(pico.renda_media_mensal ?? 0)} por mês</span></div>
+    <div class="stat"><b>{num(sub.contribuintes_acima_da_faixa)}</b><span>declararam renda acima da faixa em que está o subsídio de um deputado federal — {pct2(sub.pct_acima_da_faixa)} de quem declara</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Isto não é a população brasileira.</b> Quem ganha pouco não é obrigado a declarar: as {mi1(d.declarantes)} milhões de
+    declarações cobrem menos de um terço dos brasileiros com renda. Nenhum percentual desta página é "dos brasileiros", e sim
+    <b>de quem declara</b>. A renda é anual e informada pelo próprio contribuinte, igual à ocupação, que a Receita não confere.
+    As faixas são publicadas em <b>salários mínimos</b>; a conversão para reais é nossa, pelo salário mínimo de {d.ano_calendario}
+    ({brl0(d.salario_minimo.mensal)}). Células com pouquíssimos contribuintes vêm suprimidas por sigilo ({d.celulas_suprimidas} nesta
+    leitura) e entram como zero.</div>
+  </div>
+
+  <h2>Quanto cada faixa de renda paga de imposto</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${AH}`} width="100%" role="img" aria-label="Alíquota efetiva e parcela isenta da renda, por faixa de renda declarada">
+      {[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8].filter((v) => v < maxA).map((v) => (<g>
+        <line x1={padL} x2={W - 16} y1={gy(v)} y2={gy(v)} stroke="var(--line)" />
+        <text x={padL - 6} y={gy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{pct1(v)}</text></g>))}
+      {faixas.map((f, i) => (<g>
+        <rect x={gx(i) - larg / 2} y={gy(f.aliquota_efetiva ?? 0)} width={larg}
+          height={Math.max(1, base1 - gy(f.aliquota_efetiva ?? 0))} fill={f.faixa === sub.faixa ? "var(--s3)" : "var(--s4)"} rx="1">
+          <title>{fxMes(f)} por mês: alíquota efetiva de {pct1(f.aliquota_efetiva)}, com {pct1(f.pct_isenta)} da renda isenta</title></rect>
+      </g>))}
+      <polyline points={faixas.map((f, i) => `${gx(i).toFixed(1)},${gy(f.pct_isenta ?? 0).toFixed(1)}`).join(" ")}
+        fill="none" stroke="var(--s1)" stroke-width="2.5" />
+      {faixas.map((f, i) => (i % 2 === 0 || i >= faixas.length - 4) && (
+        <text x={gx(i)} y={base1 + 16} text-anchor="middle" font-size="10" fill="var(--ink-2)">{mil(f.renda_media_mensal ?? 0).replace("R$ ", "")}</text>))}
+      <text x={padL} y={AH - 22} font-size="11" fill="var(--ink-2)">renda média mensal declarada em cada faixa →</text>
+    </svg>
+    <div class="legend">
+      <span><i style="background:var(--s4)"></i>imposto devido ÷ renda declarada (alíquota efetiva)</span>
+      <span><i style="background:var(--s1)"></i>parcela da renda que é isenta de imposto</span>
+      <span><i style="background:var(--s3)"></i>faixa em que cai o subsídio de um deputado</span>
+    </div>
+    <p class="src">
+      A curva sobe até a faixa de {fxMes(pico)} por mês, onde a alíquota efetiva chega a {pct1(pico.aliquota_efetiva)}, e cai
+      depois: no topo, quem declarou em média {mil(topo.renda_media_mensal ?? 0)} por mês pagou {pct1(topo.aliquota_efetiva)}.
+      A linha explica a queda: {pct1(topo.pct_isenta)} da renda do topo é <Termo t="rendimento_isento">isenta de imposto</Termo>.
+      <b>Atenção ao denominador:</b> alíquota efetiva aqui é o imposto devido dividido por <b>toda</b> a renda declarada,
+      incluindo a isenta e a de <Termo t="tributacao_exclusiva">tributação exclusiva</Termo>. Não é a alíquota da tabela do IR,
+      que incide só sobre a parte tributável. Fonte: tabela 8 dos Grandes Números do IRPF {d.edicao}.
+    </p>
+  </div>
+
+  <h2>Quem paga o Imposto de Renda</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${ordemPeso.length * 24 + 34}`} width="100%" role="img" aria-label="Parcela da renda e parcela do imposto por faixa de renda">
+      {ordemPeso.map((f, i) => (<g transform={`translate(0 ${i * 24 + 26})`}>
+        <text x={rotuloW - 8} y="13" text-anchor="end" font-size="11.5" fill="var(--ink)">{fxMes(f)}</text>
+        <rect x={rotuloW} y="1" width={Math.max(1, ((f.pct_da_renda ?? 0) / maxPeso) * BW)} height="8" fill="var(--s1)" rx="1">
+          <title>{pct1(f.pct_da_renda)} de toda a renda declarada</title></rect>
+        <rect x={rotuloW} y="11" width={Math.max(1, ((f.pct_do_imposto ?? 0) / maxPeso) * BW)} height="8" fill="var(--s4)" rx="1">
+          <title>{pct1(f.pct_do_imposto)} de todo o imposto devido</title></rect>
+        <text x={rotuloW + BW + 8} y="13" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">
+          {pct1(f.pct_da_renda)} / {pct1(f.pct_do_imposto)}</text>
+      </g>))}
+      <text x={rotuloW} y="14" font-size="11" fill="var(--ink-2)">renda declarada (acima) e imposto devido (abaixo), em % do total</text>
+    </svg>
+    <p class="src">
+      Quem declara entre {mil(bandaDe)} e {mil(bandaAte)} por mês — {mi1(bandaGente)} milhões de pessoas — tem
+      {" "}{pct1(bandaRenda)} da renda declarada e paga {pct1(bandaImposto)} de todo o imposto devido. No outro extremo, a faixa
+      do topo tem {pct1(topo.pct_da_renda)} da renda e paga {pct1(topo.pct_do_imposto)}. Os valores por mês são o equivalente
+      mensal das faixas anuais da Receita. Fonte: tabela 8 dos Grandes Números do IRPF {d.edicao}.
+    </p>
+  </div>
+
+  <h2>De onde vem a renda isenta do topo</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${faixasIsentos.length * 34 + 20}`} width="100%" role="img" aria-label="Composição da renda isenta nas faixas mais altas">
+      {faixasIsentos.map((f, i) => {
+        const tot = ordemIsentos.reduce((s, k) => s + ((f.isentos as any)[k] ?? 0), 0) || 1;
+        let acc = 0;
+        return (<g transform={`translate(0 ${i * 34 + 8})`}>
+          <text x={rotuloW - 8} y="13" text-anchor="end" font-size="11.5" fill="var(--ink)">{fxMes(f)}</text>
+          <text x={rotuloW - 8} y="25" text-anchor="end" font-size="10.5" fill="var(--ink-2)">{bi((f.isenta ?? 0))} isentos</text>
+          {ordemIsentos.map((k, j) => {
+            const v = (f.isentos as any)[k] ?? 0; const x = rotuloW + (acc / tot) * BW; const w = (v / tot) * BW; acc += v;
+            return w > 0.3 ? (<rect x={x} y="4" width={w} height="18" fill={CORES[j % CORES.length]}>
+              <title>{k}: {bi(v)} ({pct1(v / tot)})</title></rect>) : null;
+          })}
+        </g>);
+      })}
+    </svg>
+    <div class="legend">{ordemIsentos.slice(0, 6).map((k, j) => <span><i style={`background:${CORES[j % CORES.length]}`}></i>{k}</span>)}</div>
+    <p class="src">
+      Na faixa do topo, {pct1((topo.isentos as any)["Lucros e dividendos"] / topo.isenta)} da renda isenta é
+      {" "}<Termo t="lucros_dividendos">lucro e dividendo</Termo> distribuído por empresas, isento na pessoa física desde a Lei
+      9.249/1995, e {pct1((topo.isentos as any)["Herança, doação e meação"] / topo.isenta)} é herança, doação ou meação, que não é
+      renda recorrente e ainda assim entra na conta da renda do ano. Fonte: tabela 8 dos Grandes Números do IRPF {d.edicao}.
+    </p>
+  </div>
+
+  <h2>Quantos declaram ganhar mais que um deputado federal</h2>
+  <div class="card">
+    <p class="explica">
+      O subsídio de um deputado em {d.ano_calendario} somou <b>{brl0(sub.anual)}</b> no ano, com 13º e um terço de férias, pelo
+      valor de cada mês. Isso equivale a {sub.em_sm.toFixed(1).replace(".", ",")} salários mínimos anuais e cai
+      <b> dentro</b> da faixa de {fxMes(faixas.find((f) => f.faixa === sub.faixa)!)} por mês. Por isso a resposta tem duas partes.
+    </p>
+    <table>
+      <thead><tr><th>Grupo</th><th class="num">Declarantes</th><th class="num">% de quem declara</th></tr></thead>
+      <tbody>
+        <tr><td>Declararam renda <b>acima</b> da faixa do deputado</td><td class="num"><b>{num(sub.contribuintes_acima_da_faixa)}</b></td><td class="num">{pct2(sub.pct_acima_da_faixa)}</td></tr>
+        <tr><td class="sub">estão <b>na mesma</b> faixa dele, parte acima e parte abaixo</td><td class="num">{num(sub.contribuintes_na_faixa)}</td><td class="num">{pct2(sub.contribuintes_na_faixa / d.declarantes)}</td></tr>
+        <tr class="destaque"><td>Soma: declararam, no máximo, até a faixa dele ou mais</td><td class="num">{num(sub.contribuintes_acima_da_faixa + sub.contribuintes_na_faixa)}</td><td class="num">{pct2((sub.contribuintes_acima_da_faixa + sub.contribuintes_na_faixa) / d.declarantes)}</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      A Receita publica faixas, não valores individuais, então não há como contar exatamente quantos passam de
+      {" "}{brl0(sub.anual)}. O número seguro é o primeiro: pelo menos {num(sub.contribuintes_acima_da_faixa)} pessoas declararam
+      mais que o teto da faixa do deputado. Subsídio: Decreto Legislativo 172/2022, pelo valor vigente em cada mês de
+      {" "}{d.ano_calendario} (ver <a href="/deputados/">painel Deputados</a>). Renda declarada: tabela 8 dos Grandes Números do IRPF.
+    </p>
+  </div>
+
+  <h2>Renda média declarada por natureza da ocupação</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${nat.length * 21 + 10}`} width="100%" role="img" aria-label="Renda média mensal declarada por natureza da ocupação">
+      {nat.map((n, i) => (<g transform={`translate(0 ${i * 21 + 5})`}>
+        <text x="300" y="13" text-anchor="end" font-size="11.5" fill="var(--ink)">{n.nome.length > 52 ? n.nome.slice(0, 51) + "…" : n.nome}</text>
+        <rect x="308" y="2" width={Math.max(1, ((n.renda_media_mensal ?? 0) / maxNat) * 440)} height="14"
+          fill={CORGRUPO[n.grupo] ?? "var(--neutro)"} rx="2"><title>{n.nome}: {brl0(n.renda_media_mensal ?? 0)} por mês, {num(n.contribuintes)} declarantes</title></rect>
+        <text x={314 + ((n.renda_media_mensal ?? 0) / maxNat) * 440} y="13" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink)">
+          {brl0(n.renda_media_mensal ?? 0)}</text>
+      </g>))}
+    </svg>
+    <div class="legend">{grupos.map((g) => <span><i style={`background:${CORGRUPO[g] ?? "var(--neutro)"}`}></i>{g}</span>)}</div>
+    <table style="margin-top:12px">
+      <thead><tr><th>Natureza da ocupação</th><th class="num">Declarantes</th><th class="num">Renda média mensal</th><th class="num">Parcela isenta</th><th class="num">Alíquota efetiva</th></tr></thead>
+      <tbody>
+        {nat.map((n) => (<tr>
+          <td>{n.nome}</td><td class="num">{num(n.contribuintes)}</td><td class="num">{brl0(n.renda_media_mensal ?? 0)}</td>
+          <td class="num">{pct1(n.pct_isenta)}</td><td class="num">{pct1(n.aliquota_efetiva)}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Só as naturezas com 50 mil declarantes ou mais. Os grupos (setor público, donos de negócio, capital…) são
+      agrupamento nosso para ordenar a tabela; os rótulos são os da Receita, intactos. Cada pessoa aparece pela natureza que
+      <b> ela própria</b> declarou, e aposentados de qualquer carreira saem da linha de origem e entram na de aposentados.
+      Fonte: tabela 15 dos Grandes Números do IRPF {d.edicao}. Clique no cabeçalho para ordenar.
+    </p>
+  </div>
+
+  <h2>As vinte ocupações com a maior renda média declarada</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Ocupação principal</th><th class="num">Declarantes</th><th class="num">Renda média mensal</th><th class="num">Dividendos na renda</th><th class="num">Alíquota efetiva</th></tr></thead>
+      <tbody>
+        {topOcup.map((o) => (<tr>
+          <td>{o.nome}</td><td class="num">{num(o.contribuintes)}</td><td class="num"><b>{brl0(o.renda_media_mensal ?? 0)}</b></td>
+          <td class="num">{pct1(o.pct_dividendos)}</td><td class="num">{pct1(o.aliquota_efetiva)}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">Entre as {num(ocup.length)} ocupações com 5 mil declarantes ou mais, de um total de {num(d.ocupacoes.length)} na tabela da Receita. "Dividendos na renda" é a parcela que veio de lucro distribuído e de rendimento de sócio de microempresa.</p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 6px">As carreiras de Estado na mesma tabela</h3>
+    <table>
+      <thead><tr><th>Ocupação principal</th><th class="num">Declarantes</th><th class="num">Renda média mensal</th><th class="num">Alíquota efetiva</th></tr></thead>
+      <tbody>
+        {publicas.map((o) => (<tr>
+          <td>{o.nome}</td><td class="num">{num(o.contribuintes)}</td><td class="num">{brl0(o.renda_media_mensal ?? 0)}</td>
+          <td class="num">{pct1(o.aliquota_efetiva)}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Mesma fonte e mesma coluna da tabela acima, recortando as carreiras do Estado. "Membro do Poder Legislativo" reúne
+      deputados federais, estaduais e <b>vereadores</b> das 5.568 câmaras municipais, o que explica a média baixa: a maioria
+      dos cargos eletivos do país é de vereador de cidade pequena. Titular de cartório não é servidor público: exerce
+      serviço notarial por delegação, e aparece aqui porque é a maior renda média das {num(d.ocupacoes.length)} ocupações.
+    </p>
+  </div>
+
+  {bases && (<>
+  <h2>Onde o imposto brasileiro incide, de verdade</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Base de incidência</th><th class="num">% de tudo que é arrecadado</th><th class="num">União</th><th class="num">Estados</th><th class="num">Municípios</th><th class="barra-cab"></th></tr></thead>
+      <tbody>
+        {basesOrd.map((b: any) => (<tr>
+          <td>{b.base}</td><td class="num"><b>{pct1(b.pct)}</b></td>
+          <td class="num">{b.federal ? bi(b.federal * 1e6) : "—"}</td>
+          <td class="num">{b.estadual ? bi(b.estadual * 1e6) : "—"}</td>
+          <td class="num">{b.municipal ? bi(b.municipal * 1e6) : "—"}</td>
+          <td class="barra-cel"><span class="barra" style={`width:${(b.pct / basesOrd[0].pct) * 100}%;background:${b.base === "Renda" ? "var(--s4)" : "var(--s1)"}`}></span></td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      O Imposto de Renda é parte de uma base só: {pct1(naoRenda)} de tudo que União, estados e municípios arrecadam
+      incide sobre outra coisa — consumo, folha de salários, propriedade e transações financeiras. Quem não paga Imposto de
+      Renda continua pagando tributo embutido no preço do que compra, e essa parte não aparece em nenhuma declaração. Fonte:
+      Receita Federal, Carga Tributária no Brasil {(imp as any).carga.edicao}, tabela INC 01-A, ano {(imp as any).carga.ano}.
+      Detalhe por tributo e por estado no <a href="/impostos/">painel Impostos</a>.
+    </p>
+  </div>
+  </>)}
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>A alíquota efetiva mais alta não está no topo: está na faixa de {fxMes(pico)} por mês ({pct1(pico.aliquota_efetiva)}). No topo, com renda média de {mil(topo.renda_media_mensal ?? 0)} por mês, é {pct1(topo.aliquota_efetiva)}.</li>
+      <li>Quanto maior a renda declarada, maior a parte isenta: {pct1(faixas.find((f) => f.piso_sm === 3)?.pct_isenta ?? null)} na faixa de {fxMes(faixas.find((f) => f.piso_sm === 3)!)} e {pct1(topo.pct_isenta)} no topo.</li>
+      <li>As {mi1(bandaGente)} milhões de pessoas que declaram entre {mil(bandaDe)} e {mil(bandaAte)} por mês pagam {pct1(bandaImposto)} do imposto devido, com {pct1(bandaRenda)} da renda declarada.</li>
+      <li>Pela renda média declarada, {nat[0].nome.toLowerCase()} lidera entre as naturezas de ocupação ({brl0(nat[0].renda_media_mensal ?? 0)} por mês) e {nat[nat.length - 1].nome.toLowerCase()} fecha a lista ({brl0(nat[nat.length - 1].renda_media_mensal ?? 0)}).</li>
+      <li>Pelo menos {num(sub.contribuintes_acima_da_faixa)} pessoas ({pct2(sub.pct_acima_da_faixa)} de quem declara) informaram renda acima da faixa em que está o subsídio de um deputado federal, de {brl0(sub.anual)} no ano.</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima; nenhum número é digitado à mão.</p>
+  </div>
+
+  <Glossario termos={["declarante", "aliquota_efetiva", "rendimento_isento", "lucros_dividendos", "tributacao_exclusiva", "base_incidencia", "quem_paga"]} />
+</Base>
+<style>
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+  .explica { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; max-width: 78ch; }
+  td.sub { padding-left: 22px; color: var(--ink-2); }
+  tr.destaque td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .barra-cab { width: 150px; } .barra-cel { padding-left: 8px; }
+  .barra { display: block; height: 12px; border-radius: 2px; min-width: 2px; }
+</style>

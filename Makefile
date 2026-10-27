@@ -28,3 +28,8 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	python -m etl.stf.transform --ano $(ANO)
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
+
+irpf: ## imposto de renda: planilha dos Grandes Números do IRPF (cache em data/raw)
+	python -m etl.irpf.extract
+	cp data/public/irpf.json site/public/data/
+.PHONY: irpf

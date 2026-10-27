@@ -204,6 +204,19 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   próprio órgão e ficam fora dos números de destaque.
 - Completo: `docs/metodologia/painel-obras.md`.
 
+## Imposto de Renda — o que os brasileiros declaram ganhar
+
+- **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem
+  a renda isenta do topo, a renda média por natureza da ocupação e por ocupação principal, e quantos declararam renda acima da
+  faixa em que está o subsídio de um deputado federal.
+- **Fonte:** Receita Federal, Grandes Números do IRPF (tabelas 8, 15 e 16); salário mínimo do Banco Central (SGS 1619).
+- **Atenção:** o universo é **quem declara** (41,7 milhões de pessoas), não a população — quem ganha pouco não declara. A renda e a
+  ocupação são informadas pelo contribuinte. A alíquota efetiva usa toda a renda declarada no denominador, inclusive a isenta, e
+  por isso é menor que a alíquota da tabela do IR. A conversão das faixas de salários mínimos para reais é nossa.
+- **O que não dizemos:** se a alíquota de alguém é justa, e quem é ou não "elite". A página publica a curva, a composição da renda
+  e as médias por ocupação, cada uma com a tabela de origem.
+- Completo: `docs/metodologia/painel-imposto-de-renda.md`.
+
 ## Inflação — o IPCA desde 1979
 
 - **O que é:** a alta de preços no mês, no ano e em 12 meses; a série mensal desde 1996; o resultado de cada ano comparado com a

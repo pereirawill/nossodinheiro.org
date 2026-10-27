@@ -119,6 +119,12 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   inadimplencia_scr: { rotulo: "Inadimplência (SCR)", texto: "Parte do dinheiro emprestado que está com parcelas vencidas há mais de 90 dias, dividida por todo o crédito ativo. É inadimplência em reais, não em número de pessoas: o Banco Central não publica quantas pessoas estão com nome sujo." },
   carteira_ativa: { rotulo: "Carteira ativa", texto: "Tudo que bancos, cooperativas e financeiras têm emprestado a pessoas (PF) ou empresas (PJ) na data: parcelas a vencer e vencidas. Fonte: SCR, o cadastro de operações de crédito do Banco Central." },
   modalidade_credito: { rotulo: "Modalidade", texto: "Tipo de crédito: empréstimos (cartão, consignado, pessoal), financiamentos (veículos), imobiliário, rural, entre outros, conforme a classificação do Banco Central." },
+  // Imposto de Renda (Receita Federal, Grandes Números do IRPF)
+  declarante: { rotulo: "Declarante", texto: "Quem entregou declaração de Imposto de Renda no ano. Não é a população: quem ganha abaixo do limite de obrigatoriedade não declara, então todo percentual do painel é sobre quem declara." },
+  aliquota_efetiva: { rotulo: "Alíquota efetiva", texto: "Imposto devido dividido por toda a renda declarada, incluindo a isenta. É diferente da alíquota da tabela do IR (até 27,5%), que incide só sobre a parte tributável." },
+  rendimento_isento: { rotulo: "Rendimento isento", texto: "Renda que a lei manda declarar mas não tributa na pessoa física: lucros e dividendos, herança e doação, poupança, parcela da aposentadoria de quem tem 65 anos ou mais, indenizações, entre outras." },
+  lucros_dividendos: { rotulo: "Lucros e dividendos", texto: "Parte do lucro que a empresa distribui aos sócios. É isenta na pessoa física desde a Lei 9.249/1995 — a empresa já pagou IRPJ e CSLL sobre o lucro." },
+  tributacao_exclusiva: { rotulo: "Tributação exclusiva na fonte", texto: "Rendimento tributado na hora em que é pago, com alíquota própria, e que não se soma aos demais na declaração: 13º salário, aplicações financeiras, ganho na venda de bens, participação nos lucros." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

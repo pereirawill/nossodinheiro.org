@@ -20,7 +20,8 @@ Agrupamento por BASE DE INCIDÊNCIA (classificação econômica usual; quem reco
 
 Saída: data/public/impostos.json — {gerado_em_utc, ultimo_mes:{ano, mes}, anual:[{ano, meses, total, bases:{…}, tributos:{…}}],
   mensal:[{ano, mes, total, bases:{…}}] (últimos 24 meses), por_uf:[{uf, total, por_habitante?}] (ano corrente),
-  tributos_ultimo_ano:[{tributo, base, valor}]}
+  tributos_ultimo_ano:[{tributo, base, valor}], carga:{serie, por_ente, bases:{linhas:[{base, federal, estadual,
+  municipal, total_milhoes, pct}]}}}
 """
 
 from __future__ import annotations
@@ -165,6 +166,47 @@ def _texto(v) -> str:
     return re.sub(r"\s+", " ", str(v or "")).strip()
 
 
+# Bases de incidência da tabela INC 01-A da planilha de carga tributária: a única divisão OFICIAL que cobre os três
+# níveis de governo (a classificação por família de tributo no topo deste arquivo é nossa e só cobre a receita federal).
+BASES_OFICIAIS = {"1000": "Renda", "2000": "Folha de salários", "3000": "Propriedade",
+                  "4000": "Bens e serviços", "5000": "Transações financeiras", "9000": "Outros tributos"}
+
+
+def bases_de_incidencia(wb) -> dict | None:
+    """
+    Receita tributária por base de incidência e nível de governo (tabela INC 01-A, em R$ milhões). Código da base na
+    coluna 1 (nível 1) ou 2 (detalhe); rótulo na 3; valores federal/estadual/municipal/total nas colunas 4 a 7.
+    Células "n/a" = o nível não arrecada aquele tributo.
+    """
+    if "INC01A" not in wb.sheetnames:
+        log.warning("planilha de carga tributária sem a aba INC01A")
+        return None
+    def _cod(v) -> str:                                  # o código vem como inteiro (0, 1000, 2000…)
+        return str(int(v)) if isinstance(v, (int, float)) else _texto(v)
+
+    linhas, total = [], None
+    for l in wb["INC01A"].iter_rows(max_col=8, values_only=True):
+        cod = _cod(l[1] if len(l) > 1 else "")
+        if cod == "0":
+            total = float(l[7]) if isinstance(l[7], (int, float)) else None
+        elif cod in BASES_OFICIAIS and isinstance(l[7], (int, float)):
+            linhas.append({"base": BASES_OFICIAIS[cod], "codigo": cod,
+                           "federal": round(float(l[4]), 2) if isinstance(l[4], (int, float)) else None,
+                           "estadual": round(float(l[5]), 2) if isinstance(l[5], (int, float)) else None,
+                           "municipal": round(float(l[6]), 2) if isinstance(l[6], (int, float)) else None,
+                           "total_milhoes": round(float(l[7]), 2)})
+    if not linhas or not total:
+        log.warning("INC01A: nenhuma base de incidência lida")
+        return None
+    soma = sum(i["total_milhoes"] for i in linhas)
+    if abs(soma - total) > total * 0.005:
+        raise SystemExit(f"bases de incidência somam {soma:.0f} contra total {total:.0f} (INC01A)")
+    for i in linhas:
+        i["pct"] = round(i["total_milhoes"] / total, 4)
+    log.info("bases de incidência (INC01A): %s", ", ".join(f"{i['base']} {100*i['pct']:.1f}%" for i in linhas))
+    return {"total_milhoes": round(total, 2), "tabela": "INC 01-A", "linhas": linhas}
+
+
 def carga_tributaria(c: httpx.Client) -> dict | None:
     """
     Carga tributária bruta (tudo que União, estados e municípios arrecadam em tributos, sobre o PIB), da planilha oficial
@@ -212,7 +254,8 @@ def carga_tributaria(c: httpx.Client) -> dict | None:
     log.info("carga tributária (CTB %d): %s = %.2f%% do PIB; %d anos na série; %d entes", edicao, ultimo,
              100 * (next((e["pct_pib"] for e in entes if e["ente"] == "Total"), 0) or serie.get(ultimo, {}).get("carga", 0)), len(serie), len(entes))
     return {"edicao": edicao, "ano": ultimo, "serie": serie, "por_ente": entes,
-            "fonte": f"Receita Federal, Carga Tributária no Brasil {edicao} (tabelas 01 e 02)",
+            "bases": bases_de_incidencia(wb),
+            "fonte": f"Receita Federal, Carga Tributária no Brasil {edicao} (tabelas 01, 02 e INC 01-A)",
             "url": CTB.format(ano=edicao)}
 
 

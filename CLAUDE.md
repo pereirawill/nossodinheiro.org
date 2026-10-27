@@ -21,7 +21,7 @@ Workflows (`.github/workflows/`):
 - `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
-- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao,previdencia,obras}.yml` — mensais (dias 7, 9, 10, 11, 12, 13, 14, 15); `etl-cambio.yml` — dias úteis; `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
+- `etl-{renda,seguranca,credito,saude,inflacao,corrupcao,previdencia,obras}.yml` — mensais (dias 7, 9, 10, 11, 12, 13, 14, 15); `etl-cambio.yml` — dias úteis; `etl-irpf.yml` — 8/4 e 8/5 (edição anual); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 Secrets existentes: os dois da Cloudflare + `PORTAL_TRANSPARENCIA_KEY`. Workflow permissions = read/write.
 
 Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026` (FONTE=bulk padrão),
@@ -32,7 +32,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Obras, Impostos, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Obras, Impostos, Imposto de Renda, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -100,6 +100,27 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   detalhado deduplicadas. Bases de incidência = convenção nossa (ver metodologia). Conferido: mar/2026 224,6 bi (RFB 229,25).
 - Saída `impostos.json`: anual (2000→), mensal (24 m), por UF, tributos do ano. Página `/impostos/`. Pendente: estados e
   municípios via SICONFI para "quanto já foi arrecadado" oficial (Impostômetro da ACSP é privado — não usar).
+
+## Painel Imposto de Renda (NO AR, sem chave, anual; feito 27/10/2026)
+- `etl/irpf/extract.py` → `irpf.json`, `/imposto-de-renda/` (menu depois de Impostos). Fonte: **Receita Federal, Grandes Números
+  do IRPF**, planilha de tabelas (~20 MB). O slug muda por edição (2024 termina em `-tabelas-1`) → o extrator lê o índice e pega
+  o link mais recente por regex. Cache em `data/raw/gn_irpf_ac<ano>.xlsx`. Salário mínimo vem do **SGS 1619** (dezembro do ano),
+  porque a planilha publica as faixas em salários mínimos anuais (`piso × 12 × SM`); conferido contra a tabela 5.
+- Tabelas 8 (faixa de renda total), 15 (natureza da ocupação) e 16 (ocupação principal, 134 categorias). `x` = sigilo → zero,
+  contado em `celulas_suprimidas`; **nunca** reconstruir subtraindo do total. Categoria vazia da Tab16 = "Não informada"
+  (6,6 mi de declarantes, a 2ª maior). Invariantes: 30–80 mi de declarantes, totais das 3 abas dentro de 0,1%, imposto > 50 bi.
+- AC 2024: 41,7 mi de declarantes, renda R$ 6,089 tri, imposto devido R$ 348,8 bi (alíquota média 5,7%). **A curva de alíquota
+  efetiva sobe até 9,9% na faixa de 15–20 SM (R$ 21–28 mil/mês) e cai para 2,1% no topo** (renda média R$ 1,69 mi/mês), porque
+  77,5% da renda do topo é isenta — 49,1% disso é lucro e dividendo, 20,2% herança. Faixas de 7 a 30 SM: 33,6% da renda e 54,7%
+  do imposto. Subsídio do deputado em 2024 = R$ 584.422,67 (34,5 SM, dentro da faixa 30–40) → "pelo menos 867.083 (2,08%)
+  declararam acima do teto da faixa dele"; o número exato não existe (a Receita publica faixas).
+- Natureza da ocupação: servidor municipal R$ 8,5 mil/mês, estadual 15,9, federal 24,8, militar 12,6, proprietário de empresa
+  26,6, capitalista 32,5. Ocupações: titular de cartório 203,5 mil (maior das 134), Judiciário/TCU 95,9 mil, MP 93,3 mil,
+  "Membro do Poder Legislativo" só 12,0 mil (reúne 58 mil vereadores). **Os dados contrariam a tese de que o funcionalismo em
+  bloco é a elite** — a página publica a curva e as médias e não escreve conclusão (pedido do dono em 27/10).
+- Impostos ganhou `carga.bases` da tabela **INC 01-A** do estudo Carga Tributária (oficial, três níveis): bens e serviços 43,5%,
+  renda 28,3%, folha 21,2%, propriedade 5,3%, transações financeiras 1,8%. Usado na página do IRPF para dizer que 71,7% da
+  arrecadação não é imposto sobre renda. Metodologia: `docs/metodologia/painel-imposto-de-renda.md`.
 
 ## Painéis Renda, Educação, Segurança, Inadimplência (NO AR, sem chave, mensais dias 7–10; feitos 26–27/10/2026)
 - `etl/ufs.py`: tabela fixa das 27 UFs (código IBGE, sigla, nome) + `normalizar()`; usada pelos quatro.

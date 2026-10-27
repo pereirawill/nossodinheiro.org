@@ -81,6 +81,14 @@ export const DATASETS: Dataset[] = [
     periodo: "2000/..", atualizacao: "mensal",
   },
   {
+    slug: "/imposto-de-renda/", nome: "Imposto de Renda — renda declarada, alíquota efetiva e ocupação",
+    descricao: "Declarantes do IRPF por faixa de renda total em salários mínimos, com renda tributável, de tributação exclusiva e isenta (detalhada em nove componentes), imposto devido, alíquota efetiva e bens declarados; renda média por natureza da ocupação e por ocupação principal.",
+    arquivos: ["irpf.json"],
+    fontes: [{ nome: "Receita Federal — Grandes Números do IRPF", url: "https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/estudos/imposto-de-renda" },
+             { nome: "Banco Central — SGS série 1619 (salário mínimo)", url: "https://www3.bcb.gov.br/sgspub/" }],
+    periodo: "2024", atualizacao: "anual (a Receita publica em março/abril)",
+  },
+  {
     slug: "/inflacao/", nome: "Inflação (IPCA)", descricao: "IPCA mensal e acumulado, por grupo.",
     arquivos: ["inflacao.json"], fontes: [{ nome: "IBGE — SIDRA", url: "https://sidra.ibge.gov.br/" }], atualizacao: "mensal",
   },
