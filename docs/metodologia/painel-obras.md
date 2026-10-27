@@ -26,7 +26,8 @@ Era por isso que este painel estava parado na fila desde o início do projeto.
   rodar de novo continua de onde parou.
 - A coleta só termina após **dois blocos seguidos** respondendo 200 com lista vazia: sob carga, o Obrasgov devolve 200 com conteúdo
   vazio em vez de erro, e parar no primeiro bloco vazio truncaria a base silenciosamente. Além disso, o extrator falha se vierem
-  menos de 15 mil obras (o cadastro tem ~25 mil; o TCU contou 22.621 em abr/2025).
+  menos de 15 mil obras. Na coleta de 27/10/2026 vieram **124.148** obras — o cadastro é bem maior do que os ~25 mil
+  que estimávamos antes de rodar, e maior que os 22.621 do recorte do TCU de abr/2025.
 
 ## 3. Regras
 
@@ -45,4 +46,5 @@ Era por isso que este painel estava parado na fila desde o início do projeto.
 1. Valor **liquidado e pago** por obra (o cadastro só tem empenho); avaliar cruzamento com o Portal da Transparência.
 2. Histórico de situação (há quanto tempo cada obra está parada de fato), que a API não expõe.
 3. Obras de estados e municípios fora do CIPI.
-4. Cruzar com o relatório de obras paralisadas do TCU para reconciliar as contagens.
+4. Cruzar com o relatório de obras paralisadas do TCU (11.469 de 22.621 em abr/2025, contra 1.779 de 124.148 aqui)
+   para reconciliar as contagens: são universos e critérios diferentes, e a página avisa disso.

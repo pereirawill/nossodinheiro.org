@@ -15,6 +15,10 @@ const W = 920;
 
 const paradas = d.paradas;
 const situacoes = d.por_situacao as { situacao: string; n: number; previsto: number; empenhado: number }[];
+const cadastradas = (d.por_situacao.find((s2: any) => s2.situacao === "Cadastrada")?.n) ?? 0;
+const concluidas = (d.por_situacao.find((s2: any) => s2.situacao === "Concluída")?.n) ?? 0;
+const emExecucao = (d.por_situacao.find((s2: any) => s2.situacao === "Em execução")?.n) ?? 0;
+const emAndamento = emExecucao + d.paradas.n;
 const maxSit = Math.max(...situacoes.map((s) => s.n));
 const ufs = [...(d.por_uf as any[])].sort((a, b) => b.paradas - a.paradas);
 const maxUfParadas = Math.max(...ufs.map((u) => u.paradas));
@@ -71,6 +75,14 @@ const porProporcao = ufs.filter((u) => u.n >= MIN_OBRAS).sort((a, b) => b.parada
       "paralisada" é obra interrompida; "inacabada" é obra abandonada sem conclusão. O empenho é federal: {num(d.obras_com_empenho)} das
       {num(d.total)} obras têm pelo menos um empenho registrado — as demais podem ser tocadas com recurso de outra fonte ou ainda não ter
       compromisso orçamentário. Fonte: Obrasgov/CIPI, API pública.
+    </p>
+    <p class="src">
+      <b>Cuidado com o denominador, e com comparações com o TCU.</b> As {num(paradas.n)} paradas são {pct1(paradas.n, d.total)}{" "}
+      de <b>todo</b> o cadastro, que inclui {num(cadastradas)} obras ainda não iniciadas e {num(concluidas)} já concluídas.
+      Entre as que deveriam estar tocando hoje — em execução mais paradas — a proporção é outra: {pct1(paradas.n, emAndamento)}.
+      O Tribunal de Contas da União contou 11.469 obras paralisadas em abril de 2025, num universo de 22.621: é outra
+      apuração, com critério e recorte próprios do Tribunal, e não é comparável linha a linha com a situação que cada órgão
+      declara aqui. Reconciliar as duas contagens está na lista de pendências da <a href="/metodologia/">metodologia</a>.
     </p>
   </div>
 
