@@ -21,7 +21,7 @@ Workflows (`.github/workflows/`):
 - `etl.yml` — Câmara. Diário 06:17 BRT (desde 26/10/2026) e em push em `etl/**`. Commita JSONs, dispara deploy.
 - `etl-portal.yml` — Portal da Transparência. Terça 03:23 BRT (janela de 700 req/min). `workflow_dispatch`
   com inputs `etapa` (inspect | poderes | emendas | emendas-documentos) e `ano`.
-- `etl-{renda,seguranca,credito}.yml` — mensais (dias 7, 9, 10); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
+- `etl-{renda,seguranca,credito,saude}.yml` — mensais (dias 7, 9, 10, 11); `etl-educacao.yml` só dispatch (INEP bloqueia o GitHub). `deploy.yml` — após qualquer ETL ou push em `site/**`. Usa secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 Secrets existentes: os dois da Cloudflare + `PORTAL_TRANSPARENCIA_KEY`. Workflow permissions = read/write.
 
 Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026` (FONTE=bulk padrão),
@@ -32,7 +32,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Impostos, Trabalho, Renda, Educação, Segurança, Inadimplência, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Impostos, Trabalho, Renda, Educação, Segurança, Saúde, Inadimplência, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -119,6 +119,18 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   série 24 meses. Sem dado municipal (só UF; "sub-região" do BCB é codificada).
 - `openpyxl` entrou em requirements. Glossário ganhou 14 termos (rendimento_habitual … modalidade_credito).
 
+## Painel Saúde (NO AR, sem chave, mensal dia 11; feito 27/10/2026)
+- `etl/saude/extract.py` → `saude.json`, `/saude/` (no menu logo depois de Segurança). Só busca o que faltava: **ANS** PDA 047
+  (`dadosabertos.ans.gov.br/FTP/PDA/taxa_de_cobertura_de_planos_de_saude-047/pda-047-taxa_cobertura.csv`, 21 MB, latin-1, por
+  município × sexo × faixa; DuckDB agrega por UF e capitais; **código da ANS tem 6 dígitos**, casa por `cod_ibge // 10`; coluna
+  POPULACAO do arquivo vem zerada → taxa usa SIDRA 6579) e **IBGE** (7362 projeção de esperança de vida/mortalidade infantil,
+  3834 MI observada até 2016, ODS 6695/6696/6694 de menores de 5 anos, neonatal e materna).
+- O **dinheiro** não é rebaixado: a página importa `poderes_funcao_2025` (função 10 da União), `estados_2025` e `municipios_2025`
+  (pago_saude). **Nunca somar os três níveis** — repasse fundo a fundo reaparece embaixo; aviso explícito na página.
+- 2026: 53,1 mi de vínculos de plano (24,8% da população) → 75,2% só no SUS; União R$ 216,0 bi, estados R$ 193,0 bi, prefeituras
+  R$ 313,6 bi (2025); esperança de vida 78,0 anos (projeção). Pendências: SIOPS (recursos próprios), CNES/leitos (API do MS
+  recusa conexão), atenção básica, filas.
+
 ## Painel Histórico (NO AR, sem chave, mensal dia 6)
 - `etl/historico/extract.py`: SIOP por função, 1 grafo por ano desde 2000 (26+ consultas SPARQL); IPCA SIDRA 1737/2266
   (índice de dezembro → `deflator[ano]` para reais do último ano fechado); BEPS tabela 14 (dezembro de cada ano); receita vem
@@ -186,8 +198,9 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 2. Página por deputado `/deputado/{id}` (foto, cota mês a mês, categorias, fornecedores, link da NF) — maior
    ganho de SEO e o link para os comentários do Instagram.
 3. Painel "No que gastaram" (categorias) e fornecedores em rede.
-4. Painel 4 Obras paralisadas: API pública Obrasgov `https://api-publica.obrasgov.gestao.gov.br` (CIPI; sem
-   auth; situação/valor executado; API antiga válida até 31/08/2026). TCU abr/2025: 11.469 de 22.621 paradas.
+4. Painel Obras paralisadas (pedido de novo em 27/10/2026, ainda não feito): o host mudou — `api-publica.obrasgov.gestao.gov.br`
+   devolve 404 e o que responde é **`https://api.obrasgov.gestao.gov.br/obrasgov/api/projeto-investimento?pagina=0&tamanhoDaPagina=N`**
+   (CIPI, sem auth, JSON paginado com idUnico, nome, descrição, situação, valores). TCU abr/2025: 11.469 de 22.621 paradas.
 5. `etl/camara/validate.py`: invariantes (513±, liquido = documento − glosa, total ≥ 95% do run anterior),
    reconciliação api × bulk × total oficial, falhar o job antes de commitar dado ruim.
 6. Judiciário fase 2: remuneração de magistrados (CNJ), Justiça em Números; TJs via SICONFI.

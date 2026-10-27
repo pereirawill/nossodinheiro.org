@@ -1,0 +1,172 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/saude.json";
+import estados from "../../../public/data/estados_2025.json";
+import municipios from "../../../public/data/municipios_2025.json";
+import metaMun from "../../../public/data/municipios_meta_2025.json";
+import funcoes from "../../../public/data/poderes_funcao_2025.json";
+
+const ANO = 2025;
+const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) => v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : `R$ ${(v / 1e6).toFixed(0)} mi`;
+const n1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
+const num = (v: number | null | undefined) => v == null ? "—" : Math.round(v).toLocaleString("pt-BR");
+const mi = (v: number) => `${(v / 1e6).toFixed(1).replace(".", ",")} mi`;
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+
+// ---- dinheiro: os três níveis, sem somar (há repasse da União que reaparece embaixo)
+const uniao = (funcoes as any[]).find((f) => f.funcao === "10")?.pago ?? 0;
+const estadual = (estados as any[]).reduce((s, e) => s + (e.pago_saude || 0), 0);
+const munSaude = (municipios as any[]).reduce((s, m) => s + (m.pago_saude || 0), 0);
+const popBR = d.planos.brasil.populacao;
+const NIVEIS = [
+  { nome: "União (Ministério da Saúde e demais órgãos federais)", v: uniao, cor: "var(--s1)" },
+  { nome: "Governos estaduais e Distrito Federal", v: estadual, cor: "var(--s3)" },
+  { nome: `Prefeituras (${metaMun.municipios_com_dca.toLocaleString("pt-BR")} das ${metaMun.municipios_total.toLocaleString("pt-BR")} que prestaram contas)`, v: munSaude, cor: "var(--s2)" },
+];
+const maxNivel = Math.max(...NIVEIS.map((n) => n.v));
+
+// ---- por estado: gasto estadual + municipal, cobertura de plano e indicadores
+const munPorUf = new Map<string, number>();
+for (const m of municipios as any[]) munPorUf.set(m.uf, (munPorUf.get(m.uf) || 0) + (m.pago_saude || 0));
+const planoPorUf = new Map(d.planos.por_uf.map((u) => [u.uf, u]));
+const ev = d.indicadores.projecao.esperanca_vida_uf as Record<string, number>;
+const miProj = d.indicadores.projecao.mortalidade_infantil_uf as Record<string, number>;
+const m5 = d.indicadores.menores5.por_uf as Record<string, number>;
+const neo = d.indicadores.neonatal.por_uf as Record<string, number>;
+const mat = d.indicadores.materna.por_uf as Record<string, number>;
+const linhas = (estados as any[]).map((e) => {
+  const plano = planoPorUf.get(e.uf);
+  const gastoEstado = e.pago_saude || 0, gastoMun = munPorUf.get(e.uf) || 0;
+  return { uf: e.uf, nome: e.nome, populacao: e.populacao, gastoEstado, gastoMun,
+    porHab: e.populacao ? (gastoEstado + gastoMun) / e.populacao : null,
+    taxaPlano: plano?.taxa ?? null, ev: ev[e.nome], mi: miProj[e.nome], m5: m5[e.nome], neo: neo[e.nome], mat: mat[e.nome] };
+});
+const porPlano = [...d.planos.por_uf].sort((a, b) => (b.taxa ?? 0) - (a.taxa ?? 0));
+const maxPlano = Math.max(...porPlano.map((u) => u.taxa ?? 0));
+const porEv = [...linhas].filter((l) => l.ev != null).sort((a, b) => (b.ev ?? 0) - (a.ev ?? 0));
+const porHabOrd = [...linhas].filter((l) => l.porHab != null).sort((a, b) => (b.porHab ?? 0) - (a.porHab ?? 0));
+const capitais = d.planos.capitais as any[];
+
+// ---- série: mortalidade infantil observada (até 2016) e menores de 5 anos (até 2023)
+const serieMI = d.indicadores.mortalidade_infantil_observada.serie_brasil as Record<string, number>;
+const serieM5 = d.indicadores.menores5.serie_brasil as Record<string, number>;
+const anos = Array.from(new Set([...Object.keys(serieMI), ...Object.keys(serieM5)])).sort();
+const SW = 920, SH = 220, padL = 44, padB = 24;
+const maxS = Math.max(...Object.values(serieMI), ...Object.values(serieM5)) * 1.08;
+const sx = (a: string) => padL + (anos.indexOf(a) * (SW - padL - 10)) / (anos.length - 1);
+const sy = (v: number) => 8 + (SH - padB - 8) * (1 - v / maxS);
+const linha = (s: Record<string, number>) => Object.entries(s).map(([a, v]) => `${sx(a).toFixed(1)},${sy(v).toFixed(1)}`).join(" ");
+const W = 920;
+const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
+---
+<Base title="Saúde: quanto custa o SUS e quem depende dele — Nosso Dinheiro" accent="var(--s2)" description="Quanto União, estados e prefeituras pagam em saúde, quantos brasileiros têm plano e quantos dependem só do SUS, e os indicadores de saúde de cada estado.">
+  <h1>Quanto custa a saúde pública e quem depende dela</h1>
+  <p class="lede">
+    O que a União, os governos estaduais e as prefeituras pagaram em saúde, quanto dá por habitante em cada estado, quantos
+    brasileiros têm plano de saúde e quantos contam só com o SUS, e como estão os indicadores que medem o resultado:
+    esperança de vida, mortalidade infantil, neonatal e materna. Cada número com a fonte oficial.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · despesa: SIOP (União) e SICONFI/Tesouro (estados e prefeituras), {ANO} · planos: ANS, {d.planos.referencia} · indicadores: IBGE · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{semPlano.toFixed(1).replace(".", ",")}%</b><span>dos brasileiros não têm plano de saúde e contam só com o SUS ({d.planos.referencia}): {mi(popBR - d.planos.brasil.beneficiarios)} de pessoas</span></div>
+    <div class="stat"><b>{compact(uniao)}</b><span>pagos pela União na função Saúde em {ANO}; estados pagaram {compact(estadual)} e as prefeituras {compact(munSaude)} — <Termo t="repasse_saude">valores que se sobrepõem</Termo></span></div>
+    <div class="stat"><b>{n1(d.indicadores.projecao.esperanca_vida_brasil)} anos</b><span>é a <Termo t="esperanca_vida">esperança de vida</Termo> de quem nasce no Brasil (<Termo t="projecao_ibge">projeção do IBGE</Termo> para {d.indicadores.projecao.ano}); vai de {n1(porEv[porEv.length - 1]?.ev)} no {porEv[porEv.length - 1]?.nome} a {n1(porEv[0]?.ev)} em {porEv[0]?.nome}</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Os gastos dos três níveis não podem ser somados.</b> Boa parte do dinheiro federal é repassada aos estados e às
+    prefeituras (transferências fundo a fundo do SUS) e aparece de novo na despesa deles. Por isso mostramos os três separados e
+    nunca um "total do país". Também não é um juízo de eficiência: gastar mais não garante atender melhor, e gastar pouco pode
+    significar que o estado depende mais do repasse federal.</div>
+  </div>
+
+  <h2>Quem paga a conta da saúde ({ANO})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${NIVEIS.length * 40 + 10}`} width="100%" role="img" aria-label="Despesa paga em saúde por nível de governo">
+      {NIVEIS.map((n, i) => (<g transform={`translate(0 ${i * 40 + 5})`}>
+        <text x="0" y="14" font-size="12.5" fill="var(--ink)">{n.nome}</text>
+        <rect x="0" y="20" width={Math.max(2, (n.v / maxNivel) * 700)} height="16" fill={n.cor} rx="2" />
+        <text x={(n.v / maxNivel) * 700 + 8} y="33" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(n.v)} · {brl0(n.v / popBR)} por habitante</text>
+      </g>))}
+    </svg>
+    <p class="src">Fontes: União — SIOP, execução orçamentária de {ANO}, função 10 (Saúde), <Termo t="despesa_paga">despesa paga</Termo>. Estados e prefeituras — SICONFI/Tesouro Nacional, Declaração de Contas Anuais de {ANO}, anexo I-E, mesma função. "Por habitante" usa a população estimada pelo IBGE ({num(popBR)}), só para dar escala.</p>
+  </div>
+
+  <h2>Quem tem plano de saúde e quem depende só do SUS ({d.planos.referencia})</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${porPlano.length * 22 + 10}`} width="100%" role="img" aria-label="Percentual da população com plano de saúde por estado">
+      {porPlano.map((u, i) => (<g transform={`translate(0 ${i * 22 + 5})`}>
+        <text x="150" y="14" text-anchor="end" font-size="12" fill="var(--ink)">{u.nome}</text>
+        <rect x="160" y="2" width={Math.max(1, ((u.taxa ?? 0) / maxPlano) * 520)} height="16" fill="var(--s2)" rx="2" />
+        <text x={166 + ((u.taxa ?? 0) / maxPlano) * 520} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1(u.taxa)}% com plano · {num(u.populacao! - u.beneficiarios)} só no SUS</text>
+      </g>))}
+    </svg>
+    <p class="src">Fonte: <Termo t="cobertura_planos">ANS, taxa de cobertura de planos de saúde</Termo> (dados abertos, competência {d.planos.referencia}), beneficiários de planos de assistência médica, sobre a população estimada pelo IBGE ({d.ano_populacao}). São vínculos, não pessoas: quem tem dois planos conta duas vezes. Planos exclusivamente odontológicos ({mi(d.planos.brasil.odontologico)} de vínculos no país) ficam fora da conta.</p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 10px">Capitais com mais gente coberta por plano</h3>
+    <table>
+      <thead><tr><th>Capital</th><th class="num">População</th><th class="num">Com plano</th><th class="num">% da população</th></tr></thead>
+      <tbody>{capitais.map((m) => (<tr><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{num(m.populacao)}</td><td class="num">{num(m.beneficiarios)}</td><td class="num"><b>{n1(m.taxa)}%</b></td></tr>))}</tbody>
+    </table>
+    <p class="src">Nas capitais a taxa é bem maior que a do estado porque os planos se concentram nelas — e porque o beneficiário é contado onde mora, mesmo que o plano seja de uma empresa de outra cidade.</p>
+  </div>
+
+  <h2>Cada estado: dinheiro e resultado</h2>
+  <div class="card largo">
+    <table>
+      <thead><tr><th>Estado</th><th class="num">Governo estadual</th><th class="num">Prefeituras</th><th class="num">Por habitante</th><th class="num">Com plano</th>
+        <th class="num">Vive até</th><th class="num">Até 1 ano</th><th class="num">Até 5 anos</th><th class="num">Neonatal</th><th class="num">Materna</th></tr></thead>
+      <tbody>{porHabOrd.map((l) => (<tr><td>{l.nome}</td><td class="num">{compact(l.gastoEstado)}</td><td class="num">{compact(l.gastoMun)}</td><td class="num"><b>{brl0(l.porHab)}</b></td>
+        <td class="num">{n1(l.taxaPlano)}%</td><td class="num">{n1(l.ev)}</td><td class="num">{n1(l.mi)}</td><td class="num">{n1(l.m5)}</td><td class="num">{n1(l.neo)}</td><td class="num">{num(l.mat)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      <b>Governo estadual</b> e <b>prefeituras</b>: despesa paga na função Saúde em {ANO} (SIOP/SICONFI) — o repasse federal está dentro das duas.
+      <b>Por habitante</b> soma as duas e divide pela população. <b>Vive até</b> é a esperança de vida em anos; <b>Até 1 ano</b> é a mortalidade infantil.
+      Esperança de vida (anos) e mortalidade infantil (por mil nascidos vivos) são <Termo t="projecao_ibge">projeção do IBGE</Termo> para {d.indicadores.projecao.ano}.
+      <Termo t="mortalidade_menores5">Até 5 anos</Termo> ({d.indicadores.menores5.ano}) e <Termo t="mortalidade_neonatal">neonatal</Termo> ({d.indicadores.neonatal.ano}) vêm por mil nascidos vivos;
+      <Termo t="mortalidade_materna">materna</Termo> ({d.indicadores.materna.ano}), por 100 mil nascidos vivos. Fonte dos três: IBGE, indicadores dos Objetivos de Desenvolvimento
+      Sustentável, a partir do Sistema de Informações sobre Mortalidade do Ministério da Saúde. Clique no cabeçalho para ordenar.
+    </p>
+  </div>
+
+  <h2>Crianças que morrem antes de completar 5 anos e antes de 1 ano</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="Mortalidade infantil e de menores de 5 anos no Brasil">
+      {[10, 20, 30, 40].filter((v) => v < maxS).map((v) => (<g><line x1={padL} x2={SW - 10} y1={sy(v)} y2={sy(v)} stroke="var(--line)" /><text x={padL - 6} y={sy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}</text></g>))}
+      <polyline points={linha(serieM5)} fill="none" stroke="var(--s3)" stroke-width="2.5" />
+      <polyline points={linha(serieMI)} fill="none" stroke="var(--s1)" stroke-width="2.5" />
+      {anos.filter((_, i) => i % 3 === 0 || i === anos.length - 1).map((a) => <text x={sx(a)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
+    </svg>
+    <div class="legend">
+      <span><i style="background:var(--s3)"></i>Até 5 anos: {n1(serieM5[anos[0]])} em {anos[0]} → {n1(d.indicadores.menores5.brasil)} em {d.indicadores.menores5.ano} (por mil nascidos vivos)</span>
+      <span><i style="background:var(--s1)"></i>Até 1 ano (mortalidade infantil observada): {n1(serieMI["2000"])} em 2000 → {n1(serieMI["2016"])} em 2016</span>
+    </div>
+    <p class="src">A série da mortalidade infantil observada foi encerrada pelo IBGE em 2016 (tabela 3834); por isso a linha azul para aí. A de menores de 5 anos (indicador 3.2.1 dos ODS) continua até {d.indicadores.menores5.ano}. A projeção do IBGE estima {n1(d.indicadores.projecao.mortalidade_infantil_brasil)} por mil para {d.indicadores.projecao.ano}.</p>
+  </div>
+
+  <h2>O que os números dizem</h2>
+  <div class="card">
+    <ul class="conclusoes">
+      <li>{semPlano.toFixed(1).replace(".", ",")}% da população não tem plano de saúde e depende só do SUS. A cobertura vai de {n1(porPlano[porPlano.length - 1].taxa)}% em {porPlano[porPlano.length - 1].nome} a {n1(porPlano[0].taxa)}% em {porPlano[0].nome}.</li>
+      <li>Em {ANO}, a União pagou {compact(uniao)} na função Saúde, os estados {compact(estadual)} e as prefeituras {compact(munSaude)}. Como o repasse federal reaparece na conta de quem recebeu, os três não se somam.</li>
+      <li>Somando governo estadual e prefeituras, o gasto por habitante vai de {brl0(porHabOrd[porHabOrd.length - 1].porHab)} ({porHabOrd[porHabOrd.length - 1].nome}) a {brl0(porHabOrd[0].porHab)} ({porHabOrd[0].nome}).</li>
+      <li>A esperança de vida projetada para {d.indicadores.projecao.ano} varia {n1((porEv[0].ev ?? 0) - (porEv[porEv.length - 1].ev ?? 0))} anos entre o estado onde se vive mais ({porEv[0].nome}) e onde se vive menos ({porEv[porEv.length - 1].nome}).</li>
+      <li>De 2000 a {d.indicadores.menores5.ano}, a morte de crianças até 5 anos caiu de {n1(serieM5[anos[0]])} para {n1(d.indicadores.menores5.brasil)} por mil nascidos vivos. A mortalidade materna ({d.indicadores.materna.ano}) é de {num(d.indicadores.materna.brasil)} por 100 mil nascidos vivos.</li>
+    </ul>
+    <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>
+  </div>
+
+  <Glossario termos={["cobertura_planos", "repasse_saude", "esperanca_vida", "projecao_ibge", "mortalidade_menores5", "mortalidade_neonatal", "mortalidade_materna", "despesa_paga"]} />
+</Base>
+<style>
+  .largo { overflow-x: auto; }
+  td .uf { color: var(--ink-2); font-size: 12px; font-family: var(--mono); margin-left: 4px; }
+  .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
+</style>

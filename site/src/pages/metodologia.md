@@ -179,6 +179,18 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   pode ser pouco registro.
 - Completo: `docs/metodologia/painel-seguranca.md`.
 
+## Saúde — gasto público, planos e indicadores
+
+- **O que é:** o que União, governos estaduais e prefeituras pagaram na função Saúde; quantos brasileiros têm plano de saúde e
+  quantos contam só com o SUS, por estado e nas capitais; esperança de vida, mortalidade infantil, de menores de 5 anos,
+  neonatal e materna em cada estado.
+- **Fontes:** SIOP (União) e SICONFI/Tesouro (estados e prefeituras) para a despesa; ANS, dados abertos, para os planos;
+  IBGE (projeção da população e indicadores dos ODS, estes a partir do Sistema de Informações sobre Mortalidade do
+  Ministério da Saúde) para os indicadores.
+- **Atenção:** os gastos dos três níveis **não podem ser somados** — o repasse federal reaparece na despesa de quem recebeu.
+  A ANS conta vínculos de plano, não pessoas. Esperança de vida e mortalidade infantil do ano corrente são projeção do IBGE.
+- Completo: `docs/metodologia/painel-saude.md`.
+
 ## Inadimplência — crédito em atraso por estado
 
 - **O que é:** parcela do crédito a pessoas e empresas vencida há mais de 90 dias, por estado, tipo de crédito e faixa de renda
@@ -209,6 +221,8 @@ sempre só PDF ou metodologia diferente.
 | IDEB | INEP | 2005 | o índice foi criado em 2007 com dados de 2005 |
 | Ocorrências policiais (Sinesp VDE) | MJSP | 2015 | anuários do Fórum Brasileiro de Segurança Pública (ONG) e DATASUS/SIM para mortes |
 | Inadimplência (SCR.data) | Banco Central | 2012 (v2 desde 2023; aqui 24 meses) | séries do SGS desde 2011 |
+| Cobertura de planos de saúde | ANS | 2014 (aqui a competência mais recente) | cadastro de beneficiários desde 2000, sem série pronta por município |
+| Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 
 ## Como conferir
 
