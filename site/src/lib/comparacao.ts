@@ -139,3 +139,122 @@ export const MONARQUIAS: Monarquia[] = [
     url: "https://www.sepg.pap.hacienda.gob.es/Presup/PGE2025Prorroga/MaestroDocumentos/PGE-ROM/doc/1/2/1/1/1/N_25P_E_R_31_101_1_1_1_1911M_2.PDF",
   },
 ];
+
+export type Parlamento = {
+  pais: string;
+  casas: string;
+  moeda: string;
+  valor: number;                 // só as duas casas, sem órgãos auxiliares
+  base: string;                  // realizado | aprovado | prorrogado — muda a leitura
+  ano: string;
+  cadeiras: number;
+  cadeiras_nota?: string;
+  pensoes: string;               // quanto de aposentadoria está dentro da rubrica: é o eixo que mais distorce
+  fora: string;
+  fonte: string;
+  url: string;
+};
+
+/**
+ * Custo anual do parlamento nacional, só as duas casas e sem órgãos auxiliares (tribunal de contas, ombudsman,
+ * biblioteca), para o perímetro ser o mesmo. O que cada país ainda carrega dentro está na coluna "pensões" e em "fora".
+ * O Brasil entra pelo nosso próprio dado (SIOP, órgãos 01000 e 02000), não por esta lista.
+ */
+export const PARLAMENTOS: Parlamento[] = [
+  {
+    pais: "Estados Unidos", casas: "House of Representatives + Senate", moeda: "USD", valor: 3_550_194_000,
+    base: "aprovado (enacted)", ano: "ano fiscal 2026", cadeiras: 535,
+    cadeiras_nota: "435 deputados com voto e 100 senadores; há mais 6 delegados sem voto",
+    pensoes: "zero — a aposentadoria dos congressistas corre em outra lei, e o próprio salário também",
+    fora: "a polícia do Capitólio (US$ 852 mi), os prédios (Architect of the Capitol, US$ 812 mi), o tribunal de contas (GAO) e a Biblioteca do Congresso",
+    fonte: "Legislative Branch Appropriations Act, 2026 (P.L. 119-37, Division C), Título I",
+    url: "https://www.congress.gov/119/plaws/publ37/PLAW-119publ37.pdf",
+  },
+  {
+    pais: "Itália", casas: "Camera dei Deputati + Senato", moeda: "EUR", valor: 1_449_222_000,
+    base: "dotação aprovada", ano: "2026", cadeiras: 605,
+    cadeiras_nota: "400 deputados e 200 senadores eleitos, mais 5 senadores vitalícios",
+    pensoes: "47% da despesa da Camera são inativos: ex-deputados e servidores aposentados",
+    fora: "a Corte dei conti, que está em outro programa do orçamento",
+    fonte: "Bilancio dello Stato 2026, missione 17, capítulos 2103 e 2104",
+    url: "https://www.rgs.mef.gov.it/_Documenti/VERSIONE-I/attivita_istituzionali/formazione_e_gestione_del_bilancio/bilancio_di_previsione/bilancio_finanziario/2026-2028/LB/LB-04-DRC-020-MEF.pdf",
+  },
+  {
+    pais: "Alemanha", casas: "Bundestag", moeda: "EUR", valor: 1_275_973_000,
+    base: "aprovado em lei", ano: "2026", cadeiras: 630,
+    cadeiras_nota: "só o Bundestag; o Bundesrat (69 votos) é formado por ministros dos governos estaduais e não tem par com o Senado brasileiro",
+    pensoes: "cerca de 6% — € 61 mi de aposentadoria de ex-deputados",
+    fora: "as obras grandes (€ 113 mi em outro capítulo), o financiamento de partidos (€ 242 mi) e o tribunal de contas",
+    fonte: "Haushaltsgesetz 2026, Gesamtplan, Einzelplan 02",
+    url: "https://www.gesetze-im-internet.de/hg_2026/BJNR1570A0025.html",
+  },
+  {
+    pais: "França", casas: "Assemblée nationale + Sénat", moeda: "EUR", valor: 988_011_451,
+    base: "gasto próprio realizado", ano: "2025", cadeiras: 925,
+    pensoes: "só a parte patronal; as caixas de aposentadoria têm contabilidade separada",
+    fora: "a Cour des comptes e os canais de TV das casas; as duas gastam mais que a dotação e cobrem a diferença com reservas",
+    fonte: "Annexe Pouvoirs publics ao projeto de lei de finanças 2027, p. 7 e 21",
+    url: "https://www.assemblee-nationale.fr/dyn/contenu/visualisation/1128255/file/PAP%202027%20-%20Pouvoirs%20publics.pdf",
+  },
+  {
+    pais: "Reino Unido", casas: "House of Commons + House of Lords", moeda: "GBP", valor: 786_860_000,
+    base: "realizado e auditado", ano: "exercício 2024-25", cadeiras: 1_447,
+    cadeiras_nota: "650 deputados e 797 lordes, que recebem ajuda de custo por dia de presença e não salário",
+    pensoes: "quase nada: o fundo dos deputados tem contas próprias",
+    fora: "o salário e as despesas dos deputados, que ficam numa autoridade separada (£ 320 mi), e a restauração do palácio",
+    fonte: "Annual Report and Accounts 2024-25 das três estimativas (Commons Administration, Commons Members e Lords)",
+    url: "https://www.parliament.uk/globalassets/documents/commons-expenditure/admin-annual-accounts/administration_annual_report_and_accounts_2024-25.pdf",
+  },
+  {
+    pais: "Suécia", casas: "Riksdagen", moeda: "SEK", valor: 2_728_172_000,
+    base: "aprovado", ano: "2026", cadeiras: 349,
+    pensoes: "dentro da verba dos parlamentares, sem linha separada",
+    fora: "nesta linha excluímos o tribunal de contas e o ombudsman, que no orçamento sueco ficam dentro do mesmo bloco do parlamento",
+    fonte: "Prop. 2025/26:1, área de despesa 1, verbas 2:1, 2:2 e 2:3",
+    url: "https://data.riksdagen.se/fil/8C213240-E714-48F9-9CDB-2A9208A1A332",
+  },
+  {
+    pais: "Japão", casas: "Câmara dos Representantes + Câmara dos Conselheiros", moeda: "JPY", valor: 115_408_556_000,
+    base: "aprovado", ano: "ano fiscal 2026", cadeiras: 713,
+    pensoes: "não identificada em rubrica própria",
+    fora: "a Biblioteca Nacional da Dieta (¥ 20,8 bi), que no orçamento japonês fica dentro do bloco do parlamento, e o tribunal de contas",
+    fonte: "Orçamento geral do ano fiscal 2026, bloco do Parlamento (国会所管), p. 42",
+    url: "https://www.bb.mof.go.jp/server/2026/dlpdf/DL202611001.pdf",
+  },
+  {
+    pais: "Países Baixos", casas: "Tweede Kamer + Eerste Kamer", moeda: "EUR", valor: 288_241_000,
+    base: "aprovado em lei", ano: "2026", cadeiras: 225,
+    pensoes: "8% — € 23 mi de aposentadoria e auxílio de ex-deputados",
+    fora: "a reforma do prédio do parlamento e o tribunal de contas, que está em lei orçamentária separada",
+    fonte: "Begroting IIA Staten-Generaal 2026 (Stb. 2026, 135)",
+    url: "https://zoek.officielebekendmakingen.nl/stb-2026-135.html",
+  },
+  {
+    pais: "Portugal", casas: "Assembleia da República", moeda: "EUR", valor: 184_989_509,
+    base: "aprovado", ano: "2026", cadeiras: 230,
+    pensoes: "só contribuições patronais",
+    fora: "nove entidades independentes que funcionam junto à Assembleia (Provedor de Justiça, ERC, CNPD e outras) e o Tribunal de Contas; a verba do ano também traz € 19,3 mi de campanha eleitoral, que não é recorrente",
+    fonte: "Orçamento do Estado para 2026, Mapa 4 e desenvolvimentos orçamentais",
+    url: "https://www.eo.gov.pt/politicaorcamental/OrcamentodeEstado/2026/OrcamentoEstadoAprovado/MapasContabilisticos/OE2026_doc05_Mapa04.pdf",
+  },
+  {
+    pais: "Espanha", casas: "Congreso de los Diputados + Senado", moeda: "EUR", valor: 174_557_750,
+    base: "orçamento prorrogado de 2023", ano: "em vigor em 2026", cadeiras: 616,
+    pensoes: "só contribuições patronais",
+    fora: "o Tribunal de Cuentas e o Defensor del Pueblo; o apoio parlamentar vem como subvenção a grupos, não como gabinete, o que torna o valor por cadeira muito menor que o alemão",
+    fonte: "Presupuestos Generales del Estado, Sección 02, programa 911N",
+    url: "https://www.sepg.pap.hacienda.gob.es/Presup/PGE2025Prorroga/MaestroDocumentos/PGE-ROM/doc/1/2/2/1/1/N_25P_E_R_31_102_1_1_1_1911N_2.PDF",
+  },
+];
+
+/** Congresso Nacional pelo nosso próprio dado (SIOP, 2025). Os inativos entram separados porque é o eixo que mais distorce. */
+export const CONGRESSO_BR = {
+  ano: 2025,
+  camara: 7_027_000_000,
+  senado: 5_856_000_000,
+  total: 12_883_000_000,
+  inativos: 4_914_000_000,       // 38,1% do total: Câmara 32,3% e Senado 45,2%
+  sem_inativos: 7_969_000_000,
+  cadeiras: 594,                 // 513 deputados + 81 senadores
+  fonte: "SIOP, execução orçamentária da União de 2025, órgãos 01000 e 02000 (o TCU é órgão próprio e fica fora)",
+};

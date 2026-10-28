@@ -328,7 +328,14 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - 28/10 (ajuste do dono): o gráfico usa **média** (a mediana ficou estranha para ele) e a nota traz a mediana como
   conferência — as duas ficam a <1 ponto em todas as áreas. E a Coroa passou a ser comparada com a **Presidência da
   República** (chefe de Estado), não com o Judiciário: R$ 1,87 bi a unidade, R$ 3,36 bi o órgão com ABIN e EBC; o
-  Congresso (Câmara 7,03 + Senado 5,86 = R$ 12,89 bi) fica para a comparação parlamento × parlamento, em levantamento.
+  Congresso (Câmara 7,03 + Senado 5,86 = R$ 12,88 bi) ganhou seção própria.
+- **Parlamentos (28/10)**: `PARLAMENTOS` e `CONGRESSO_BR` em `comparacao.ts`, dez países, **só as duas casas** (sem
+  tribunal de contas, ombudsman, biblioteca — cada país põe coisa diferente na rubrica). Ranking em reais: EUA 18,9 bi,
+  **Brasil 12,9 bi**, Itália 8,6, Alemanha 7,6, França 5,9, Reino Unido 5,6, Japão 3,9, Países Baixos 1,7, Suécia 1,5,
+  Portugal 1,1, Espanha 1,0. **Eixo que mais distorce: inativos dentro da rubrica** — Camera italiana 47%, Congresso BR
+  38% (Senado 45%, Câmara 32%), EUA zero (lá até o salário do congressista corre em outra lei) → publicamos também
+  R$ 7,97 bi sem inativos. Denominadores quebrados que NÃO servem para dividir: Bundesrat (69 ministros estaduais) e os
+  797 lordes (ajuda de custo por presença). Espanha está com PGE de 2023 prorrogado 3×.
 - Monarquias: 8 países com documento oficial próprio (UK realizado/auditado, NO e SE aprovados, DK e NL orçados, BE
   ajustado, JP submetido, ES prorrogado). **Não medem a mesma coisa**: BE inclui polícia de proteção (47% do total),
   NL deixa palácios fora (+€ 21,4 mi), DK conta só dinheiro a pessoas. Conversão pela PTAX do dia; `etl/cambio` passou a

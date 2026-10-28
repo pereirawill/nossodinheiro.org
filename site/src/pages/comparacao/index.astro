@@ -9,7 +9,7 @@ import imp from "../../../public/data/impostos.json";
 import funcoes from "../../../public/data/poderes_funcao_2025.json";
 import orgaos from "../../../public/data/poderes_orgaos_2025.json";
 import cambio from "../../../public/data/cambio.json";
-import { JUDICIARIO_BR, JUDICIARIO_EUROPA, JUDICIARIO_EUROPA_META, MONARQUIAS } from "../../lib/comparacao";
+import { JUDICIARIO_BR, JUDICIARIO_EUROPA, JUDICIARIO_EUROPA_META, MONARQUIAS, PARLAMENTOS, CONGRESSO_BR } from "../../lib/comparacao";
 
 const n1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
 const n2 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(2).replace(".", ",");
@@ -93,6 +93,17 @@ const presidenciaTudo = presidenciaOrgao.reduce((t, o) => t + o.pago, 0);
 const congresso = orgao("01000").concat(orgao("02000")).reduce((t, o) => t + o.pago, 0);
 const habDe = (iso: string) => pop.find((p) => p.iso3 === iso)?.valor ?? null;
 const habBR = habDe("BRA");
+
+// Parlamentos: só as duas casas, cada um convertido pela PTAX do dia, com a base declarada
+const parlamentos = [
+  { pais: "Brasil", casas: "Câmara dos Deputados + Senado Federal", moeda: "BRL", valor: CONGRESSO_BR.total,
+    base: "pago", ano: String(CONGRESSO_BR.ano), cadeiras: CONGRESSO_BR.cadeiras, reais: CONGRESSO_BR.total,
+    pensoes: `38% do total são inativos: sem eles o Congresso custa ${compact(CONGRESSO_BR.sem_inativos)}`,
+    fora: "o TCU, que é órgão orçamentário próprio (R$ 2,78 bi)", fonte: CONGRESSO_BR.fonte, url: "/poderes/",
+    cadeiras_nota: "513 deputados e 81 senadores", br: true },
+  ...PARLAMENTOS.map((x) => ({ ...x, reais: ptax[x.moeda] ? x.valor * ptax[x.moeda] : null, br: false })),
+].sort((a, b) => (b.reais ?? 0) - (a.reais ?? 0));
+const maxParl = Math.max(...parlamentos.map((p2) => p2.reais ?? 0));
 ---
 <Base title="Quanto cada país gasta nas mesmas coisas — Nosso Dinheiro" accent="var(--s5)"
   description="Gasto público em educação, saúde, defesa e benefícios como percentual do PIB, no Brasil e em 20 países de referência, com os dados do Banco Mundial.">
@@ -251,6 +262,63 @@ const habBR = habDe("BRA");
         <td>{m.pais}</td><td>{m.status}</td><td><a href={m.url} rel="nofollow noopener">{m.fonte}</a></td></tr>))}
       </tbody>
     </table>
+  </div>
+
+  <h2>Quanto custa o parlamento, aqui e em dez países</h2>
+  <div class="card">
+    <p class="explica">
+      Esta é a comparação que pareia de verdade com o Congresso Nacional. Em todas as linhas estão <b>só as duas
+      casas</b>, sem tribunal de contas, sem ombudsman e sem biblioteca do parlamento, porque cada país põe coisas
+      diferentes na mesma rubrica. O Congresso brasileiro pagou {compact(CONGRESSO_BR.total)} em 2025, sendo
+      {" "}{compact(CONGRESSO_BR.camara)} a Câmara e {compact(CONGRESSO_BR.senado)} o Senado.
+    </p>
+    <svg viewBox={`0 0 ${W} ${parlamentos.length * 24 + 12}`} width="100%" role="img" aria-label="Custo anual do parlamento por país, convertido em reais">
+      {parlamentos.map((p2, i) => (<g transform={`translate(0 ${i * 24 + 8})`}>
+        <text x={rotuloW - 8} y="13" text-anchor="end" font-size="12" fill="var(--ink)">{p2.pais}</text>
+        <rect x={rotuloW} y="2" width={Math.max(2, ((p2.reais ?? 0) / maxParl) * barraW)} height="14"
+          fill={p2.br ? "var(--s4)" : "var(--neutro)"} rx="2"><title>{p2.pais}: {p2.reais ? compact(p2.reais) : "—"}</title></rect>
+        <text x={rotuloW + barraW + 10} y="13" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">
+          {p2.reais ? compact(p2.reais) : "—"}</text>
+      </g>))}
+    </svg>
+    <table style="margin-top:14px">
+      <thead><tr><th>País</th><th class="num">Valor</th><th class="num">Em reais</th><th class="num">Cadeiras</th><th class="num">Por cadeira</th><th>Base</th></tr></thead>
+      <tbody>{parlamentos.map((p2) => (<tr class={p2.br ? "destaque" : ""}>
+        <td>{p2.br ? <b>{p2.pais}</b> : p2.pais}<br /><span class="ano">{p2.casas}</span></td>
+        <td class="num">{p2.moeda === "BRL" ? compact(p2.valor) : `${p2.moeda} ${Math.round(p2.valor).toLocaleString("pt-BR")}`}</td>
+        <td class="num">{p2.reais ? compact(p2.reais) : "—"}</td>
+        <td class="num">{p2.cadeiras.toLocaleString("pt-BR")}</td>
+        <td class="num">{p2.reais ? compact(p2.reais / p2.cadeiras) : "—"}</td>
+        <td><span class="ano">{p2.base}, {p2.ano}</span></td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Convertido pela PTAX do dia; serve de ordem de grandeza, não de precisão. A coluna "base" importa: há realizado e
+      auditado (Reino Unido), aprovado em lei (Alemanha, Itália, Suécia, Japão, Países Baixos, Estados Unidos, Portugal),
+      gasto próprio realizado (França) e um caso único — a <b>Espanha</b> está com o orçamento de 2023 prorrogado três
+      vezes, porque não houve lei nova.
+    </p>
+    <p class="src">
+      <b>O que mais distorce não é o país, é a aposentadoria dentro da rubrica.</b> Na Câmara italiana os inativos são 47%
+      da despesa; no Congresso brasileiro, 38% ({compact(CONGRESSO_BR.inativos)} de {compact(CONGRESSO_BR.total)}, sendo
+      45% no Senado e 32% na Câmara). Nos Estados Unidos é <b>zero</b>: a aposentadoria e até o salário dos congressistas
+      correm em outra lei. Sem os inativos, o Congresso brasileiro cai para {compact(CONGRESSO_BR.sem_inativos)} — e é
+      essa a linha a usar contra Estados Unidos e Reino Unido. Dois denominadores também não servem para dividir: o
+      Bundesrat alemão é formado por ministros de governos estaduais, não é câmara alta eleita, e os 797 lordes britânicos
+      recebem ajuda de custo por dia de presença, não salário.
+    </p>
+    <table>
+      <thead><tr><th>País</th><th>Aposentadoria dentro da rubrica</th><th>O que ficou fora</th></tr></thead>
+      <tbody>{parlamentos.map((p2) => (<tr>
+        <td>{p2.pais}</td><td>{p2.pensoes}</td><td>{p2.fora}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Fontes, uma por país: {parlamentos.filter((p2) => !p2.br).map((p2) => <><a href={p2.url} rel="nofollow noopener">{p2.pais}</a>{" · "}</>)}
+      e, para o Brasil, {CONGRESSO_BR.fonte}. Todas são documento oficial do próprio país, verificado em 28/10/2026.
+      Segurança e prédios são o segundo eixo de distorção: a polícia do Capitólio (R$ 4,6 bi em reais) e os prédios do
+      Congresso americano estão <b>fora</b> das linhas das duas casas, enquanto no Reino Unido a segurança está dentro.
+    </p>
   </div>
 
   <h2>Carga tributária: por que o número internacional é menor</h2>

@@ -259,8 +259,13 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   áreas as duas ficam a menos de um ponto uma da outra, então nenhuma conclusão depende da escolha.
 - **A Coroa é o chefe de Estado**, então o par brasileiro é a Presidência da República (R$ 1,87 bi em 2025 como unidade
   orçamentária, R$ 3,36 bi com ABIN e EBC), não o Judiciário nem o Congresso. A ressalva vale nos dois lados: a
-  Presidência inclui estrutura de governo que numa monarquia parlamentarista fica com o primeiro-ministro. Parlamento com
-  parlamento é outra comparação, em levantamento.
+  Presidência inclui estrutura de governo que numa monarquia parlamentarista fica com o primeiro-ministro.
+- **Parlamentos:** dez países, só as duas casas, sem tribunal de contas, ombudsman ou biblioteca, porque cada país põe
+  coisas diferentes na mesma rubrica. O Congresso pagou R$ 12,88 bi em 2025 (Câmara 7,03 e Senado 5,86; o TCU é órgão
+  próprio e fica fora) e aparece em segundo lugar, atrás dos Estados Unidos. **O eixo que mais distorce é a aposentadoria
+  dentro da rubrica:** 47% na Câmara italiana, 38% no Congresso brasileiro e zero nos Estados Unidos, onde até o salário
+  dos congressistas corre em outra lei. Por isso publicamos também o Congresso sem inativos, R$ 7,97 bi. A coluna "base"
+  diz se o valor é realizado, aprovado ou, no caso da Espanha, um orçamento de 2023 prorrogado três vezes.
 - **Os 20 países são escolha nossa** (vizinhos, maiores economias e os de comparação habitual) e está dito na página; a
   base tem quase 200 países e a posição do Brasil entre todos está em Rankings.
 - **Judiciário:** o Brasil gastou 1,3% do PIB com o Poder Judiciário em 2025 (CNJ, Justiça em Números 2026) contra uma
