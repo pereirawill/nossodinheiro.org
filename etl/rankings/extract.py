@@ -26,6 +26,7 @@ import csv
 import io
 import json
 import logging
+import time
 import re
 import zipfile
 from datetime import datetime, timezone
@@ -62,7 +63,18 @@ IBGE_PAISES = "https://servicodados.ibge.gov.br/api/v1/localidades/paises?lang=P
 
 
 def _get(c: httpx.Client, url: str, **kw) -> httpx.Response:
-    r = c.get(url, **kw); r.raise_for_status(); return r
+    """GET com 3 tentativas: a rede dos runners do GitHub derruba uma requisição de vez em quando, e são dezenas."""
+    erro = None
+    for tentativa in range(1, 4):
+        try:
+            r = c.get(url, **kw)
+            r.raise_for_status()
+            return r
+        except (httpx.HTTPError, httpx.StreamError) as e:
+            erro = e
+            log.warning("falhou %s (tentativa %d): %s", url.split("?")[0][:90], tentativa, e)
+            time.sleep(4 * tentativa)
+    raise erro
 
 
 def nomes_pt(c: httpx.Client) -> dict[str, str]:
