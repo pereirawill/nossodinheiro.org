@@ -1,0 +1,92 @@
+---
+// Formulário de sugestões. Funciona sem JavaScript (POST comum, com redirecionamento) e com JavaScript
+// (envio sem sair da página). O endpoint é a Pages Function /api/sugestao.
+import Base from "../../layouts/Base.astro";
+---
+<Base title="Sugestões: o que falta neste site — Nosso Dinheiro" accent="var(--s1)"
+  description="Diga qual número público está faltando, qual fonte deveríamos abrir ou o que está errado numa página. Leitura humana, sem publicação automática.">
+  <h1>Sugestões</h1>
+  <p class="lede">
+    Qual número público está faltando aqui? Qual fonte oficial deveríamos abrir? Encontrou erro numa conta ou numa
+    fonte? Escreva abaixo. Cada sugestão é lida por uma pessoa, e as que viram painel aparecem com a fonte de sempre.
+  </p>
+  <p class="meta">leitura humana · nada é publicado automaticamente · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="card">
+    <form method="post" action="/api/sugestao" id="form-sugestao">
+      <label for="texto">Sua sugestão, erro encontrado ou fonte que deveríamos abrir</label>
+      <textarea id="texto" name="texto" rows="6" minlength="10" maxlength="2000" required
+        placeholder="Exemplo: falta o custo das Assembleias Legislativas estaduais, que o SICONFI publica na função 01."></textarea>
+      <label for="contato">Contato, se quiser resposta <span class="opcional">(opcional)</span></label>
+      <input id="contato" name="contato" type="text" maxlength="120" autocomplete="off"
+        placeholder="e-mail ou @ do Instagram — pode deixar em branco" />
+      <!-- campo-armadilha: fica escondido, então só robô preenche -->
+      <div class="armadilha"><label for="assunto">Assunto</label><input id="assunto" name="assunto" type="text" tabindex="-1" autocomplete="off" /></div>
+      <div class="acao">
+        <button type="submit">Enviar sugestão</button>
+        <span id="resposta" class="resposta" role="status"></span>
+      </div>
+    </form>
+    <p class="src">
+      <b>O que fazemos com isso.</b> Guardamos o texto, o contato que você escrever (se escrever) e de qual página veio.
+      <b>Não guardamos endereço de IP, cookie nem navegador.</b> Nada aparece no site sem uma pessoa ler antes: é
+      sugestão, não comentário público. Se você apontar um erro de conta ou de fonte, a correção vai para a página com o
+      registro da mudança, como fazemos com todo número daqui.
+    </p>
+  </div>
+
+  <h2>O que já está na fila</h2>
+  <div class="card">
+    <p style="margin:0 0 8px">Pedidos que já entraram na lista, para você não repetir e saber o que vem:</p>
+    <ul class="fila">
+      <li>Presença e votações na Câmara e no Senado.</li>
+      <li>Página por deputado, com foto, cota mês a mês e link da nota fiscal.</li>
+      <li>Comparação de dois parlamentares lado a lado — e daí o ranking de duelos no painel <a href="/agora/">Agora</a>.</li>
+      <li>Folha do TRF2, que exige cerca de 700 requisições por mês, e dos tribunais que ainda faltam.</li>
+      <li>Salário dos governadores, com as 27 leis estaduais como fonte primária.</li>
+      <li>Bolsa Família por município e optantes do Simples Nacional.</li>
+      <li>Assembleias Legislativas e Tribunais de Justiça dos estados, via SICONFI.</li>
+    </ul>
+  </div>
+</Base>
+<script>
+  // Envio sem sair da página, quando há JavaScript. Sem ele, o formulário faz POST comum e o endpoint redireciona.
+  (function () {
+    var f = document.getElementById("form-sugestao");
+    if (!f) return;
+    var saida = document.getElementById("resposta");
+    f.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var botao = f.querySelector("button");
+      var dados = {
+        texto: f.texto.value, contato: f.contato.value, assunto: f.assunto.value,
+        s: (function () { try { return sessionStorage.getItem("nd.sessao") || ""; } catch (e) { return ""; } })(),
+      };
+      botao.disabled = true;
+      saida.textContent = "enviando…";
+      fetch("/api/sugestao", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(dados) })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (r) {
+          if (r.ok) { f.reset(); saida.textContent = "Recebido. Obrigado — vou ler."; }
+          else { saida.textContent = r.j && r.j.erro ? r.j.erro : "não foi possível enviar agora"; }
+        })
+        .catch(function () { saida.textContent = "não foi possível enviar agora"; })
+        .finally(function () { botao.disabled = false; });
+    });
+  })();
+</script>
+<style>
+  form { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-top: 6px; }
+  .opcional { font-weight: 400; }
+  textarea, input[type="text"] { font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--ink); width: 100%; box-sizing: border-box; }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .armadilha { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .acao { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  button { font: inherit; font-weight: 700; padding: 10px 18px; border: 0; border-radius: 8px;
+    background: var(--accent); color: #fff; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: progress; }
+  .resposta { font-size: 13.5px; color: var(--ink-2); }
+  .fila { margin: 0; padding-left: 18px; } .fila li { margin: 4px 0; }
+</style>

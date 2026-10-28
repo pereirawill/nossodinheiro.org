@@ -1,0 +1,17 @@
+---
+// Página de agradecimento para quem envia o formulário sem JavaScript (o endpoint redireciona para cá).
+import Base from "../../../layouts/Base.astro";
+---
+<Base title="Sugestão recebida — Nosso Dinheiro" accent="var(--s1)" description="Sua sugestão foi recebida e será lida por uma pessoa.">
+  <h1>Recebido. Obrigado.</h1>
+  <p class="lede">
+    Sua sugestão está na fila e vai ser lida por uma pessoa. Se você deixou contato, pode haver resposta; se apontou um
+    erro de conta ou de fonte, a correção vai para a página com o registro da mudança.
+  </p>
+  <div class="card">
+    <p style="margin:0">
+      Voltar para <a href="/">o painel geral</a>, para <a href="/sugestoes/">enviar outra sugestão</a> ou ver
+      {" "}<a href="/agora/">o que o Brasil está olhando agora</a>.
+    </p>
+  </div>
+</Base>

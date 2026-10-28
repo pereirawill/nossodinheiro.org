@@ -436,6 +436,14 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   48 h, limpeza preguiçosa (1 em 200 gravações). Robôs filtrados por user-agent (lido, não gravado) e `navigator.webdriver`.
 - Testado localmente com `wrangler pages dev` + D1 local: beacon 204, bot ignorado, agregados corretos (UF vem de
   `/municipios/<uf>/…`, partido de `/deputados/partido/…`, origem do referrer).
+- `/sugestoes/` na mesma infra (`functions/api/sugestao.js`, tabela `sugestao`): grava texto, contato opcional, página
+  e sessão; **nunca** IP/UA/cookie. Anti-robô por campo-armadilha escondido (descarta em silêncio respondendo ok) e
+  limite de 3 por sessão/hora e 1 por 20 s. Funciona **sem JavaScript** (POST comum → 303 para `/sugestoes/obrigado/`).
+  O site mostra só a **contagem** de 24 h, nunca o texto — publicar texto de terceiro exigiria moderação. Ler com
+  `make sugestoes`. `/sugestoes/` entrou no menu depois de Agora.
+- **O token da Cloudflare não tem permissão de D1** (deploy de 28/10 falhou com "Authentication error [code: 10000]" no
+  passo do banco e seguiu sem o binding, como projetado). Enquanto não for adicionada a permissão **D1:Edit** ao token
+  do secret `CLOUDFLARE_API_TOKEN`, `/agora/` e `/sugestoes/` respondem "indisponível" e o resto do site funciona igual.
 - **Pendências**: duelos lado a lado (exige antes uma página de comparação entre dois parlamentares, que não existe);
   separar cidade de estado no agregado; amostrar quando passar de ~100 mil gravações/dia (limite do plano gratuito do D1).
 

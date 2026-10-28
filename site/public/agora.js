@@ -32,7 +32,9 @@
       '<div class="stat big"><b>' + num(d.pessoas_agora) + '</b><span>pessoas no site <strong>neste momento</strong>' +
       ' (sessões distintas nos últimos 5 minutos)</span></div>' +
       '<div class="stat"><b>' + num(d.total_24h.pessoas) + '</b><span>pessoas nas últimas 24 horas, com ' +
-      num(d.total_24h.n) + ' páginas abertas</span></div></div>' +
+      num(d.total_24h.n) + ' páginas abertas</span></div>' +
+      (d.sugestoes_24h ? '<div class="stat"><b>' + num(d.sugestoes_24h) + '</b><span>sugestões recebidas em 24 horas · ' +
+        '<a href="/sugestoes/">mandar a sua</a></span></div>' : '') + '</div>' +
       '<h2>Os crachás que mais subiram na última hora</h2><div class="card">' + lista(d.subindo, "delta", "a mais") +
       '<p class="src">Comparação da última hora com a hora anterior, só páginas com pelo menos 3 aberturas na última hora.</p></div>' +
       '<h2>As páginas mais abertas do dia</h2><div class="card">' + lista(d.dia, "n") +

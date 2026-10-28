@@ -40,3 +40,11 @@ tribunais: ## folha de um tribunal superior (TRIBUNAL=stj|tst|stm): extract + tr
 	python -m etl.tribunais.transform --tribunal $(TRIBUNAL) --ano $(ANO)
 	cp data/public/custo_magistrado_$(TRIBUNAL)_*.json data/public/meta_$(TRIBUNAL)_*.json site/public/data/
 .PHONY: tribunais
+
+sugestoes: ## lê as sugestões enviadas no site (precisa de CLOUDFLARE_API_TOKEN com permissão de D1)
+	npx --yes wrangler@4 d1 execute nossodinheiro-agora --remote -y --json \
+	  --command "SELECT datetime(ts,'unixepoch','-3 hours') AS quando, texto, contato, pagina FROM sugestao ORDER BY ts DESC LIMIT 50"
+
+agora-status: ## mostra o painel ao vivo como o site o vê
+	curl -s https://nossodinheiro.org/api/agora | python -m json.tool
+.PHONY: sugestoes agora-status

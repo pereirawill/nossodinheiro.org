@@ -53,7 +53,23 @@ depende disso, e o sinal do navegador é ignorado em silêncio (resposta 204).
 3. O número de "agora" conta **abas**, não pessoas: quem abre duas abas conta uma vez, porque o identificador é por
    aba... na prática, cada aba gera a sua sessão, então duas abas contam duas. Está declarado na página.
 
-## 6. Pendências
+## 6. Sugestões (`/sugestoes/`)
+
+Formulário na mesma infraestrutura: `functions/api/sugestao.js` grava na tabela `sugestao`.
+
+- **Guardamos:** o texto, o contato que a pessoa escrever (opcional, campo livre), a página de onde veio e o id de
+  sessão. **Não guardamos** IP, user-agent nem cookie.
+- **Nada é publicado automaticamente.** É caixa de sugestão, não comentário público: o site só mostra **quantas**
+  chegaram em 24 horas, nunca o texto. Publicar texto de terceiro exigiria moderação, e não é o que o site faz.
+- **Anti-robô sem captcha:** um campo-armadilha escondido no formulário (só robô preenche) faz a requisição ser
+  descartada em silêncio, respondendo "ok" para o robô não tentar de novo. Além disso, no máximo 3 sugestões por sessão
+  por hora e uma a cada 20 segundos.
+- **Funciona sem JavaScript:** o formulário faz POST comum e o endpoint responde com redirecionamento para
+  `/sugestoes/obrigado/`. Com JavaScript, envia sem sair da página.
+- **Como ler:** `make sugestoes` (precisa de token da Cloudflare com permissão de D1). Traz as 50 últimas, em horário
+  de Brasília.
+
+## 7. Pendências
 
 1. **Duelos lado a lado**: exige antes uma página de comparação entre dois parlamentares, que o site ainda não tem.
 2. Cidades mais consultadas aparecem hoje dentro do recorte por estado; separar município de UF no agregado.

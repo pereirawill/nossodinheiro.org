@@ -15,3 +15,15 @@ CREATE TABLE IF NOT EXISTS evento (
 );
 CREATE INDEX IF NOT EXISTS i_evento_ts   ON evento(ts);
 CREATE INDEX IF NOT EXISTS i_evento_slug ON evento(slug, ts);
+
+-- Sugestões enviadas pelo formulário de /sugestoes/. Guardamos o texto, um contato OPCIONAL que a própria pessoa
+-- escreve se quiser resposta, a página de onde veio e o id de sessão (para limitar envio em sequência).
+-- Sem IP, sem user-agent, sem cookie. Não publicamos nada disso no site sem leitura humana antes.
+CREATE TABLE IF NOT EXISTS sugestao (
+  ts      INTEGER NOT NULL,
+  texto   TEXT    NOT NULL,
+  contato TEXT,
+  pagina  TEXT,
+  sessao  TEXT
+);
+CREATE INDEX IF NOT EXISTS i_sugestao_ts ON sugestao(ts);
