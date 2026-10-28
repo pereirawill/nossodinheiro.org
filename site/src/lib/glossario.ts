@@ -135,6 +135,12 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   acao_ordinaria: { rotulo: "Ação ordinária", texto: "Ação que dá direito a voto. Quem tem mais da metade delas controla a empresa — por isso o controle é medido por ações ordinárias, e não pelo total de ações." },
   subvencao_tesouro: { rotulo: "Subvenção do Tesouro", texto: "Dinheiro do Orçamento da União que cobre o custeio de uma estatal que não se paga. Entra como receita na demonstração da empresa — ou seja, o lucro publicado por ela já conta esse dinheiro." },
   afac: { rotulo: "AFAC", texto: "Adiantamento para Futuro Aumento de Capital: dinheiro que o controlador entrega à empresa antes de formalizar o aumento de capital. Não é despesa nem receita do ano; é capital." },
+  rede_geral_agua: { rotulo: "Rede geral de água", texto: "Água que chega ao domicílio pela rede pública de distribuição. Não diz nada sobre a qualidade nem sobre quantas horas por dia há água na torneira." },
+  esgoto_rede: { rotulo: "Esgoto ligado à rede", texto: "O domicílio despeja o esgoto numa rede coletora (de esgoto ou, em parte dos casos, pluvial). Estar ligado à rede não significa que o esgoto seja tratado antes de voltar ao rio — o IBGE não pergunta isso." },
+  fossa_septica: { rotulo: "Fossa séptica", texto: "Tanque onde o esgoto é separado e decantado no próprio terreno. Pode ser ligada à rede ou não. É considerada solução adequada quando bem construída, e por isso alguns indicadores a somam ao atendimento — a página diz quando isso acontece." },
+  censo_x_amostra: { rotulo: "Censo e amostra", texto: "O Censo visita todos os domicílios, de dez em dez anos. A PNAD Contínua visita uma amostra, todo ano, e por isso traz margem de erro. Medem a mesma coisa por caminhos diferentes, e os números não coincidem." },
+  coeficiente_variacao: { rotulo: "Coeficiente de variação", texto: "A margem de erro de uma pesquisa por amostra, publicada pelo próprio IBGE. Quanto menor, mais estável a estimativa; num estado pequeno ele é maior porque há menos domicílios sorteados." },
+  funcao_saneamento: { rotulo: "Função Saneamento", texto: "Código 17 da classificação funcional do orçamento público. Reúne a despesa dos governos com saneamento básico — mas não o investimento das companhias estaduais feito com tarifa e financiamento, que corre fora do orçamento." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

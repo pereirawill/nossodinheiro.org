@@ -1,0 +1,39 @@
+name: ETL Saneamento — água, esgoto e lixo (IBGE)
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/etl-saneamento.yml", "etl/saneamento/**", "etl/ufs.py"]
+  schedule:
+    - cron: "23 10 8 * *"      # dia 8 de cada mês, 07:23 BRT
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etl-saneamento
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+
+      - name: "Extrair (IBGE/SIDRA: Censo 1991–2022 e PNAD Contínua) — sem chave"
+        run: |
+          python -m etl.saneamento.extract
+          mkdir -p site/public/data && cp data/public/saneamento.json site/public/data/
+
+      - name: Commitar dados agregados
+        run: |
+          git config user.name "etl-bot"; git config user.email "etl-bot@users.noreply.github.com"
+          git add data/public site/public/data
+          git diff --cached --quiet && echo "sem mudanças" && exit 0
+          git commit -m "data: saneamento ($(date -u +%F))"
+          git pull --rebase origin main && git push

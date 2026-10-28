@@ -235,6 +235,22 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Não entra aqui o "déficit das estatais" no conceito fiscal do Banco Central: é outro número, com outro sinal e outro universo.
 - Completo: `docs/metodologia/painel-estatais.md`.
 
+## Saneamento — água, esgoto e lixo
+
+- **O que é:** percentual de domicílios com água da rede geral, esgoto ligado à rede e lixo coletado, nos Censos de 1991, 2000,
+  2010 e 2022 e na PNAD Contínua anual, no Brasil e por estado; mais o gasto público na função Saneamento nos três níveis.
+- **Fonte:** IBGE (Censo Demográfico e PNAD Contínua, pelo SIDRA); SICONFI e SIOP para o dinheiro.
+- **Atenção:** **não existe 1988** — o Censo mais próximo é o de 1991, e o eixo do gráfico começa em 1988 para mostrar o vazio. A
+  categoria que conta como "ligado à rede" muda de um Censo para o outro e está gravada no arquivo de dados, por isso as pesquisas
+  aparecem separadas e não viram uma linha só. A PNAD Contínua **não tem 2020 nem 2021** (pandemia) e a linha é quebrada. O Censo de
+  2010 não traz o destino do lixo no mesmo recorte. **Esgoto ligado à rede não quer dizer esgoto tratado** — isso o IBGE não pergunta;
+  quem publica é o prestador, ao SNIS, que ainda não está aqui. O gasto dos três níveis **não se soma** como investimento do país:
+  a maior parte da obra é das companhias estaduais, com tarifa e financiamento, fora do orçamento (veja Estatais).
+- **Como conferir que o dado não é maquiado:** o Censo de 2022 e a PNAD de 2022 mediram o mesmo ano por métodos diferentes e dão
+  60,4% e 62,7% de esgoto na rede — diferença maior que a margem de erro da amostra (0,2%), ou seja, de definição, não de acaso. A
+  página mostra as duas, a categoria somada em cada pesquisa e o código da tabela de origem de cada número.
+- Completo: `docs/metodologia/painel-saneamento.md`.
+
 ## Imposto de Renda — o que os brasileiros declaram ganhar
 
 - **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem
@@ -389,6 +405,8 @@ sempre só PDF ou metodologia diferente.
 | Dividendos recebidos pela União | Tesouro Nacional (RTN, série histórica) | 1997 | o RTN começa em 1997; antes, balanços anuais em PDF |
 | Lucro das estatais federais (todas) | Ministério da Gestão / SEST (microdado) | 2016 | os boletins da SEST publicam só comparativos de dois anos |
 | Lucro das estatais com registro na CVM (três esferas) | CVM (DFP e formulário de referência) | 2010 | demonstrações em PDF, empresa por empresa |
+| Água, esgoto e lixo nos domicílios | IBGE — Censo Demográfico | 1991 | o Censo de 1980 não está no SIDRA nesse recorte |
+| Água e esgoto ano a ano | IBGE — PNAD Contínua | 2016 (esgoto, 2019) | PNAD antiga com outra pergunta; sem 2020 e 2021 |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 
 ## Como conferir

@@ -29,6 +29,11 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+saneamento: ## saneamento: Censo (1991-2022) e PNAD Contínua, pelo SIDRA
+	python -m etl.saneamento.extract
+	cp data/public/saneamento.json site/public/data/
+.PHONY: saneamento
+
 estatais: ## lucro das estatais: CVM (DFP + formulário de referência) + SEST + dividendos do Tesouro
 	python -m etl.estatais.extract
 	cp data/public/estatais.json site/public/data/

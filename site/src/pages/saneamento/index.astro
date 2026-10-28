@@ -1,0 +1,208 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
+import d from "../../../public/data/saneamento.json";
+import mun from "../../../public/data/municipios_2025.json";
+import est from "../../../public/data/estados_2025.json";
+import funcoes from "../../../public/data/poderes_funcao_2025.json";
+
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const mi = (v: number) => `${n1(v / 1e6)} milhões`;
+const bi = (v: number) => `R$ ${n1(v / 1e9)} bi`;
+const compact = (v: number) => Math.abs(v) >= 1e9 ? bi(v) : `R$ ${(v / 1e6).toFixed(0)} mi`;
+const pp = (v: number) => `${v > 0 ? "+" : "−"}${n1(Math.abs(v))} ponto${Math.abs(v) >= 2 ? "s" : ""}`;
+
+const censo = d.censo as Record<string, any>;
+const anosCenso = Object.keys(censo).sort();
+const ultCenso = censo[anosCenso[anosCenso.length - 1]];
+const priCenso = censo[anosCenso[0]];
+const pnadc = d.pnadc as any[];
+const ultPnadc = pnadc[pnadc.length - 1];
+const semEsgoto2022 = ultCenso.esgoto.total - ultCenso.esgoto.rede;
+const comp = d.comparacao_2022 as Record<string, any>;
+
+const ufCenso = (d.censo_uf as Record<string, any[]>)[anosCenso[anosCenso.length - 1]] ?? [];
+const ufPnadc = (d.pnadc_uf as Record<string, any[]>)[String(ultPnadc.ano)] ?? [];
+const porUf = ufCenso.map((u) => ({ ...u, pnadc: ufPnadc.find((x) => x.uf === u.uf) }))
+  .sort((a, b) => (a.esgoto ?? 0) - (b.esgoto ?? 0));
+
+// dinheiro: função 17 (Saneamento) nos três níveis — a União gasta pouco porque financia, não executa
+const uniao17 = (funcoes as any[]).find((f) => f.funcao === "17") ?? { pago: 0 };
+const munSan = (mun as any[]).reduce((t, m) => t + (m.pago_saneamento ?? 0), 0);
+const estSan = (est as any[]).reduce((t, e) => t + (e.pago_saneamento ?? 0), 0);
+const topMun = [...(mun as any[])].sort((a, b) => (b.pago_saneamento ?? 0) - (a.pago_saneamento ?? 0)).slice(0, 10);
+
+// gráfico: Censo em barras, PNAD Contínua em linha, sem emendar as duas — e com o buraco de 2020 e 2021 visível
+const W = 920, L = 46, R = 16, H = 280, T = 16, B = 34;
+const anos = [1988, 2026];           // começa em 1988 de propósito: é a pergunta, e o espaço vazio é a resposta
+const x = (ano: number) => L + ((ano - anos[0]) / (anos[1] - anos[0])) * (W - L - R);
+const y = (v: number) => T + (1 - v / 100) * (H - T - B);
+const barras = anosCenso.map((a) => ({ ano: Number(a), ...censo[a] }));
+const linhaPnadc = (chave: string) => {
+  const blocos: string[] = [];
+  let atual: string[] = [];
+  for (const p of pnadc) {
+    if (p[chave] == null) continue;
+    if (atual.length && p.ano - Number(atual[atual.length - 1].split("@")[1]) > 1) { blocos.push(atual.map((s) => s.split("@")[0]).join(" ")); atual = []; }
+    atual.push(`${x(p.ano).toFixed(1)},${y(p[chave]).toFixed(1)}@${p.ano}`);
+  }
+  if (atual.length) blocos.push(atual.map((s) => s.split("@")[0]).join(" "));
+  return blocos;
+};
+const FONTES_ATE = [
+  ["Domicílios com água, esgoto e lixo", "IBGE — Censo Demográfico", "1991", "o Censo de 1980 não está no SIDRA nesse recorte; não existe 1988"],
+  ["Mesma medida, ano a ano", "IBGE — PNAD Contínua anual", "2016 (esgoto, 2019)", "a PNAD antiga perguntava de outro jeito"],
+  ["Esgoto tratado, perdas de água, investimento", "SNIS / Ministério das Cidades", "—", "declarado pelo prestador; ainda não está neste site"],
+  ["Gasto público na função Saneamento", "SICONFI (estados e municípios) e SIOP (União)", "2013 / 2000", "Finbra antigo, em avaliação"],
+];
+---
+<Base title="Saneamento: água, esgoto e lixo — Nosso Dinheiro" accent="var(--s5)"
+  description="Quantos domicílios têm água da rede, esgoto ligado à rede e lixo coletado, do Censo de 1991 ao de 2022, por estado, com o gasto público na função Saneamento — e o que dá para conferir no próprio dado.">
+  <h1>Saneamento: água, esgoto e lixo</h1>
+  <p class="lede">
+    No Censo de {anosCenso[anosCenso.length - 1]}, {n1(ultCenso.agua.pct)}% dos domicílios tinham água da rede geral e
+    {" "}{n1(ultCenso.esgoto.pct)}% tinham esgoto ligado à rede — <strong>{mi(semEsgoto2022)} de domicílios</strong> não
+    tinham. Em {anosCenso[0]} eram {n1(priCenso.agua.pct)}% e {n1(priCenso.esgoto.pct)}%. A pesquisa anual do IBGE
+    chega a {n1(ultPnadc.esgoto_pct)}% em {ultPnadc.ano}, e a última seção desta página explica por que os dois números
+    não batem — e como conferir isso sem acreditar em ninguém.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fonte: IBGE (Censo Demográfico e PNAD Contínua) · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{n1(ultCenso.esgoto.pct)}%</b><span>dos domicílios com esgoto ligado à rede geral no Censo de {anosCenso[anosCenso.length - 1]} — era {n1(priCenso.esgoto.pct)}% em {anosCenso[0]}</span></div>
+    <div class="stat"><b>{n1(ultCenso.agua.pct)}%</b><span>com água da rede geral; {mi(ultCenso.agua.total - ultCenso.agua.rede)} de domicílios se viram com poço, nascente, carro-pipa ou chuva</span></div>
+    <div class="stat"><b>{n1(ultCenso.lixo.pct)}%</b><span>com lixo coletado — a parte do saneamento que mais avançou desde {anosCenso[0]}, quando eram {n1(priCenso.lixo.pct)}%</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Não existe 1988 aqui, e nada é emendado.</b> O Censo mais próximo é o de 1991. Entre um Censo e outro a
+    pergunta mudou: em 1991 o IBGE registrava a "instalação sanitária" e o escoadouro; em {anosCenso[anosCenso.length - 1]} separa
+    "rede geral" de "fossa ligada à rede". Por isso cada pesquisa aparece com a sua cor, o JSON guarda a categoria exata
+    somada em cada ano, e não traçamos uma linha única de {anosCenso[0]} até hoje.
+    <b>Ter esgoto ligado à rede não quer dizer que o esgoto seja tratado</b> — isso o IBGE não pergunta; quem publica é
+    o prestador do serviço, ao SNIS, e essa base ainda não está neste site.</div>
+  </div>
+
+  <h2>Do Censo de {anosCenso[0]} ao de {anosCenso[anosCenso.length - 1]}</h2>
+  <div class="card">
+    <div class="legend">
+      <span><i style="background:var(--s5)"></i>Censo: água da rede</span>
+      <span><i style="background:var(--s1)"></i>Censo: esgoto na rede</span>
+      <span><i style="background:var(--neutro)"></i>Censo: lixo coletado</span>
+      <span><i style="background:var(--ink);height:3px;margin-bottom:3px"></i>PNAD Contínua (amostra anual)</span>
+    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Percentual de domicílios com água da rede, esgoto ligado à rede e lixo coletado, por Censo, e a série anual da PNAD Contínua">
+      {[25, 50, 75, 100].map((t) => <g><line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" /><text x={L - 6} y={y(t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{t}%</text></g>)}
+      <g><line x1={x(1988)} x2={x(1988)} y1={T} y2={y(0)} stroke="var(--line)" stroke-dasharray="3 3" />
+        <text x={x(1988) + 4} y={T + 10} font-size="10" fill="var(--ink-2)">1988: não há dado</text></g>
+      {barras.map((b) => { const largura = 26; const bx = x(b.ano) - largura * 1.6; return (<g>
+        {[["agua", "var(--s5)", 0], ["esgoto", "var(--s1)", 1], ["lixo", "var(--neutro)", 2]].map(([tema, cor, i]) => b[tema as string] && (
+          <rect x={bx + (i as number) * (largura + 2)} y={y(b[tema as string].pct)} width={largura} height={y(0) - y(b[tema as string].pct)} fill={cor as string}>
+            <title>Censo {b.ano} · {tema}: {n1(b[tema as string].pct)}% ({b[tema as string].categoria})</title></rect>))}
+        <text x={bx + largura * 1.5} y={H - 14} text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{b.ano}</text>
+        {!b.lixo && <text x={bx + largura * 1.5} y={H - 3} text-anchor="middle" font-size="9" fill="var(--ink-2)">sem lixo</text>}
+      </g>); })}
+      {linhaPnadc("agua_pct").map((pts) => <polyline points={pts} fill="none" stroke="var(--ink)" stroke-width="2" />)}
+      {linhaPnadc("esgoto_pct").map((pts) => <polyline points={pts} fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3" />)}
+      {pnadc.map((p) => (<g>
+        {p.agua_pct != null && <circle cx={x(p.ano)} cy={y(p.agua_pct)} r="3" fill="var(--ink)"><title>PNAD Contínua {p.ano}: água da rede {n1(p.agua_pct)}% (margem de {n1(p.agua_cv ?? 0)}%)</title></circle>}
+        {p.esgoto_pct != null && <circle cx={x(p.ano)} cy={y(p.esgoto_pct)} r="3" fill="var(--ink)"><title>PNAD Contínua {p.ano}: esgoto na rede {n1(p.esgoto_pct)}%</title></circle>}
+      </g>))}
+    </svg>
+    <p class="src">
+      Barras = Censo (recenseia todos os domicílios). Linha = PNAD Contínua (amostra), cheia para água e tracejada para
+      esgoto. <b>A linha tem um buraco em 2020 e 2021</b>: a pesquisa domiciliar foi interrompida na pandemia, e não
+      inventamos os dois pontos. O Censo de 2010 não traz o destino do lixo no mesmo recorte, por isso falta a barra
+      cinza nele. Em {anosCenso[0]}–{anosCenso[anosCenso.length - 1]} o esgoto na rede subiu {pp(ultCenso.esgoto.pct - priCenso.esgoto.pct)} e a água, {pp(ultCenso.agua.pct - priCenso.agua.pct)}.
+    </p>
+  </div>
+
+  <h2>Onde falta esgoto</h2>
+  <div class="card">
+    <MapaBrasil valores={Object.fromEntries(porUf.map((u) => [u.uf, u.esgoto]))} formato={(v) => `${n1(v)}%`}
+      titulo={`Percentual de domicílios com esgoto ligado à rede geral em cada estado, Censo de ${anosCenso[anosCenso.length - 1]}`}
+      legenda="dos domicílios com esgoto ligado à rede geral" cor="var(--s1)" />
+  </div>
+  <div class="card" style="margin-top:14px">
+    <table>
+      <thead><tr><th>Estado</th><th class="num">Esgoto na rede (Censo {anosCenso[anosCenso.length - 1]})</th><th class="num">Água da rede</th><th class="num">Lixo coletado</th><th class="num">Esgoto na rede (PNAD {ultPnadc.ano})</th></tr></thead>
+      <tbody>{porUf.map((u) => (<tr>
+        <td>{u.nome}</td>
+        <td class="num">{u.esgoto != null ? `${n1(u.esgoto)}%` : "—"}</td>
+        <td class="num">{u.agua != null ? `${n1(u.agua)}%` : "—"}</td>
+        <td class="num">{u.lixo != null ? `${n1(u.lixo)}%` : "—"}</td>
+        <td class="num">{u.pnadc?.esgoto_pct != null ? `${n1(u.pnadc.esgoto_pct)}%` : "—"}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">Ordenado do menor para o maior percentual de esgoto na rede. A última coluna é a pesquisa por amostra, com margem de erro maior em estado pequeno — por isso as duas aparecem lado a lado, e não uma no lugar da outra.</p>
+  </div>
+
+  <h2>Quanto o poder público gasta na função Saneamento</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Quem</th><th class="num">Pago em 2025</th><th>De onde vem o número</th></tr></thead>
+      <tbody>
+        <tr><td>Prefeituras</td><td class="num">{compact(munSan)}</td><td class="desc">SICONFI, função 17, {(mun as any[]).length} municípios com declaração</td></tr>
+        <tr><td>Estados</td><td class="num">{compact(estSan)}</td><td class="desc">SICONFI, função 17</td></tr>
+        <tr><td>União</td><td class="num">{compact(uniao17.pago)}</td><td class="desc">SIOP, função 17 — a União financia muito mais do que executa, e financiamento não aparece como despesa da função</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      <b>Não some as três linhas</b> como se fossem o investimento do país em saneamento: boa parte da obra é feita
+      pelas companhias estaduais com dinheiro de tarifa e de financiamento, fora do orçamento — o resultado delas está
+      em <a href="/estatais/">Estatais</a> (Sabesp, Copasa, Sanepar, Casan, Saneago, Cagece, Cedae e Corsan publicam
+      balanço). Quem mais pagou pela função em 2025: {topMun.slice(0, 4).map((m) => `${m.nome} (${compact(m.pago_saneamento)})`).join(", ")}.
+      Despesa por município está em <a href="/municipios/">Municípios</a>.
+    </p>
+  </div>
+
+  <h2>E como saber se esse dado não é maquiado?</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      Esta é a pergunta certa, e a resposta não é confiar: é conferir. Três coisas dão para fazer com o que está nesta
+      página.
+    </p>
+    <p style="margin:0 0 10px">
+      <b>1. Duas pesquisas diferentes mediram o mesmo ano.</b> O Censo de 2022 recenseia todos os domicílios; a PNAD
+      Contínua de 2022 é uma amostra. Para o esgoto na rede, o Censo deu {n1(comp.esgoto.censo)}% e a PNAD,
+      {" "}{n1(comp.esgoto.pnadc)}% — diferença de {pp(comp.esgoto.diferenca_pp)}. Para a água, {n1(comp.agua.censo)}% contra
+      {" "}{n1(comp.agua.pnadc)}%, {pp(comp.agua.diferenca_pp)}. A margem de erro que o próprio IBGE publica para a amostra é
+      de {n1(comp.agua.cv_pnadc ?? 0)}%, ou seja, <b>a diferença é maior que o acaso</b>: ela vem de método e de
+      definição, não de sorteio. Uma pesquisa que só tivesse um número, sem outra para comparar, não permitiria essa conta.
+    </p>
+    <p style="margin:0 0 10px">
+      <b>2. As definições mudam, e isso é verificável linha a linha.</b> O que contamos como "ligado à rede" em cada
+      Censo está gravado no arquivo de dados: {anosCenso.map((a) => `${a} — "${censo[a].esgoto.categoria}"`).join("; ")}. Quem
+      quiser refazer a conta com outro critério tem o código da tabela do SIDRA em cada número. É por isso que não
+      publicamos uma linha única desde 1991: ela esconderia exatamente essa mudança.
+    </p>
+    <p style="margin:0 0 10px">
+      <b>3. Quem pergunta a quem.</b> O IBGE pergunta ao <b>morador</b> o que ele tem em casa. O SNIS pergunta ao
+      <b>prestador do serviço</b> quantas ligações ele opera, e o prestador é parte interessada — é dele a meta de
+      universalização. Os dois nunca batem, e a diferença entre eles é um dado em si. Por enquanto esta página usa só o
+      IBGE, e diz isso; a base do SNIS entra quando tivermos como baixá-la de forma reproduzível.
+    </p>
+    <p class="src">
+      O que fica fora do alcance de qualquer conferência nossa: se o morador respondeu certo, se o esgoto que sai pela
+      rede é tratado e se a obra registrada no orçamento virou obra. Para a terceira, veja <a href="/obras/">Obras</a>,
+      onde {" "}situação é declarada pelo próprio órgão. O arquivo completo deste painel está em
+      {" "}<a href="/data/saneamento.json">/data/saneamento.json</a>, com a tabela do IBGE usada em cada número.
+    </p>
+  </div>
+
+  <h2>Até onde cada fonte volta no tempo</h2>
+  <table>
+    <thead><tr><th>O que</th><th>Fonte aberta</th><th class="num">Desde</th><th>Antes disso</th></tr></thead>
+    <tbody>{FONTES_ATE.map(([o, f, a, b]) => (<tr><td>{o}</td><td>{f}</td><td class="num">{a}</td><td class="desc">{b}</td></tr>))}</tbody>
+  </table>
+
+  <Glossario termos={["rede_geral_agua", "esgoto_rede", "fossa_septica", "censo_x_amostra", "coeficiente_variacao", "funcao_saneamento"]} />
+</Base>
+<style>
+  td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 340px; }
+  td.num, th.num { white-space: nowrap; }
+</style>

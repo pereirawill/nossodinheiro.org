@@ -35,7 +35,7 @@ from statistics import median
 log = logging.getLogger("etl.municipios.transform")
 RAW, PUB = Path("data/raw"), Path("data/public")
 FUNCOES_ESTADO = {"01": "legislativa", "02": "judiciaria", "03": "essencial_justica", "04": "administracao", "06": "seguranca", "09": "previdencia",
-                  "10": "saude", "12": "educacao", "28": "encargos"}
+                  "10": "saude", "12": "educacao", "17": "saneamento", "28": "encargos"}
 
 
 def normalizar(s: str) -> str:
@@ -88,7 +88,7 @@ def run(ano: int, ano_vagas: int = 2024) -> Path:
                 "cod_ibge": cod, "nome": e["ente"], "uf": e["uf"], "capital": e.get("capital", False), "regiao": e.get("regiao"), "populacao": pop, "faixa": faixa(pop),
                 "vereadores": ver, "pago_total": round(total, 2), "empenhado_total": round(emp.get("00", 0.0), 2),
                 "pago_legislativo": round(leg, 2), "pago_saude": round(pago.get("10", 0.0), 2), "pago_educacao": round(pago.get("12", 0.0), 2),
-                "pago_administracao": round(pago.get("04", 0.0), 2),
+                "pago_administracao": round(pago.get("04", 0.0), 2), "pago_saneamento": round(pago.get("17", 0.0), 2),
                 "por_hab_total": round(total / pop, 2) if pop else None, "por_hab_legislativo": round(leg / pop, 2) if pop else None,
                 "por_vereador_legislativo": round(leg / ver, 2) if ver else None, "pct_legislativo": round(leg / total, 4) if total else None,
             })

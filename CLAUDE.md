@@ -325,6 +325,27 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   R$ 313,6 bi (2025); esperança de vida 78,0 anos (projeção). Pendências: SIOPS (recursos próprios), CNES/leitos (API do MS
   recusa conexão), atenção básica, filas.
 
+## Painel Saneamento (NO AR, sem chave, mensal dia 8; feito 28/10/2026)
+- Pedido do dono: "aba de saneamento, evolução desde 1988, e como saber se o dado do governo não é maquiado?".
+- `etl/saneamento/extract.py` → `saneamento.json`, `/saneamento/` (menu depois de Saúde — 32º item). **IBGE/SIDRA**, duas pesquisas
+  nunca emendadas: **Censo** (água 179/1442/3391/6804, esgoto 180/1444/1394/6805, lixo 182/1447/—/6892) e **PNAD Contínua**
+  (água 9468 + total 6731, esgoto 7192). 1991: água 70,7%, esgoto 35,3%, lixo 63,8% → 2022: 83,9%, 60,4%, 91,7%; PNADC 2025:
+  86,1% e 65,0%.
+- Armadilhas: **PNADC vem em mil unidades** e o Censo em unidades; a coluna "(Código)" tem o mesmo prefixo da coluna do rótulo
+  (pegava o código no lugar de "Total" e zerava tudo); tabela sem classificação quebra se mandar `/c1/all` (9468); em tabela com
+  mais de uma classificação só soma a linha com **as outras no Total**. **Sem 2020 e 2021** (pandemia): a linha é quebrada, não
+  interpolada. **Censo 2010 não tem lixo** nesse recorte. Categoria "rede geral" muda a cada Censo e está no JSON — a 46290 de 2022
+  (que soma fossa ligada à rede) daria 64,7% em vez de 60,4%.
+- **Resposta ao "é maquiado?"**: Censo 2022 (universo) × PNADC 2022 (amostra) no mesmo ano — esgoto 60,4% × 62,7%, água 83,9% ×
+  85,5%, com CV de 0,2% publicado pelo IBGE → a diferença é de definição, não de acaso; total de domicílios bate em 0,3%. Mais: a
+  categoria somada está publicada por número, e IBGE pergunta ao morador enquanto o SNIS recebe declaração do prestador.
+- Dinheiro: **função 17** entrou no `etl/municipios/transform.py` (`pago_saneamento` em municípios e estados, do DCA em cache) e
+  vem do SIOP para a União. 2025: prefeituras 25,4 bi, estados 4,1 bi, União 0,2 bi — **não somar como investimento do país**: a
+  obra das companhias estaduais corre por tarifa e financiamento (ver `/estatais/`).
+- **SNIS fora, com motivo**: a Série Histórica (`app4.cidades.gov.br/serieHistorica`) é app Yii com POST e sem rota documentada;
+  parei a raspagem em vez de apoiar o painel nela. Caminho tratável: arquivos estáticos do Diagnóstico anual. Sem SNIS, não há
+  **esgoto tratado**, perdas de água nem investimento por prestador — declarado na página.
+
 ## Painel Histórico (NO AR, sem chave, mensal dia 6)
 - `etl/historico/extract.py`: SIOP por função, 1 grafo por ano desde 2000 (26+ consultas SPARQL); IPCA SIDRA 1737/2266
   (índice de dezembro → `deflator[ano]` para reais do último ano fechado); BEPS tabela 14 (dezembro de cada ano); receita vem

@@ -192,6 +192,14 @@ export const DATASETS: Dataset[] = [
              { nome: "Tesouro Nacional — Resultado do Tesouro Nacional, série histórica", url: "https://www.tesourotransparente.gov.br/ckan/dataset/resultado-do-tesouro-nacional" }],
     periodo: "1997/2025", atualizacao: "mensal",
   },
+  {
+    slug: "/saneamento/", nome: "Saneamento: água, esgoto e lixo",
+    descricao: "Percentual de domicílios com água da rede geral, esgoto ligado à rede e lixo coletado, nos Censos de 1991, 2000, 2010 e 2022 e na PNAD Contínua anual, no Brasil e por estado, com a categoria exata somada em cada pesquisa.",
+    arquivos: ["saneamento.json"],
+    fontes: [{ nome: "IBGE — Censo Demográfico (SIDRA)", url: "https://sidra.ibge.gov.br/" },
+             { nome: "IBGE — PNAD Contínua anual (SIDRA)", url: "https://sidra.ibge.gov.br/pesquisa/pnadca/tabelas" }],
+    periodo: "1991/2025", atualizacao: "anual",
+  },
 ];
 
 export const porSlug = (slug: string) => DATASETS.find((d) => d.slug === slug);
