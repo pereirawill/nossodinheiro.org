@@ -116,6 +116,14 @@ def coletar(c: httpx.Client) -> dict:
                          ("1º", "2º", "3º", "4º") else -1)
             por_ano[a], periodicidade[a] = bruto[a][ultimo], f"{ultimo.lower()}, acumulado no ano"
 
+    # ano em que quase ninguém entregou ainda (acontece no começo do ano seguinte) não entra: viraria o ano de
+    # referência da página com meia dúzia de empresas
+    conta = {a: sum(1 for cod in por_ano[a] if cod in diretas) for a in anos}
+    piso = max(conta.values()) / 2
+    for a in [x for x in anos if conta[x] < piso]:
+        log.info("ano %s fica de fora: só %d empresas de controle direto no arquivo (piso: %.0f)", a, conta[a], piso)
+    anos = [a for a in anos if conta[a] >= piso]
+
     agregado = {a: round(sum(v for cod, v in por_ano[a].items() if cod in diretas), 2) for a in anos}
     com_inativas = {a: round(sum(v for cod, v in por_ano[a].items() if cod in diretas or cod in saiu), 2)
                     for a in anos}

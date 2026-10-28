@@ -158,7 +158,7 @@ const FONTES_ATE = [
     <p class="src">
       Em reais de {base}, só as <Termo t="controle_direto">empresas de controle direto</Termo> — {sest.controle_direto} das {sest.total_ativas} estatais
       federais. As outras {sest.controle_indireto} são subsidiárias, e o resultado delas já está dentro da mãe.
-      {sestOficial ? ` Nossa soma de ${sestUlt.ano} dá ${bi(sestUlt.nominal)}; o Ministério da Gestão divulgou ${bi(sestOficial)} — diferença de ${pct(Math.abs(sestUlt.nominal / sestOficial - 1))}, que vem de duas empresas sem demonstração publicada no arquivo e de revisões posteriores ao fechamento do arquivo.` : ""}
+      {sestOficial ? ` Nossa soma de ${sestUlt.ano} dá ${bi(sestUlt.nominal)}; o Ministério da Gestão divulgou ${bi(sestOficial)} — diferença de ${pct(Math.abs(sestUlt.nominal / sestOficial - 1))}. Parte dela são duas empresas sem demonstração de ${sestUlt.ano} no arquivo (CDRJ e Ceasaminas); o restante não está explicado, e por isso os dois números aparecem aqui lado a lado.` : ""}
     </p>
   </div>
 

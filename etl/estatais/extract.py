@@ -270,6 +270,15 @@ def run() -> Path:
     anos = sorted({a for v in lucro.values() for a in v})
     if not anos:
         raise SystemExit("nenhum ano lido da CVM — o layout do arquivo mudou?")
+    # A CVM abre o arquivo do ano novo com um punhado de empresas, muito antes de a maioria entregar. Um ano assim
+    # viraria "o último ano" da página inteira, com uma tabela quase vazia. Então só entra o ano que tem pelo menos
+    # metade das empresas do ano mais cheio.
+    quantas_por_ano = {a: sum(1 for v in lucro.values() if a in v) for a in anos}
+    piso = max(quantas_por_ano.values()) / 2
+    magros = [a for a in anos if quantas_por_ano[a] < piso]
+    for a in magros:
+        log.info("ano %s fica de fora: só %d empresas entregaram (piso: %.0f)", a, quantas_por_ano[a], piso)
+    anos = [a for a in anos if a not in magros]
 
     empresas = []
     for e in EMPRESAS:

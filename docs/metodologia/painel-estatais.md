@@ -60,7 +60,8 @@ A página usa a primeira no gráfico e declara a segunda no aviso.
 
 **Conferência com o número oficial.** Nossa soma de 2025 dá R$ 168,1 bi; o Ministério da Gestão divulgou R$ 169,4 bi
 (nota de 02/07/2026) — diferença de 0,8%. Em 2024: R$ 114,5 bi contra R$ 116,5 bi (1,7%). Duas empresas (CDRJ e
-Ceasaminas) não têm DRE de 2025 no arquivo, e o restante é revisão posterior ao fechamento do arquivo que baixamos.
+Ceasaminas) não têm DRE de 2025 no arquivo; **o restante não está explicado** — em 2024 as 44 estão presentes e ainda
+sobram R$ 2,0 bi de diferença. Por isso os dois números aparecem lado a lado na página, em vez de escolhermos um.
 O número publicado está no JSON (`sest.oficial`) e na página, ao lado do nosso.
 
 **"Dependente do Tesouro"** é classificação da própria SEST: 17 empresas que não se sustentam com receita própria e

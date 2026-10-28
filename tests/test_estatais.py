@@ -177,6 +177,22 @@ def _zip_sest_fin(linhas):
     return buf.getvalue()
 
 
+def test_sest_descarta_ano_com_poucas_empresas(tmp_path, monkeypatch):
+    """O arquivo do ano recém-aberto traz meia dúzia de empresas: não pode virar o ano de referência da página."""
+    monkeypatch.setattr(sest, "RAW", tmp_path)
+    linhas = [["2024", "Anual", c, s_, "DRE", "500000", "LUCRO OU PREJUÍZO LÍQUIDO DO EXERCÍCIO", "1.000.000"]
+              for c, s_ in (("1", "PETROBRAS"), ("2", "ECT"), ("3", "EMBRAPA"))]
+    linhas.append(["2025", "4º Trimestre", "1", "PETROBRAS", "DRE", "290000000", "LUCRO/PREJUÍZO LÍQUIDO", "9.000.000"])
+
+    def handler(req):
+        if "sestidentificacao" in str(req.url):
+            return httpx.Response(200, content=_zip_sest_ident())
+        return httpx.Response(200, content=_zip_sest_fin(linhas))
+    with httpx.Client(transport=httpx.MockTransport(handler)) as c:
+        got = sest.coletar(c)
+    assert got["anos"] == ["2024"] and "2025" not in got["agregado"]
+
+
 def test_sest_filtra_dre_grupos_e_usa_trimestre_acumulado(tmp_path, monkeypatch):
     monkeypatch.setattr(sest, "RAW", tmp_path)
     linhas = [
@@ -190,6 +206,7 @@ def test_sest_filtra_dre_grupos_e_usa_trimestre_acumulado(tmp_path, monkeypatch)
         ["2021", "Anual", "3", "EMBRAPA", "DRE", "500000", "LUCRO OU PREJUÍZO LÍQUIDO DO EXERCÍCIO", "-1.000.000"],
         ["2022", "3º Trimestre", "1", "PETROBRAS", "DRE", "290000000", "LUCRO/PREJUÍZO LÍQUIDO", "60.000.000"],
         ["2022", "4º Trimestre", "1", "PETROBRAS", "DRE", "290000000", "LUCRO/PREJUÍZO LÍQUIDO", "80.000.000"],
+        ["2022", "4º Trimestre", "2", "ECT", "DRE", "290000000", "LUCRO/PREJUÍZO LÍQUIDO", "-5.000.000"],
     ]
     def handler(req):
         if "sestidentificacao" in str(req.url):
@@ -199,7 +216,7 @@ def test_sest_filtra_dre_grupos_e_usa_trimestre_acumulado(tmp_path, monkeypatch)
         got = sest.coletar(c)
     assert got["agregado"]["2021"] == 96_000_000                  # Petrobras 100 mi − Correios 3 mi − Embrapa 1 mi
     assert got["agregado_com_inativas"]["2021"] == 103_000_000    # + Eletrobras, que era estatal naquele ano
-    assert got["agregado"]["2022"] == 80_000_000 and "4º trimestre" in got["periodicidade"]["2022"]
+    assert got["agregado"]["2022"] == 75_000_000 and "4º trimestre" in got["periodicidade"]["2022"]
     assert got["controle_direto"] == 3 and got["total_dependentes"] == 1
     assert got["dependentes_do_tesouro"] == ["EMBRAPA"]
 

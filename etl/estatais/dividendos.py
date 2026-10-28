@@ -6,6 +6,9 @@ Tesouro Transparente (`package_show?id=resultado-do-tesouro-nacional`; o nome do
 resolvido pela API). Aba **2.2** (anual, R$ milhões correntes), linha **1.4.2 Dividendos e Participações**, dentro das
 receitas não administradas pela Receita Federal, com abertura por empresa nas linhas 1.4.2.1 a 1.4.2.9.
 
+A aba 2.2 só ganha coluna de ano **fechado** — conferido em 28/10/2026, quando a última coluna era 2025 e a aba
+mensal (1.2) já trazia julho de 2026. Por isso o último ano da série aqui nunca é parcial.
+
 É **regime de caixa**: o que entrou no Tesouro no ano, e não o lucro do ano — dividendo é pago no ano seguinte ao
 resultado, e às vezes em parcelas. Não é imposto: é a parte do lucro que cabe ao acionista União.
 """
