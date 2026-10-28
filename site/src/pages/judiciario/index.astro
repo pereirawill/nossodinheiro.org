@@ -38,13 +38,14 @@ const mediaStfMes = stf.reduce((s2, r) => s2 + r.custo_mensal_medio, 0) / stf.le
 // Comparação entre tribunais, todos pela média mensal dos meses com folha publicada no ano corrente
 const COMPARA = [
   { sigla: "STF", nome: "Supremo Tribunal Federal", href: "/stf/", n: stf.length, composicao: 11,
-    meses: metaStf.meses_com_folha.length, media: mediaStfMes,
+    meses: metaStf.meses_com_folha.length, media: mediaStfMes, ultimo: null, mesUltimo: metaStf.ultimo_mes,
     remun: stf.reduce((s2, r) => s2 + r.remuneracao_mensal_media, 0) / stf.length,
     pessoas: Math.round(stf.reduce((s2, r) => s2 + r.gabinete_pessoas_ultimo_mes, 0) / stf.length) },
   ...PAINEIS.map((p) => ({
     sigla: p.meta.tribunal, nome: p.meta.nome, href: `/judiciario/${p.sigla}/`,
     n: p.meta.ultimo_mes_resumo.magistrados, composicao: p.meta.composicao_legal,
     meses: p.meta.meses_com_folha.length, media: p.media,
+    ultimo: p.meta.ultimo_mes_resumo.custo_medio, mesUltimo: p.meta.ultimo_mes,
     remun: p.rows.reduce((a: number, r: any) => a + r.remuneracao_mensal_media, 0) / Math.max(p.rows.length, 1),
     pessoas: Math.round(p.meta.ultimo_mes_resumo.pessoas_nos_gabinetes / Math.max(p.meta.ultimo_mes_resumo.magistrados, 1)) })),
 ].sort((a, b) => b.media - a.media);
@@ -82,18 +83,22 @@ const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
   <h2>Custo de um ministro com o gabinete, tribunal a tribunal</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Tribunal</th><th class="num">Ministros</th><th class="num">Remuneração / mês</th><th class="num">Pessoas no gabinete</th><th class="num">Custo com o gabinete / mês</th><th class="barra-cab"></th></tr></thead>
+      <thead><tr><th>Tribunal</th><th class="num">Ministros</th><th class="num">Remuneração / mês</th><th class="num">Pessoas no gabinete</th><th class="num">Custo médio no ano</th><th class="num">No último mês</th><th class="barra-cab"></th></tr></thead>
       <tbody>{COMPARA.map((t) => (
         <tr><td><a href={t.href}><strong>{t.sigla}</strong></a> · {t.nome}</td>
           <td class="num">{t.n}{t.composicao ? ` / ${t.composicao}` : ""}</td>
           <td class="num">{brl0(t.remun)}</td><td class="num">{t.pessoas}</td>
           <td class="num"><b>{brl0(t.media)}</b></td>
+          <td class="num">{t.ultimo ? brl0(t.ultimo) : "—"}</td>
           <td class="barra-cel"><span class="barra" style={`width:${(t.media / COMPARA[0].media) * 100}%`}></span></td></tr>))}
       </tbody>
     </table>
     <p class="src">
-      Média mensal dos meses com folha publicada em 2026 ({COMPARA.map((t) => `${t.sigla}: ${t.meses}`).join(", ")} meses),
-      somando a remuneração do ministro e a folha de todas as pessoas lotadas no gabinete dele. A coluna "ministros" mostra
+      A coluna "custo médio no ano" é a média dos meses com folha publicada em 2026 ({COMPARA.map((t) => `${t.sigla}: ${t.meses}`).join(", ")} meses),
+      somando a remuneração do ministro e a folha de todas as pessoas lotadas no gabinete dele. A coluna "no último mês" é
+      o mesmo cálculo só no último mês publicado, que é o número em destaque em cada painel: ele não sofre distorção de
+      quem assumiu ou saiu no meio do ano, e por isso difere da média. O painel do STF usa só média e por isso essa
+      coluna fica vazia nele. A coluna "ministros" mostra
       quantos estão em exercício e quantos cargos a lei prevê. <b>O número do STF é subestimado</b> para o presidente, que
       aparece com o Gabinete da Presidência, menor que um gabinete de ministro. Cada tribunal publica a folha no seu portal,
       em formato próprio, por exigência da Resolução CNJ 102/2009; as colunas foram equalizadas para o mesmo conceito de

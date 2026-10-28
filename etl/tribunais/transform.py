@@ -237,8 +237,8 @@ def run(sigla: str, ano: int) -> tuple[Path, Path]:
     f2 = PUB / f"meta_{sigla}_{ano}.json"
     f1.write_text(json.dumps(saida, ensure_ascii=False), encoding="utf-8")
     f2.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
-    media = meta["totais"]["custo_total_estimado"] / max(len(saida), 1) / max(len(meses), 1)
-    log.info("%s %d: %d %ss no último mês (composição legal %s), %d meses; custo médio R$ %.0f/mês; "
+    media = resumo_ultimo["custo_medio"]          # mesma base do destaque da página: o último mês publicado
+    log.info("%s %d: %d %ss no último mês (composição legal %s), %d meses; custo médio no último mês R$ %.0f; "
              "folha inteira R$ %.1f mi; %d aposentados no último mês",
              t.sigla, ano, meta["magistrados_em_exercicio"], t.rotulo_magistrado, t.composicao, len(meses), media,
              meta["totais"]["folha_inteira"] / 1e6, meta["aposentados"]["quantidade_ultimo_mes"])

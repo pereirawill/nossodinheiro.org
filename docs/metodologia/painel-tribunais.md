@@ -17,6 +17,10 @@ seu formato**. O que existe aberto, conferido em 28/10/2026:
 | STM | Remuneração e proventos (`rem_web`) | 1 CSV por mês, botão "Gerar CSV" (POST com token CSRF) | fev/2013 → |
 | STF | Portal da Transparência → Remuneração | CSV por cargo e por lotação (`etl/stf/`) | painel próprio |
 
+**Os runners do GitHub alcançam os três portais** (testado em 28/10/2026, workflow verde), ao contrário do portal do
+STF, que recusa IPs fora do Brasil — por isso o `etl-tribunais.yml` é agendado e o do STF, não. Um tribunal que falhe
+não derruba os outros: o painel dele fica com o dado do mês anterior.
+
 **O id do recurso do STJ muda** quando o tribunal substitui o arquivo, então o extrator resolve pelo nome do pacote a
 cada execução, nunca pela URL fixa. O STM exige um GET antes do POST, para o cookie de sessão e o token CSRF.
 
@@ -68,12 +72,16 @@ a média do ano ao lado, e `meses_com_folha` e `gabinete_meses` dizem sobre quan
 
 ## 6. Resultado em 2026 (meses publicados até setembro)
 
-| Tribunal | Ministros | Remuneração/mês | Pessoas no gabinete | Custo com gabinete/mês |
-|---|---|---|---|---|
-| STJ | 32 de 33 | R$ 54.236 | 43 | R$ 851 mil |
-| TST | 26 de 27 | R$ 65.231 | 41 | R$ 829 mil |
-| STF | 10 de 11 | R$ 53.362 | 31 | R$ 811 mil |
-| STM | 13 de 15 | R$ 99.015 (inclui indenizações) | 15 | R$ 304 mil |
+| Tribunal | Ministros | Remuneração/mês | Pessoas no gabinete | Custo médio no ano | No último mês |
+|---|---|---|---|---|---|
+| TST | 26 de 27 | R$ 65.231 | 41 | R$ 990.959 | R$ 1.055.382 |
+| STJ | 32 de 33 | R$ 54.236 | 43 | R$ 908.686 | R$ 924.123 |
+| STF | 10 de 11 | R$ 53.362 | 31 | R$ 811.097 | — (painel usa só média) |
+| STM | 13 de 15 | R$ 99.015 (inclui indenizações) | 15 | R$ 303.929 | R$ 342.675 |
+
+As duas colunas aparecem lado a lado no índice `/judiciario/`, porque cada painel destaca o **último mês** e a média do
+ano é o que permite comparar com o painel do STF, que só tem média. A diferença entre elas é de 2% a 13% e vem de quem
+assumiu ou saiu no meio do ano e dos meses em que caem 13º e férias.
 
 ## 7. O que não está aqui, e por quê
 

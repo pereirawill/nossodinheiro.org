@@ -86,13 +86,16 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   inclui indenizações (R$ 30,8 mi num mês para um ministro; média R$ 36 mil/mês), e a coluna do STF não. Sem essa
   correção a comparação dava R$ 1,1 mi contra R$ 811 mil do STF. O CSV do STM não detalha verbas e é antes do teto →
   declarado em `coluna_valor`, na página e na metodologia.
-- 2026 (até set): STJ 32/33 ministros R$ 851 mil/mês, TST 26/27 R$ 829 mil, STF 10/11 R$ 811 mil, STM 13/15 R$ 304 mil
-  (gabinetes de 43, 41, 31 e 15 pessoas). Destaques usam o **último mês**, não a média: em 2026 um ministro do STJ está
+- 2026 (até set), **média do ano / último mês**: TST 26/27 R$ 991 mil / R$ 1,06 mi; STJ 32/33 R$ 909 mil / R$ 924 mil;
+  STF 10/11 R$ 811 mil (só média); STM 13/15 R$ 304 mil / R$ 343 mil. Gabinetes de 41, 43, 31 e 15 pessoas. O índice
+  `/judiciario/` mostra as duas colunas, porque o painel do STF só tem média e os novos destacam o último mês. Destaques usam o **último mês**, não a média: em 2026 um ministro do STJ está
   afastado e a equipe passou ao gabinete de um desembargador convocado em fevereiro.
 - Regras no transform: magistrado convocado só vira linha se chefia gabinete **sem titular** (no TST é juiz auxiliar
   dentro do gabinete de um ministro → conta como pessoal); unidades de direção fora do custo por ministro, em tabela
   própria; pseudo-lotações (INATIVO, PENSIONISTA, À DISPOSIÇÃO, EXONERADO) fora; chave por matrícula, porque a grafia do
   nome muda de mês para mês no STJ. Invariante: nenhum mês pode ter mais magistrados que a composição legal.
+- **Os runners do GitHub alcançam STJ, TST e STM** (workflow verde em 28/10/2026) — diferente do STF, que bloqueia IP de
+  fora. `etl-tribunais.yml` roda dia 24 e tolera a falha de um tribunal sem derrubar os outros.
 - **Sem painel, com motivo documentado**: TJDFT (consulta com reCAPTCHA v3, sem arquivo, embora a página declare CSV/XLS);
   TSE (folha aberta em HTML, mas ministro é cedido do STF/STJ e o arquivo traz só a gratificação eleitoral, ~R$ 21 mil);
   CNJ (`cnj.jus.br/remuneracao/rem.php`, HTML; 9 dos 11 conselheiros são requisitados e o gabinete é nomeado pela vaga).
