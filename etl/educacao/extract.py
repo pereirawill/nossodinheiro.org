@@ -1,5 +1,5 @@
 """
-Educação — IDEB (Índice de Desenvolvimento da Educação Básica) por estado e município, última edição publicada pelo INEP.
+Educação — IDEB por estado e município (INEP) e escolaridade da população adulta (IBGE, PNAD Contínua).
 
     python -m etl.educacao.extract [--ano 2023]      # gera data/public/educacao.json
 
@@ -126,6 +126,107 @@ def ler_municipios(xlsx: bytes, etapa: str, ano: int, acc: dict) -> None:
         m[etapa] = v
 
 
+
+# --- Escolaridade e analfabetismo (IBGE, PNAD Contínua anual, módulo Educação) ---------------------------------
+# O IDEB mede a escola; estas duas tabelas medem a população adulta. São do mesmo IBGE do painel Renda, via SIDRA.
+#   7189 — pessoas de 25 anos ou mais por nível de instrução (mil pessoas e distribuição %), 2016 → , Brasil e UF.
+#   7113 — taxa de analfabetismo das pessoas de 15 anos ou mais (%), 2016 → , Brasil e UF.
+# Ids das variáveis e categorias fixos aqui porque a API de metadados do IBGE dá timeout nos runners do GitHub
+# (mesma solução já usada em Renda, Saúde e Inflação). Metadados:
+#   https://servicodados.ibge.gov.br/api/v3/agregados/7189/metadados
+#   https://servicodados.ibge.gov.br/api/v3/agregados/7113/metadados
+SIDRA = "https://apisidra.ibge.gov.br/values/t/{t}/{n}/all/v/{v}/p/{p}{c}?formato=json"
+INSTRUCAO = {           # código da classificação 1568 → chave e rótulo
+    18837: ("sem_instrucao", "Sem instrução"),
+    11779: ("fundamental_incompleto", "Fundamental incompleto"),
+    11628: ("fundamental_completo", "Fundamental completo"),
+    11629: ("medio_incompleto", "Médio incompleto"),
+    11630: ("medio_completo", "Médio completo"),
+    11631: ("superior_incompleto", "Superior incompleto"),
+    99713: ("superior_completo", "Superior completo"),
+}
+ORDEM_INSTRUCAO = ["sem_instrucao", "fundamental_incompleto", "fundamental_completo", "medio_incompleto",
+                   "medio_completo", "superior_incompleto", "superior_completo"]
+
+
+def _sidra(c: httpx.Client, t: int, n: str, v: int, p: str, c_: str = "") -> list[dict]:
+    erro = None
+    for tentativa in range(3):
+        try:
+            r = c.get(SIDRA.format(t=t, n=n, v=v, p=p, c=c_)); r.raise_for_status()
+            return r.json()[1:]
+        except (httpx.TransportError, httpx.HTTPStatusError) as e:
+            erro = e; log.warning("SIDRA t%s tentativa %d: %s", t, tentativa + 1, e)
+    raise erro
+
+
+def _num(v) -> float | None:
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def escolaridade(c: httpx.Client) -> dict:
+    """Até onde a população adulta estudou e quantos não sabem ler, por ano e por estado."""
+    from etl.ufs import NOME_PARA_UF
+
+    # 1) nível de instrução dos 25 anos ou mais: série do Brasil (% e mil pessoas) e último ano por UF
+    serie: dict[str, dict[str, float]] = {}
+    pessoas: dict[str, dict[str, float]] = {}
+    for cod, (chave, _) in INSTRUCAO.items():
+        for var, destino in ((10270, serie), (1643, pessoas)):
+            for linha in _sidra(c, 7189, "n1", var, "all", f"/c1568/{cod}/c2/6794"):
+                valor = _num(linha.get("V"))
+                if valor is not None:
+                    destino.setdefault(chave, {})[linha["D3N"]] = valor
+    anos = sorted({a for v in serie.values() for a in v})
+    ultimo = anos[-1] if anos else None
+
+    por_uf: dict[str, dict] = {}
+    for cod, (chave, _) in INSTRUCAO.items():
+        for linha in _sidra(c, 7189, "n3", 10270, "last 1", f"/c1568/{cod}/c2/6794"):
+            uf = NOME_PARA_UF.get((linha.get("D1N") or "").strip())
+            valor = _num(linha.get("V"))
+            if uf and valor is not None:
+                por_uf.setdefault(uf, {"uf": uf, "nome": linha["D1N"].strip()})[chave] = valor
+
+    # 2) taxa de analfabetismo das pessoas de 15 anos ou mais
+    analf_serie = {l["D3N"]: _num(l.get("V")) for l in _sidra(c, 7113, "n1", 10267, "all", "/c2/6794/c58/2795")
+                   if _num(l.get("V")) is not None}
+    for linha in _sidra(c, 7113, "n3", 10267, "last 1", "/c2/6794/c58/2795"):
+        uf = NOME_PARA_UF.get((linha.get("D1N") or "").strip())
+        valor = _num(linha.get("V"))
+        if uf and valor is not None:
+            por_uf.setdefault(uf, {"uf": uf, "nome": linha["D1N"].strip()})["analfabetismo"] = valor
+
+    # 3) o que a série diz do começo ao fim (a página mostra, não conclui)
+    def _var(d: dict) -> dict | None:
+        if not d or len(d) < 2:
+            return None
+        a0, a1 = min(d), max(d)
+        return {"de": a0, "para": a1, "valor_de": d[a0], "valor_para": d[a1], "diferenca": round(d[a1] - d[a0], 2)}
+
+    mudanca = {k: _var(v) for k, v in serie.items()}
+    mudanca["analfabetismo"] = _var(analf_serie)
+    sem_fundamental = {a: round(sum(serie.get(k, {}).get(a, 0) for k in ("sem_instrucao", "fundamental_incompleto")), 2)
+                       for a in anos}
+    log.info("escolaridade %s: %.1f%% dos adultos com médio completo ou mais, %.1f%% sem o fundamental; analfabetismo %.1f%%",
+             ultimo,
+             sum(serie.get(k, {}).get(ultimo, 0) for k in ("medio_completo", "superior_incompleto", "superior_completo")),
+             sem_fundamental.get(ultimo, 0), analf_serie.get(ultimo, 0))
+    return {
+        "ano": ultimo, "anos": anos, "ordem": ORDEM_INSTRUCAO,
+        "rotulos": {k: r for k, r in INSTRUCAO.values()},
+        "distribuicao": serie, "pessoas_mil": pessoas,
+        "sem_fundamental": sem_fundamental,
+        "analfabetismo": analf_serie, "mudanca": mudanca,
+        "por_uf": sorted(por_uf.values(), key=lambda d: d["uf"]),
+        "fonte": "IBGE, PNAD Contínua anual (módulo Educação): tabela 7189 (pessoas de 25 anos ou mais por nível de "
+                 "instrução) e 7113 (taxa de analfabetismo das pessoas de 15 anos ou mais)",
+    }
+
+
 def run(ano: int) -> Path:
     PUB.mkdir(parents=True, exist_ok=True)
     with httpx.Client(headers=UA, timeout=600, follow_redirects=True) as c:
@@ -135,10 +236,13 @@ def run(ano: int) -> Path:
         for nome, etapa in ETAPAS.items():
             ler_municipios(xlsx_do_zip(baixar(c, f"divulgacao_{nome}_municipios_{ano}.zip")), etapa, ano, municipios)
             log.info("%s: %d municípios com IDEB público", nome, sum(1 for m in municipios.values() if etapa in m))
+        esc = escolaridade(c)
     dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "ano": ano,
              "brasil": brasil, "regioes": list(regioes.values()), "estados": sorted(estados.values(), key=lambda e: e["uf"]),
              "municipios": sorted(municipios.values(), key=lambda m: m["cod_ibge"]),
-             "fontes": {"inep": f"INEP, IDEB {ano}, planilhas de divulgação por região/UF e por município (rede pública)", "url": BASE}}
+             "escolaridade": esc,
+             "fontes": {"inep": f"INEP, IDEB {ano}, planilhas de divulgação por região/UF e por município (rede pública)",
+                        "ibge": esc["fonte"], "url": BASE}}
     out = PUB / "educacao.json"
     out.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
     log.info("IDEB %d: Brasil AI %s, AF %s, EM %s; %d UFs; %d municípios", ano, brasil.get("ai", {}).get("total", {}).get(str(ano)),

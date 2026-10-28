@@ -131,7 +131,8 @@ export const DATASETS: Dataset[] = [
   },
   {
     slug: "/educacao/", nome: "Educação — IDEB", descricao: "IDEB por Brasil, UF e município (rede pública), última edição 2023.",
-    arquivos: ["educacao.json"], fontes: [{ nome: "INEP — IDEB", url: "https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/ideb" }],
+    arquivos: ["educacao.json"], fontes: [{ nome: "INEP — IDEB", url: "https://www.gov.br/inep/pt-br/areas-de-atuacao/pesquisas-estatisticas-e-indicadores/ideb" },
+             { nome: "IBGE — PNAD Contínua anual, tabelas 7189 e 7113 (escolaridade e analfabetismo)", url: "https://sidra.ibge.gov.br/tabela/7189" }],
     periodo: "2005/2023", atualizacao: "bienal",
   },
   {

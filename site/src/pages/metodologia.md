@@ -171,6 +171,12 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   privada, estadual), com a série desde 2005; por município (rede pública), com capitais e os 25 maiores por etapa.
 - **Fonte:** INEP, planilhas de divulgação do IDEB (md5 conferido). Bienal; a edição seguinte entra quando o INEP publicar.
 - **Atenção:** mede escolas e redes, não famílias; décimos não são ranking; municípios pequenos oscilam muito.
+- **Escolaridade e analfabetismo:** além do IDEB, a página mostra até onde a população adulta estudou (IBGE, PNAD
+  Contínua, tabela 7189, pessoas de 25 anos ou mais) e a taxa de analfabetismo (tabela 7113, 15 anos ou mais), de 2016 a
+  2025, com mapa por estado. As faixas são acumulativas, então os percentuais de fundamental, médio e superior somam mais
+  de 100%. Não usamos "analfabetismo funcional": o IBGE não publica mais, e o indicador mais citado é de instituto
+  privado; o oficial mais próximo é a parcela de adultos sem o ensino fundamental. Não há como medir daqui o efeito do
+  Plano Real: a série começa em 2016, e os anos 1990 estavam na PNAD antiga, de outra metodologia.
 - Completo: `docs/metodologia/painel-educacao.md`.
 
 ## Segurança — ocorrências registradas por estado e município

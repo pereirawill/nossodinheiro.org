@@ -29,6 +29,34 @@ const sx = (i: number) => padL + (i * (SW - padL - 10)) / (anosSerie.length - 1)
 const sy = (v: number) => 8 + (SH - padB - 8) * (1 - v / 8);
 
 // municípios
+// Escolaridade da população adulta e analfabetismo (IBGE, PNAD Contínua)
+const esc = (d as any).escolaridade;
+const anoEsc = esc.ano as string;
+const anosEsc = esc.anos as string[];
+const pct = (k: string, a = anoEsc) => (esc.distribuicao[k]?.[a] ?? 0) as number;
+const mi = (k: string, a = anoEsc) => ((esc.pessoas_mil[k]?.[a] ?? 0) as number) / 1000;
+const ordemEsc = esc.ordem as string[];
+const concluiu = {
+  fundamental: ordemEsc.slice(2).reduce((t, k) => t + pct(k), 0),       // fundamental completo em diante
+  medio: ["medio_completo", "superior_incompleto", "superior_completo"].reduce((t, k) => t + pct(k), 0),
+  superior: pct("superior_completo"),
+};
+const concluiuMi = {
+  fundamental: ordemEsc.slice(2).reduce((t, k) => t + mi(k), 0),
+  medio: ["medio_completo", "superior_incompleto", "superior_completo"].reduce((t, k) => t + mi(k), 0),
+  superior: mi("superior_completo"),
+};
+const semFund = esc.sem_fundamental as Record<string, number>;
+const analf = esc.analfabetismo as Record<string, number>;
+const anosAnalf = Object.keys(analf).sort();
+const mud = esc.mudanca as Record<string, any>;
+const ufsEsc = [...(esc.por_uf as any[])].sort((a, b) => b.analfabetismo - a.analfabetismo);
+const EW = 920, EH = 230, epadL = 44;
+const ex = (i: number, n: number) => epadL + (i * (EW - epadL - 16)) / Math.max(n - 1, 1);
+const maxAnalf = Math.max(...anosAnalf.map((a) => analf[a]));
+const ey = (v: number) => 10 + (EH - 34 - 10) * (1 - v / maxAnalf);
+const CORES_ESC = ["var(--neutro)", "#e0b0a0", "var(--s4)", "#9ec5e8", "var(--s1)", "#c9b8e8", "var(--s3)"];
+
 const capitais = new Set((municipiosBase as any[]).filter((m) => m.capital).map((m) => m.cod_ibge));
 const muns = d.municipios as { cod_ibge: number; nome: string; uf: string; ai?: number; af?: number; em?: number }[];
 const topo = (k: "ai" | "af" | "em", n = 25) => muns.filter((m) => m[k] != null).sort((a, b) => (b[k] ?? 0) - (a[k] ?? 0)).slice(0, n);
@@ -110,6 +138,97 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
         <tbody>{topo(k as any).map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{n1((m as any)[k])}</td></tr>))}</tbody></table>
     </div>))}
     <p class="src" style="grid-column:1/-1">Fonte: INEP, IDEB {ano}, rede pública. Municípios com IDEB publicado: {comIdeb.ai.toLocaleString("pt-BR")} nos anos iniciais, {comIdeb.af.toLocaleString("pt-BR")} nos anos finais e {comIdeb.em.toLocaleString("pt-BR")} no ensino médio (de 5.570). Em municípios pequenos a nota depende de poucas turmas e varia muito entre edições.</p>
+  </div>
+
+  <h2>Até onde os brasileiros estudaram</h2>
+  <div class="card">
+    <div class="hero" style="margin:0 0 14px">
+      <div class="stat"><b>{n1(concluiu.fundamental)}%</b><span>dos adultos de 25 anos ou mais <b class="inline">terminaram o ensino fundamental</b> — {n1(concluiuMi.fundamental)} milhões de pessoas</span></div>
+      <div class="stat"><b>{n1(concluiu.medio)}%</b><span>terminaram o <b class="inline">ensino médio</b> — {n1(concluiuMi.medio)} milhões</span></div>
+      <div class="stat"><b>{n1(concluiu.superior)}%</b><span>terminaram o <b class="inline">ensino superior</b> — {n1(concluiuMi.superior)} milhões</span></div>
+    </div>
+    <svg viewBox={`0 0 ${EW} ${ordemEsc.length * 30 + 16}`} width="100%" role="img" aria-label="Distribuição da população de 25 anos ou mais por nível de instrução">
+      {ordemEsc.map((k: string, i: number) => (<g transform={`translate(0 ${i * 30 + 8})`}>
+        <text x="200" y="16" text-anchor="end" font-size="12.5" fill="var(--ink)">{esc.rotulos[k]}</text>
+        <rect x="208" y="3" width={Math.max(2, (pct(k) / 35) * 560)} height="18" fill={CORES_ESC[i]} rx="2">
+          <title>{esc.rotulos[k]}: {n1(pct(k))}% dos adultos, {n1(mi(k))} milhões de pessoas</title></rect>
+        <text x={216 + (pct(k) / 35) * 560} y="16" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">
+          {n1(pct(k))}% · {n1(mi(k))} mi</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      Pessoas de <b>25 anos ou mais</b> em {anoEsc}, idade em que a maioria já terminou os estudos. As faixas são
+      acumulativas de baixo para cima: quem tem superior completo também concluiu o médio e o fundamental, e é por isso
+      que os três destaques somam mais que 100%. Fonte: IBGE, PNAD Contínua anual, tabela 7189.
+    </p>
+  </div>
+
+  <h2>Quem não sabe ler e escrever</h2>
+  <div class="card">
+    <div class="hero" style="margin:0 0 14px">
+      <div class="stat big"><b>{n1(analf[anoEsc] ?? analf[anosAnalf[anosAnalf.length - 1]])}%</b><span>dos brasileiros de 15 anos ou mais se declararam <b class="inline">analfabetos</b> em {anosAnalf[anosAnalf.length - 1]}</span></div>
+      <div class="stat"><b>{n1(semFund[anoEsc])}%</b><span>dos adultos de 25 anos ou mais <b class="inline">não terminaram o ensino fundamental</b> — {n1(mi("sem_instrucao") + mi("fundamental_incompleto"))} milhões de pessoas</span></div>
+      <div class="stat"><b>{n1(mud.analfabetismo?.diferenca ?? 0)} p.p.</b><span>é quanto a taxa de analfabetismo mudou de {mud.analfabetismo?.de} a {mud.analfabetismo?.para} ({n1(mud.analfabetismo?.valor_de)}% → {n1(mud.analfabetismo?.valor_para)}%)</span></div>
+    </div>
+    <svg viewBox={`0 0 ${EW} ${EH}`} width="100%" role="img" aria-label="Taxa de analfabetismo das pessoas de 15 anos ou mais, por ano">
+      {[2, 4, 6].filter((v) => v < maxAnalf).map((v) => (<g>
+        <line x1={epadL} x2={EW - 16} y1={ey(v)} y2={ey(v)} stroke="var(--line)" />
+        <text x={epadL - 6} y={ey(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}%</text></g>))}
+      <polyline points={anosAnalf.map((a, i) => `${ex(i, anosAnalf.length).toFixed(1)},${ey(analf[a]).toFixed(1)}`).join(" ")}
+        fill="none" stroke="var(--s3)" stroke-width="2.5" />
+      {anosAnalf.map((a, i) => (<g>
+        <circle cx={ex(i, anosAnalf.length)} cy={ey(analf[a])} r="3.5" fill="var(--s3)"><title>{a}: {n1(analf[a])}%</title></circle>
+        <text x={ex(i, anosAnalf.length)} y={EH - 8} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      Analfabeto, na PNAD, é quem declara <b>não saber ler e escrever um bilhete simples</b>. O IBGE não publica mais uma
+      taxa de "analfabetismo funcional"; o indicador mais citado com esse nome é de um instituto privado, e por isso não
+      entra aqui. O número oficial mais próximo é o dos adultos que <b>não terminaram o ensino fundamental</b>, no
+      destaque ao lado. A pesquisa não foi a campo em 2020 e 2021 por causa da pandemia, por isso a linha pula esses anos.
+      Fonte: IBGE, PNAD Contínua anual, tabela 7113.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 6px">Analfabetismo por estado ({anosAnalf[anosAnalf.length - 1]})</h3>
+    <MapaBrasil valores={Object.fromEntries(ufsEsc.map((u: any) => [u.uf, u.analfabetismo]))} formato={(v) => `${n1(v)}%`}
+      titulo="Taxa de analfabetismo das pessoas de 15 anos ou mais, por estado" legenda="% de pessoas de 15 anos ou mais que não sabem ler e escrever" melhorMenor={true} />
+    <table style="margin-top:14px">
+      <thead><tr><th>Estado</th><th class="num">Analfabetismo</th><th class="num">Sem o fundamental</th><th class="num">Médio completo ou mais</th><th class="num">Superior completo</th></tr></thead>
+      <tbody>{ufsEsc.map((u: any) => (
+        <tr><td>{u.nome}</td><td class="num"><b>{n1(u.analfabetismo)}%</b></td>
+          <td class="num">{n1(u.sem_instrucao + u.fundamental_incompleto)}%</td>
+          <td class="num">{n1(u.medio_completo + u.superior_incompleto + u.superior_completo)}%</td>
+          <td class="num">{n1(u.superior_completo)}%</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">Clique no cabeçalho para ordenar. Analfabetismo é dos 15 anos ou mais; as outras colunas, dos 25 anos ou mais.</p>
+  </div>
+
+  <h2>O que mudou de {anosEsc[0]} a {anoEsc}</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Indicador</th><th class="num">{anosEsc[0]}</th><th class="num">{anoEsc}</th><th class="num">Diferença</th></tr></thead>
+      <tbody>
+        {["superior_completo", "medio_completo", "fundamental_completo", "fundamental_incompleto", "sem_instrucao"].map((k: string) => (
+          <tr><td>{esc.rotulos[k]}</td><td class="num">{n1(pct(k, anosEsc[0]))}%</td><td class="num">{n1(pct(k))}%</td>
+            <td class="num"><b>{mud[k] ? `${mud[k].diferenca > 0 ? "+" : ""}${n1(mud[k].diferenca)} p.p.` : "—"}</b></td></tr>))}
+        <tr class="destaque"><td>Adultos sem o ensino fundamental</td><td class="num">{n1(semFund[anosEsc[0]])}%</td>
+          <td class="num">{n1(semFund[anoEsc])}%</td>
+          <td class="num"><b>{n1(semFund[anoEsc] - semFund[anosEsc[0]])} p.p.</b></td></tr>
+        <tr class="destaque"><td>Taxa de analfabetismo (15 anos ou mais)</td><td class="num">{n1(mud.analfabetismo?.valor_de)}%</td>
+          <td class="num">{n1(mud.analfabetismo?.valor_para)}%</td>
+          <td class="num"><b>{n1(mud.analfabetismo?.diferenca)} p.p.</b></td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      <b>Até onde a fonte volta.</b> A PNAD Contínua anual começa em {anosEsc[0]} para escolaridade e analfabetismo, então
+      não dá para medir daqui o efeito do Plano Real (1994): a pesquisa que cobria os anos 1990 era a PNAD antiga, com
+      outra metodologia, e o IBGE não publica as duas numa série única. O que volta mais no tempo nesta página é o IDEB,
+      de 2005, e ele mede a escola, não a população adulta. O Censo Demográfico mede os dois e é decenal; o de 2022 é o
+      último. Preferimos mostrar o intervalo que a fonte sustenta a emendar séries de metodologias diferentes.
+    </p>
   </div>
 
   <h2>O que os números dizem</h2>

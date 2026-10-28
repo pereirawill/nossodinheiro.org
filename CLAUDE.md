@@ -167,6 +167,12 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   `divulgacao_<etapa>_municipios_<ano>` (openpyxl; md5 do zip conferido; TLS do INEP falha → retry sem verify + md5; abreviações
   "R. G. do Sul"). Município = rede pública. 2023 é a última edição (2025 sai em 2026). **INEP bloqueia runners do GitHub**
   (connection reset) → workflow só com dispatch; rodar local e commitar o JSON, como o STF.
+  28/10 (pedido do dono): `escolaridade()` no mesmo extrator → bloco `escolaridade` no `educacao.json`, da **PNAD Contínua**
+  (SIDRA 7189, 25 anos ou mais por nível de instrução; 7113, analfabetismo 15+), série 2016–2025, Brasil e UF, com mapa.
+  2025: 69,4% dos adultos terminaram o fundamental, 57,4% o médio, 21,4% o superior; 30,7% sem o fundamental (43,2 mi);
+  analfabetismo 4,9% (era 6,7% em 2016). **Analfabetismo funcional não entra**: IBGE não publica mais e o INAF é de
+  instituto privado — usamos "sem o fundamental" como medida oficial próxima. **Não dá para medir desde o Plano Real**:
+  a série começa em 2016 e a PNAD antiga tem outra metodologia; a página declara isso em vez de emendar séries.
 - **Segurança** `etl/seguranca/extract.py` → `seguranca.json`, `/seguranca/`: MJSP Sinesp VDE `bancovde-<ano>.xlsx` (26 MB, servidor
   corta download → 4 tentativas; cache em data/raw), abrangência Estadual, eventos separados (sem MVI), vítimas × ocorrências,
   população SIDRA 6579 do mesmo ano; municípios ≥100 mil + capitais; série 2015+ por UF (baixa 11 arquivos, ~5 min).

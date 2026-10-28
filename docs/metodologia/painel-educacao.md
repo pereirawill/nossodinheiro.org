@@ -26,3 +26,31 @@ O IDEB mede escolas e redes; a nota da rede privada reflete também renda e esco
 1. Saeb por disciplina e nível de proficiência; taxa de abandono.
 2. Gasto por aluno (SIOPE/FNDE) ao lado do IDEB, sem inferir causalidade.
 3. Censo Escolar: matrículas por rede, para ponderar.
+
+## Escolaridade da população adulta e analfabetismo (28/10/2026)
+
+O IDEB mede a escola. Estas duas seções medem a **população**, e vêm do IBGE, PNAD Contínua anual (módulo Educação),
+via SIDRA:
+
+| Tabela | O que mede | Universo | Série |
+|---|---|---|---|
+| 7189 | pessoas por nível de instrução (mil pessoas e distribuição %) | 25 anos ou mais | 2016 → |
+| 7113 | taxa de analfabetismo | 15 anos ou mais | 2016 → |
+
+- **Por que 25 anos ou mais** para escolaridade: é a idade em que a maioria já terminou os estudos. Usar a população
+  inteira contaria toda criança em idade escolar como "fundamental incompleto".
+- As faixas são **acumulativas**: quem tem superior completo também concluiu médio e fundamental. Por isso os três
+  destaques (fundamental 69,4%, médio 57,4%, superior 21,4%) somam mais de 100%.
+- **Analfabeto**, na PNAD, é quem declara não saber ler e escrever um bilhete simples. É autodeclaração.
+- **Analfabetismo funcional não entra.** O IBGE não publica mais esse indicador; o mais citado com esse nome é o INAF,
+  de instituto privado, e a regra do site é só usar o que órgão público publica (a mesma razão pela qual não usamos o
+  Impostômetro). O número oficial mais próximo é a parcela de adultos que **não terminou o ensino fundamental** (30,7%
+  em 2025, 43,2 milhões de pessoas), que a página mostra ao lado.
+- **2020 e 2021 não existem**: a PNAD não foi a campo por causa da pandemia, e a linha do gráfico pula os dois anos.
+- **Não medimos "desde o Plano Real".** A PNAD Contínua anual começa em 2016 para estes recortes; os anos 1990 estavam
+  na PNAD antiga, com outra metodologia, e o IBGE não publica as duas numa série única. A página diz isso em vez de
+  emendar séries. O que volta mais no tempo aqui é o IDEB, de 2005, e ele mede a escola, não a população adulta.
+
+Resultado em 2025: 69,4% dos adultos terminaram o fundamental, 57,4% o médio e 21,4% o superior; 30,7% não terminaram o
+fundamental; analfabetismo de 4,9%, contra 6,7% em 2016. Entre 2016 e 2025 o superior completo subiu 6,0 pontos e o
+fundamental incompleto caiu 7,7 pontos.
