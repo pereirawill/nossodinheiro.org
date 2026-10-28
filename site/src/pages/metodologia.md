@@ -214,6 +214,23 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   próprio órgão e ficam fora dos números de destaque.
 - Completo: `docs/metodologia/painel-obras.md`.
 
+## Estatais — lucro, prejuízo e dividendos
+
+- **O que é:** quanto as empresas do poder público lucraram ou perderam, e quanto disso chegou ao Tesouro como dividendo. São três
+  recortes, mostrados separados porque têm universos diferentes: os **dividendos** que a União recebeu (desde 1997), o lucro das
+  **estatais federais**, inclusive as de capital fechado como Caixa, Correios e BNDES (desde 2016), e o lucro **empresa por empresa
+  nas três esferas**, de quem entrega demonstração à CVM (desde 2010).
+- **Fontes:** Tesouro Nacional (Resultado do Tesouro Nacional, série histórica, tabela 2.2, linha 1.4.2); Ministério da Gestão/SEST
+  (microdado de dados financeiros das estatais federais); CVM (DFP e formulário de referência).
+- **Atenção:** lucro é resultado contábil da empresa — não é dinheiro no caixa do governo. O que entra no Tesouro é o dividendo, pago
+  no ano seguinte e só sobre a fatia do poder público. Os três recortes **não se somam**. O conjunto de empresas muda de ano para ano
+  (a Eletrobras saiu do grupo das federais em 17/06/2022), então o agregado não é série comparável sem ressalva — incluindo quem era
+  estatal naquele ano, 2016 deixa de ser prejuízo e vira lucro. Quem controlava cada empresa em cada ano sai do formulário da CVM, não
+  de datas digitadas por nós: por isso a privatização aparece como o documento a registra, e não pela data do leilão. Nossa soma das
+  federais em 2025 dá R$ 168,1 bi; o Ministério da Gestão divulgou R$ 169,4 bi (diferença de 0,8%), e os dois números estão na página.
+  Não entra aqui o "déficit das estatais" no conceito fiscal do Banco Central: é outro número, com outro sinal e outro universo.
+- Completo: `docs/metodologia/painel-estatais.md`.
+
 ## Imposto de Renda — o que os brasileiros declaram ganhar
 
 - **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem
@@ -365,6 +382,9 @@ sempre só PDF ou metodologia diferente.
 | IPCA (inflação) | IBGE | dez/1979 (por grupo e região, 2020) | índices anteriores com outra metodologia e outras moedas |
 | Câmbio (dólar) | Banco Central | jul/1994 | cotações anteriores em cruzeiro, cruzado e cruzeiro real |
 | Punições e sanções (CEIS, CNEP, CEAF) | Portal da Transparência | o cadastro traz a sanção pela data de início; os registros mais antigos são dos anos 2000 | processos em papel, sem cadastro nacional |
+| Dividendos recebidos pela União | Tesouro Nacional (RTN, série histórica) | 1997 | o RTN começa em 1997; antes, balanços anuais em PDF |
+| Lucro das estatais federais (todas) | Ministério da Gestão / SEST (microdado) | 2016 | os boletins da SEST publicam só comparativos de dois anos |
+| Lucro das estatais com registro na CVM (três esferas) | CVM (DFP e formulário de referência) | 2010 | demonstrações em PDF, empresa por empresa |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 
 ## Como conferir

@@ -1,0 +1,277 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/estatais.json";
+import h from "../../../public/data/historico.json";
+
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const base = h.ano_base;                                   // reais do último ano fechado (IPCA do IBGE)
+const defl = h.deflator as Record<string, number>;
+const real = (v: number, ano: string) => v * (defl[ano] ?? 1);
+const bi = (v: number) => `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e9).toFixed(1).replace(".", ",")} bi`;
+const bi2 = (v: number) => `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e9).toFixed(2).replace(".", ",")} bi`;
+const compact = (v: number) => v === 0 ? "R$ 0" : Math.abs(v) >= 1e12 ? `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e12).toFixed(2).replace(".", ",")} tri`
+  : Math.abs(v) >= 1e9 ? bi(v) : `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e6).toFixed(0)} mi`;
+const pct = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")}%`;
+
+// ── dividendos que a União recebeu (Tesouro, desde 1997) ───────────────────────────────────────────────────────────
+const div = d.dividendos as { anos: string[]; total: Record<string, number>; por_empresa: Record<string, Record<string, number>>; fonte: string; url: string };
+const divSerie = div.anos.map((a) => ({ ano: a, nominal: div.total[a], real: real(div.total[a], a) }));
+const divUlt = divSerie[divSerie.length - 1];
+const divSomaReal = divSerie.reduce((s, x) => s + x.real, 0);
+const divMaior = divSerie.reduce((m, x) => (x.real > m.real ? x : m));
+const divEmpresas = Object.entries(div.por_empresa).map(([nome, s]) => ({
+  nome, serie: s, ultimo: s[divUlt.ano] ?? 0,
+  somaReal: Object.entries(s).reduce((t, [a, v]) => t + real(v, a), 0),
+})).sort((a, b) => b.somaReal - a.somaReal);
+
+// ── estatais federais pelo microdado da SEST (desde 2016) ──────────────────────────────────────────────────────────
+const sest = d.sest as any;
+const sestSerie = (sest.anos as string[]).map((a) => ({
+  ano: a, nominal: sest.agregado[a], real: real(sest.agregado[a], a),
+  comInativas: sest.agregado_com_inativas[a], n: sest.empresas_no_agregado[a], per: sest.periodicidade[a],
+}));
+const sestUlt = sestSerie[sestSerie.length - 1];
+const sestOficial = sest.oficial[sestUlt.ano] as number | undefined;
+const noAno = (e: any, ano: string) => e.serie[ano] !== undefined;
+const sestNoUltimo = (sest.empresas as any[]).filter((e) => noAno(e, sestUlt.ano)).sort((a, b) => b.serie[sestUlt.ano] - a.serie[sestUlt.ano]);
+const sestLucro = sestNoUltimo.filter((e) => e.serie[sestUlt.ano] > 0);
+const sestPrejuizo = sestNoUltimo.filter((e) => e.serie[sestUlt.ano] < 0).reverse();
+const maiorPrejuizo = sestPrejuizo[0];
+const petro = sestNoUltimo.find((e) => e.sigla === "PETROBRAS");
+const dependentes = (sest.empresas as any[]).filter((e) => e.dependente && noAno(e, sestUlt.ano)).sort((a, b) => a.serie[sestUlt.ano] - b.serie[sestUlt.ano]);
+
+// ── empresa por empresa, três esferas, pela CVM (desde 2010) ───────────────────────────────────────────────────────
+const anosCvm = d.anos as string[];
+const cvmUlt = anosCvm[anosCvm.length - 1];
+const cvmSerie = anosCvm.map((a) => ({
+  ano: a, total: d.agregado[a], real: real(d.agregado[a], a),
+  federal: real(d.agregado_federais[a], a), estadual: real(d.agregado_estaduais[a], a),
+  municipal: real(d.agregado_municipais[a], a), nominalFederal: d.agregado_federais[a],
+  nominalEstadual: d.agregado_estaduais[a], nominalMunicipal: d.agregado_municipais[a],
+  n: d.empresas_no_agregado[a],
+}));
+const esferaDe = (e: any) => e.esfera.startsWith("federal") ? "União" : e.esfera.startsWith("estadual") ? `Estado — ${e.esfera.replace(/[^A-Z]/g, "")}` : "Prefeitura";
+const deQuemEra = (e: any) => e.esfera.startsWith("federal") ? "da União"
+  : e.esfera.startsWith("estadual") ? `do estado — ${e.esfera.replace(/[^A-Z]/g, "")}` : "da prefeitura";
+const cvmEmpresas = (d.empresas as any[]).slice().sort((a, b) => {
+  const va = a.estatal[cvmUlt] ? (a.serie[cvmUlt] ?? -1e18) : -1e17, vb = b.estatal[cvmUlt] ? (b.serie[cvmUlt] ?? -1e18) : -1e17;
+  return vb - va;
+});
+const saiuDaMao = (d.empresas as any[]).filter((e) => e.ultimo_ano_estatal && !e.estatal_hoje)
+  .sort((a, b) => Number(b.ultimo_ano_estatal) - Number(a.ultimo_ano_estatal));
+const estaduaisUlt = (d.empresas as any[]).filter((e) => e.estatal[cvmUlt] && !e.dentro_de && e.esfera.startsWith("estadual") && noAno(e, cvmUlt));
+const metro = (d.empresas as any[]).find((e) => e.nome.startsWith("Metrô"));
+
+// ── gráficos: barras com linha do zero, porque há anos de prejuízo ─────────────────────────────────────────────────
+const W = 920, L = 78, R = 16, H = 250, T = 16, B = 28;
+const escala = (vals: number[]) => {
+  const max = Math.max(0, ...vals), min = Math.min(0, ...vals), amp = (max - min) || 1;
+  const y = (v: number) => T + ((max - v) / amp) * (H - T - B);
+  return { max, min, y, zero: y(0), marcas: [max, max / 2, 0, min / 2, min].filter((v, i, a) => a.indexOf(v) === i && (v !== 0 || true)) };
+};
+const barras = (n: number) => ({ passo: (W - L - R) / n, largura: (W - L - R) / n - 3 });
+
+const esc1 = escala(divSerie.map((x) => x.real));
+const b1 = barras(divSerie.length);
+const esc2 = escala(sestSerie.map((x) => x.real));
+const b2 = barras(sestSerie.length);
+const esc3 = escala(cvmSerie.map((x) => x.real));
+const b3 = barras(cvmSerie.length);
+
+const FONTES_ATE = [
+  ["Dividendos que a União recebeu", "Tesouro Nacional (RTN, série histórica)", "1997", "o RTN começa em 1997; antes disso só há balanços anuais em PDF"],
+  ["Lucro das estatais federais (todas, inclusive as fechadas)", "Ministério da Gestão / SEST (microdado)", "2016", "os boletins da SEST publicam só comparativos de dois anos, nunca a série"],
+  ["Lucro empresa por empresa, nas três esferas", "CVM (DFP)", "2010", "primeiro ano do arquivo aberto da CVM; antes, só as demonstrações em PDF de cada empresa"],
+  ["Quem controlava cada empresa em cada ano", "CVM (formulário de referência)", "2010", "—"],
+];
+---
+<Base title="O lucro das estatais — Nosso Dinheiro" accent="var(--s2)"
+  description="Quanto as estatais lucraram e quanto disso chegou ao Tesouro como dividendo: as federais desde 2016, empresa por empresa nas três esferas desde 2010, e os dividendos da União desde 1997.">
+  <h1>O lucro das estatais</h1>
+  <p class="lede">
+    Quanto as empresas do poder público lucraram ou perderam, e — o que é outra conta — quanto disso chegou de fato ao
+    Tesouro. Em {sestUlt.ano}, as {sestUlt.n} estatais federais de controle direto que já publicaram demonstração somaram
+    <strong>{bi(sestUlt.nominal)}</strong> de lucro líquido, e a União recebeu <strong>{bi(divUlt.nominal)}</strong> em dividendos. Nem toda estatal dá lucro: {sestPrejuizo.length} delas
+    fecharam o ano no vermelho.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fontes: Ministério da Gestão (SEST), Tesouro Nacional, CVM · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{bi(sestUlt.nominal)}</b><span>o lucro somado das {sestUlt.n} estatais federais de controle direto que publicaram demonstração de {sestUlt.ano} ({sestUlt.per}); {petro ? `${pct(petro.serie[sestUlt.ano] / sestUlt.nominal)} disso é da Petrobras` : ""}</span></div>
+    <div class="stat"><b>{bi(divUlt.nominal)}</b><span>o que entrou no Tesouro como dividendo em {divUlt.ano} — a parte do lucro que cabe à União como acionista</span></div>
+    {maiorPrejuizo && <div class="stat"><b>{bi(maiorPrejuizo.serie[sestUlt.ano])}</b><span>o maior prejuízo de {sestUlt.ano}: {maiorPrejuizo.nome.replace(/\s*\(.*/, "")}</span></div>}
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Desde 1988 não é possível, e a página diz onde cada série começa.</b> Nenhuma fonte oficial aberta publica
+    o lucro das estatais antes de 2016 (microdado da SEST) ou 2010 (arquivo da CVM); os dividendos recebidos pela União
+    voltam a 1997, e são a série mais longa que existe. A tabela no fim repete isso fonte por fonte.
+    <b>Lucro não é dinheiro no caixa do governo.</b> Lucro é resultado contábil da empresa; o que chega ao Tesouro é o
+    <Termo t="dividendo_uniao">dividendo</Termo>, pago no ano seguinte e só sobre a fatia que a União tem. Os gráficos
+    estão em <strong>reais de {base}</strong> (corrigidos pelo IPCA); as tabelas trazem o valor do ano.</div>
+  </div>
+
+  <h2>O que chegou ao Tesouro: dividendos das estatais, {divSerie[0].ano}–{divUlt.ano}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Dividendos e participações recebidos pela União por ano, em reais corrigidos">
+      {[1, 0.75, 0.5, 0.25].map((t) => <g><line x1={L} x2={W - R} y1={esc1.y(esc1.max * t)} y2={esc1.y(esc1.max * t)} stroke="var(--line)" /><text x={L - 6} y={esc1.y(esc1.max * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{bi(esc1.max * t)}</text></g>)}
+      {divSerie.map((x, i) => (<g>
+        <rect x={L + i * b1.passo + 1} y={esc1.y(x.real)} width={b1.largura} height={Math.max(1, esc1.zero - esc1.y(x.real))} fill="var(--s2)">
+          <title>{x.ano}: {bi2(x.real)} em reais de {base} (no ano, {bi2(x.nominal)})</title></rect>
+        {Number(x.ano) % 5 === 0 && <text x={L + i * b1.passo + b1.largura / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{x.ano}</text>}
+      </g>))}
+    </svg>
+    <p class="src">
+      Em reais de {base}. O maior ano da série é {divMaior.ano} ({bi(divMaior.real)}); somando os {divSerie.length} anos,
+      a União recebeu <b>{compact(divSomaReal)}</b> em dividendos de estatais. É <Termo t="regime_caixa">regime de caixa</Termo>:
+      vale o ano em que o dinheiro entrou, não o ano do lucro que o gerou. Fonte: {div.fonte} (<a href={div.url}>planilha</a>).
+    </p>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>De quem veio o dividendo</th><th class="num">{divUlt.ano}</th><th class="num">{divSerie[divSerie.length - 2].ano}</th><th class="num">Soma {divSerie[0].ano}–{divUlt.ano} (reais de {base})</th></tr></thead>
+      <tbody>{divEmpresas.map((e) => (<tr>
+        <td>{e.nome}</td>
+        <td class="num">{e.serie[divUlt.ano] !== undefined ? compact(e.serie[divUlt.ano]) : "—"}</td>
+        <td class="num">{e.serie[divSerie[divSerie.length - 2].ano] !== undefined ? compact(e.serie[divSerie[divSerie.length - 2].ano]) : "—"}</td>
+        <td class="num">{compact(e.somaReal)}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">Abertura publicada pelo próprio Tesouro (linhas 1.4.2.1 a 1.4.2.9 da tabela 2.2). "Demais" junta todas as outras empresas e participações.</p>
+  </div>
+
+  <h2>O lucro das estatais federais, {sestSerie[0].ano}–{sestUlt.ano}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Lucro ou prejuízo somado das estatais federais de controle direto, por ano, em reais corrigidos">
+      {[1, 0.5].map((t) => <g><line x1={L} x2={W - R} y1={esc2.y(esc2.max * t)} y2={esc2.y(esc2.max * t)} stroke="var(--line)" /><text x={L - 6} y={esc2.y(esc2.max * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{bi(esc2.max * t)}</text></g>)}
+      <line x1={L} x2={W - R} y1={esc2.zero} y2={esc2.zero} stroke="var(--ink-2)" />
+      {sestSerie.map((x, i) => (<g>
+        <rect x={L + i * b2.passo + 1} y={Math.min(esc2.zero, esc2.y(x.real))} width={b2.largura} height={Math.max(1, Math.abs(esc2.zero - esc2.y(x.real)))} fill={x.real < 0 ? "#a3302a" : "var(--s2)"}>
+          <title>{x.ano}: {bi2(x.real)} em reais de {base} (no ano, {bi2(x.nominal)}), {x.n} empresas</title></rect>
+        <text x={L + i * b2.passo + b2.largura / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{x.ano}</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      Em reais de {base}, só as <Termo t="controle_direto">empresas de controle direto</Termo> — {sest.controle_direto} das {sest.total_ativas} estatais
+      federais. As outras {sest.controle_indireto} são subsidiárias, e o resultado delas já está dentro da mãe.
+      {sestOficial ? ` Nossa soma de ${sestUlt.ano} dá ${bi(sestUlt.nominal)}; o Ministério da Gestão divulgou ${bi(sestOficial)} — diferença de ${pct(Math.abs(sestUlt.nominal / sestOficial - 1))}, que vem de duas empresas sem demonstração publicada no arquivo e de revisões posteriores ao fechamento do arquivo.` : ""}
+    </p>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Esta série não é comparável ano a ano sem ressalva.</b> O conjunto de empresas muda: a Eletrobras saiu do
+    grupo em 17/06/2022, e outras cinco foram extintas ou liquidadas no período. O gráfico acima usa só as
+    {" "}{sest.controle_direto} de hoje. Incluindo quem era estatal naquele ano, {sestSerie[0].ano} deixa de ser prejuízo
+    de {bi2(sestSerie[0].nominal)} e vira lucro de {bi2(sestSerie[0].comInativas)} — quase tudo Eletrobras. De 2022 em
+    diante as duas contas dão o mesmo número.</div>
+  </div>
+
+  <h2>Uma por uma: as estatais federais em {sestUlt.ano}</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Empresa</th><th>Setor</th><th>Depende do Tesouro</th><th class="num">Lucro/prejuízo {sestUlt.ano}</th><th class="num">{sestSerie[sestSerie.length - 2].ano}</th></tr></thead>
+      <tbody>{sestNoUltimo.map((e) => (<tr>
+        <td>{e.sigla}{e.ativa ? "" : ` (saiu em ${e.saiu_em})`}<br /><span class="sub">{e.nome.length > 58 ? e.nome.slice(0, 56) + "…" : e.nome}</span></td>
+        <td>{e.segmento || e.setor}</td>
+        <td>{e.dependente ? "Sim" : "Não"}</td>
+        <td class={`num${e.serie[sestUlt.ano] < 0 ? " neg" : ""}`}>{compact(e.serie[sestUlt.ano])}</td>
+        <td class={`num${(e.serie[sestSerie[sestSerie.length - 2].ano] ?? 0) < 0 ? " neg" : ""}`}>{e.serie[sestSerie[sestSerie.length - 2].ano] !== undefined ? compact(e.serie[sestSerie[sestSerie.length - 2].ano]) : "—"}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Clique no cabeçalho para ordenar. {sestLucro.length} com lucro, {sestPrejuizo.length} com prejuízo em {sestUlt.ano}.
+      "Depende do Tesouro" é a classificação da própria SEST: são {sest.total_dependentes} empresas que recebem dinheiro do
+      Orçamento para pagar pessoal e custeio — para elas o resultado contábil não mede o custo para o país.
+      Fonte: {sest.fonte} (<a href={sest.url}>dados</a>).
+    </p>
+  </div>
+
+  <h2>As que dependem do Orçamento</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      Das {sest.total_ativas} estatais federais, {sest.total_dependentes} são <Termo t="dependente_tesouro">dependentes do
+      Tesouro</Termo>: não se sustentam com receita própria e recebem recursos do Orçamento da União. São estas, pelo
+      resultado de {sestUlt.ano}:
+    </p>
+    <table>
+      <thead><tr><th>Empresa</th><th>Setor</th><th class="num">Resultado {sestUlt.ano}</th></tr></thead>
+      <tbody>{dependentes.map((e) => (<tr><td>{e.sigla}<br /><span class="sub">{e.nome.length > 58 ? e.nome.slice(0, 56) + "…" : e.nome}</span></td><td>{e.segmento || e.setor}</td><td class={`num${e.serie[sestUlt.ano] < 0 ? " neg" : ""}`}>{compact(e.serie[sestUlt.ano])}</td></tr>))}</tbody>
+    </table>
+    <p class="src">O quanto cada uma recebe do Orçamento está em <a href="/poderes/">Poderes</a> (despesa por órgão); aqui aparece só o resultado da empresa.</p>
+  </div>
+
+  <h2>Empresa por empresa, nas três esferas, {anosCvm[0]}–{cvmUlt}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Lucro somado das estatais com ações em bolsa, por ano, em reais corrigidos">
+      {[1, 0.5].map((t) => <g><line x1={L} x2={W - R} y1={esc3.y(esc3.max * t)} y2={esc3.y(esc3.max * t)} stroke="var(--line)" /><text x={L - 6} y={esc3.y(esc3.max * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{bi(esc3.max * t)}</text></g>)}
+      <line x1={L} x2={W - R} y1={esc3.zero} y2={esc3.zero} stroke="var(--ink-2)" />
+      {cvmSerie.map((x, i) => (<g>
+        <rect x={L + i * b3.passo + 1} y={Math.min(esc3.zero, esc3.y(x.real))} width={b3.largura} height={Math.max(1, Math.abs(esc3.zero - esc3.y(x.real)))} fill={x.real < 0 ? "#a3302a" : "var(--s2)"}>
+          <title>{x.ano}: {bi2(x.real)} em reais de {base} · federais {bi2(x.federal)} · estaduais {bi2(x.estadual)} · municipais {compact(x.municipal)} · {x.n} empresas</title></rect>
+        {Number(x.ano) % 2 === 0 && <text x={L + i * b3.passo + b3.largura / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{x.ano}</text>}
+      </g>))}
+    </svg>
+    <p class="src">
+      Em reais de {base}. Aqui entram só as estatais que entregam demonstração à CVM — quem tem ações em bolsa ou dívida
+      registrada —, mas entram as <strong>três esferas</strong>: {cvmSerie[cvmSerie.length - 1].n} empresas em {cvmUlt},
+      sendo {bi(cvmSerie[cvmSerie.length - 1].nominalFederal)} de federais, {bi(cvmSerie[cvmSerie.length - 1].nominalEstadual)} de
+      estaduais e {compact(cvmSerie[cvmSerie.length - 1].nominalMunicipal)} de municipais. Caixa, Correios, BNDES e as demais estatais
+      fechadas não estão nesta conta (estão na de cima, que é só federal).
+    </p>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>Empresa</th><th>De quem é</th><th>Setor</th><th class="num">{cvmUlt}</th><th class="num">{anosCvm[anosCvm.length - 3]}</th><th>Quem controla, pelo formulário</th></tr></thead>
+      <tbody>{cvmEmpresas.map((e) => { const c = e.controle[e.ultimo_ano_estatal ?? ""] as any; return (<tr>
+        <td>{e.nome}{e.dentro_de ? <><br /><span class="sub">resultado já incluído no da {e.dentro_de}</span></> : null}</td>
+        <td>{e.estatal[cvmUlt] ? esferaDe(e) : <span class="sub">privatizada — era {deQuemEra(e)} até {e.ultimo_ano_estatal}</span>}</td>
+        <td>{e.setor}</td>
+        <td class={`num${(e.serie[cvmUlt] ?? 0) < 0 ? " neg" : ""}`}>{e.serie[cvmUlt] !== undefined ? compact(e.serie[cvmUlt]) : "—"}</td>
+        <td class={`num${(e.serie[anosCvm[anosCvm.length - 3]] ?? 0) < 0 ? " neg" : ""}`}>{e.serie[anosCvm[anosCvm.length - 3]] !== undefined ? compact(e.serie[anosCvm[anosCvm.length - 3]]) : "—"}</td>
+        <td class="desc">{c ? `${c.ente}${c.tipo === "indireto" && !c.ente.toLowerCase().includes(String(c.via).toLowerCase()) ? ` (via ${c.via})` : ""} — ${c.on.toFixed(1).replace(".", ",")}% das ações ordinárias` : "sem controle público no período"}</td></tr>); })}
+      </tbody>
+    </table>
+    <p class="src">
+      Quem controlava cada empresa em cada ano não foi digitado por nós: sai da posição acionária do formulário de
+      referência da CVM, pela regra "{d.regra_controle}". Por isso a tabela mostra as privatizações como elas aparecem
+      no documento, e não pela data do leilão: o formulário do ano da venda já costuma vir sem o ente público.
+      {metro ? ` Nem toda estatal existe para dar lucro: o Metrô de São Paulo fechou ${cvmUlt} com ${bi2(metro.serie[cvmUlt])}, porque a tarifa não cobre o custo do serviço.` : ""}
+    </p>
+  </div>
+
+  {saiuDaMao.length > 0 && <>
+    <h2>Deixaram de ser estatais no período</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Empresa</th><th class="num">Último ano com controle público</th><th class="num">Lucro naquele ano</th><th class="num">Lucro em {cvmUlt}, já privada</th></tr></thead>
+        <tbody>{saiuDaMao.map((e) => (<tr><td>{e.nome}</td><td class="num">{e.ultimo_ano_estatal}</td><td class="num">{e.serie[e.ultimo_ano_estatal] !== undefined ? compact(e.serie[e.ultimo_ano_estatal]) : "—"}</td><td class="num">{e.serie[cvmUlt] !== undefined ? compact(e.serie[cvmUlt]) : "—"}</td></tr>))}</tbody>
+      </table>
+      <p class="src">Comparar as duas últimas colunas não diz se a venda foi boa ou ruim: entre um ano e outro mudaram tarifa, dívida, investimento e o próprio setor. A coluna existe para mostrar que a empresa continua publicando, e que ela saiu da conta das estatais a partir daquele ano.</p>
+    </div>
+  </>}
+
+  <h2>Até onde cada fonte volta no tempo</h2>
+  <table>
+    <thead><tr><th>O que</th><th>Fonte aberta</th><th class="num">Desde</th><th>Antes disso</th></tr></thead>
+    <tbody>{FONTES_ATE.map(([o, f, a, b]) => (<tr><td>{o}</td><td>{f}</td><td class="num">{a}</td><td class="desc">{b}</td></tr>))}</tbody>
+  </table>
+  <p class="src">
+    O mesmo levantamento está em <a href="/historico/">Histórico</a>, que reúne as séries longas de todos os painéis.
+    Também não existe série aberta do <b>déficit das estatais</b> no conceito fiscal (o do Banco Central, que começa em
+    dezembro de 2001, cobre as três esferas e exclui os grupos Petrobras e Eletrobras): é outro número, com outro sinal
+    e outro universo, e por isso não entra aqui.
+  </p>
+
+  <Glossario termos={["lucro_liquido", "dividendo_uniao", "regime_caixa", "controle_direto", "dependente_tesouro", "consolidado", "nao_controladores", "acao_ordinaria"]} />
+</Base>
+<style>
+  .sub { font-size: 12px; color: var(--ink-2); }
+  td.num, th.num { white-space: nowrap; }
+  td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 320px; }
+  td.neg { color: #a3302a; }
+</style>

@@ -29,6 +29,11 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+estatais: ## lucro das estatais: CVM (DFP + formulário de referência) + SEST + dividendos do Tesouro
+	python -m etl.estatais.extract
+	cp data/public/estatais.json site/public/data/
+.PHONY: estatais
+
 irpf: ## imposto de renda: planilha dos Grandes Números do IRPF (cache em data/raw)
 	python -m etl.irpf.extract
 	cp data/public/irpf.json site/public/data/

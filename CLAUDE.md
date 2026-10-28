@@ -41,7 +41,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Obras, Impostos, Imposto de Renda, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Obras, Estatais, Impostos, Imposto de Renda, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -232,6 +232,31 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Regras: paradas = situação "Paralisada"/"Inacabada" (declarada pelo órgão); previsto ≠ gasto; `dataSituacao` é a última atualização
   do status → a página separa "sem atualizar a situação" de "atraso do prazo"; `qdtEmpregosGerados`/`populacaoBeneficiada` são
   declarados pelo órgão e ficam fora dos destaques.
+
+## Painel Estatais (NO AR, sem chave, mensal dia 16; feito 28/10/2026)
+- Pedido do dono: "lucro das estatais desde 1988". **1988 não existe** em fonte aberta — a página declara isso e mostra até onde cada
+  fonte volta. Três recortes, nunca somados: `etl/estatais/dividendos.py` (Tesouro/RTN, aba 2.2, linha 1.4.2, **desde 1997**, por
+  empresa; arquivo resolvido pela API do CKAN porque o nome muda todo mês), `etl/estatais/sest.py` (microdado da SEST, **desde 2016**,
+  todas as federais inclusive as fechadas — Caixa, Correios, BNDES) e `etl/estatais/extract.py` (CVM, **desde 2010**, empresa por
+  empresa nas três esferas). Saída única: `estatais.json`; página `/estatais/` (menu depois de Obras — 31º item, único acrescentado).
+- **SEST**: ZIPs em `gov.br/gestao/.../estatais/transparencia/sest{identificacao,dadosfinanceiros}.zip` (UA de navegador + Referer).
+  Agregado = só as **44 de controle direto** (as 73 indiretas já estão no consolidado da mãe). Armadilhas: conta do lucro tem dois
+  códigos (`500000` antigo, `290000000` atual); `500000` colide com outros demonstrativos → filtrar `demonstrativo=='DRE'`; os 9
+  **grupos** ("GR. PETROBRAS") duplicam; o ano corrente vem no `4º Trimestre` (acumulado), sem linha `Anual`. Duas somas no JSON
+  porque a Eletrobras saiu em 17/06/2022: em 2016 incluir as inativas **inverte o sinal** (−1,4 bi → +2,0 bi). 2025: R$ 168,1 bi
+  (MGI publicou 169,4 — 0,8%); maior prejuízo = Correios −8,5 bi; 17 dependentes do Tesouro.
+- **CVM**: DFP (`DRE_con`, cai no `DRE_ind`) + **formulário de referência** (`posicao_acionaria`). A linha do lucro **não tem código
+  fixo** (3.11 nas não financeiras, 3.09 nos bancos até 2019) → achada pela descrição; fixar 3.11 tirava 10 anos de BB e Banrisul.
+  Quem era estatal em cada ano **sai do formulário**, não de datas digitadas: ente público com ≥50% das ON em posição direta (ou
+  marcado controlador com ≥20%), controle indireto conta, ano sem formulário é interpolado entre confirmados e para trás, **nunca
+  para frente** (ausência depois do último confirmado = privatização). Falso positivo corrigido: "do **Estado** de São Paulo" no nome
+  da Sabesp (privatizada, comprou a Emae em 2026) a fazia passar por ente público.
+- Fora da lista, documentado em `docs/metodologia/painel-estatais.md`: IRB (União tem 11,7% direto; os 50,7% são cadeia via BB),
+  CEEE-G, FCA/FNS/Transnordestina/Rota do Oeste/Guarulhos/Metanor (erro de preenchimento ou concessão), Taesa/Gasmig, BRB (não
+  entrega DFP). **Não entra** o "déficit das estatais" do conceito fiscal do BCB (desde dez/2001, três esferas, exclui Petrobras e
+  Eletrobras) — outro número, outro sinal, outro universo.
+- RAEEF e Panorama das Estatais são inacessíveis (PDF atrás de login quebrado no Plone; painel é embed de Power BI/Qlik); a API
+  `dados.gov.br/api/publico` exige chave e o catálogo lista 3 de 5 URLs erradas → URLs dos ZIPs fixas no código.
 
 ## Painéis INSS e Aposentadoria (NO AR, sem chave, mensal dia 14; feitos 27/10/2026)
 - Pedido de 27/10: **duas abas**, com a diferença explicada nas duas (o dono escolheu duas, contra a recomendação de uma só).

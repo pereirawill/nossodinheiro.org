@@ -1,0 +1,40 @@
+name: ETL Estatais — lucro das estatais (CVM, SEST) e dividendos da União (Tesouro)
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/etl-estatais.yml", "etl/estatais/**"]
+  schedule:
+    - cron: "41 9 16 * *"      # dia 16 de cada mês, 06:41 BRT
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etl-estatais
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    # o primeiro run baixa 16 zips de DFP + 16 de FRE da CVM (~250 MB) e dois ZIPs da SEST
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+
+      - name: "Extrair (CVM: DFP + formulário de referência; SEST; Tesouro) — sem chave"
+        run: |
+          python -m etl.estatais.extract
+          mkdir -p site/public/data && cp data/public/estatais.json site/public/data/
+
+      - name: Commitar dados agregados
+        run: |
+          git config user.name "etl-bot"; git config user.email "etl-bot@users.noreply.github.com"
+          git add data/public site/public/data
+          git diff --cached --quiet && echo "sem mudanças" && exit 0
+          git commit -m "data: estatais ($(date -u +%F))"
+          git pull --rebase origin main && git push

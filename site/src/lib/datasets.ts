@@ -183,6 +183,15 @@ export const DATASETS: Dataset[] = [
     fontes: [{ nome: "SIOP — SPARQL", url: "https://www1.siop.planejamento.gov.br/sparql/" }, { nome: "IBGE — IPCA (SIDRA)", url: "https://sidra.ibge.gov.br/" }],
     periodo: "2000/..", atualizacao: "mensal",
   },
+  {
+    slug: "/estatais/", nome: "Lucro das estatais e dividendos da União",
+    descricao: "Lucro ou prejuízo das estatais federais de controle direto (microdado da SEST, desde 2016), lucro empresa por empresa nas três esferas com quem controlava cada uma em cada ano (CVM, desde 2010) e dividendos recebidos pela União (Tesouro, desde 1997).",
+    arquivos: ["estatais.json"],
+    fontes: [{ nome: "Ministério da Gestão — SEST: estatais federais, dados financeiros", url: "https://dados.gov.br/dados/conjuntos-dados/empresas-estatais-federais---dados-financeiros" },
+             { nome: "CVM — Dados abertos: DFP e formulário de referência", url: "https://dados.cvm.gov.br/dataset/cia_aberta-doc-dfp" },
+             { nome: "Tesouro Nacional — Resultado do Tesouro Nacional, série histórica", url: "https://www.tesourotransparente.gov.br/ckan/dataset/resultado-do-tesouro-nacional" }],
+    periodo: "1997/2025", atualizacao: "mensal",
+  },
 ];
 
 export const porSlug = (slug: string) => DATASETS.find((d) => d.slug === slug);
