@@ -44,14 +44,40 @@ jobs:
       - run: npm run build
         working-directory: site
 
-      - name: Publicar no Cloudflare Pages
+      - name: Banco do painel "Agora" (D1) — opcional, não derruba o deploy
+        id: d1
+        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          # O painel /agora/ é a única parte do site que precisa de banco. Se o token não tiver permissão de D1,
+          # este passo falha, o deploy segue sem o binding e a página mostra "indisponível".
+          lista() { npx --yes wrangler@4 d1 list --json 2>/dev/null; }
+          id=$(lista | jq -r '.[]? | select(.name=="nossodinheiro-agora") | .uuid' | head -1)
+          if [ -z "$id" ] || [ "$id" = "null" ]; then
+            npx --yes wrangler@4 d1 create nossodinheiro-agora
+            id=$(lista | jq -r '.[]? | select(.name=="nossodinheiro-agora") | .uuid' | head -1)
+          fi
+          test -n "$id" && test "$id" != "null" || { echo "::warning::D1 indisponível para este token"; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          npx --yes wrangler@4 d1 execute nossodinheiro-agora --remote --file=db/agora.sql -y
+
+      - name: Publicar no Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_ID: ${{ steps.d1.outputs.id }}
+        run: |
           test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::secret CLOUDFLARE_API_TOKEN ausente"; exit 1; }
           test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::secret CLOUDFLARE_ACCOUNT_ID ausente"; exit 1; }
+          if [ -n "$D1_ID" ]; then
+            printf '\n[[d1_databases]]\nbinding = "DB"\ndatabase_name = "nossodinheiro-agora"\ndatabase_id = "%s"\n' "$D1_ID" >> wrangler.toml
+            echo "painel Agora com banco $D1_ID"
+          else
+            echo "::warning::deploy sem o banco do painel Agora (o resto do site não depende dele)"
+          fi
           npx --yes wrangler@4 whoami
           npx --yes wrangler@4 pages project list | grep -q '^│ nossodinheiro ' \
             || npx --yes wrangler@4 pages project create nossodinheiro --production-branch=main
-          npx --yes wrangler@4 pages deploy site/dist --project-name=nossodinheiro --branch=main --commit-dirty=true
+          npx --yes wrangler@4 pages deploy --project-name=nossodinheiro --branch=main --commit-dirty=true

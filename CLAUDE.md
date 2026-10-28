@@ -423,6 +423,22 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Analytics da Cloudflare conta bots (picos de 5 mil pageviews = crawler varrendo os municípios); para humanos, Web Analytics
   (beacon) ainda não ligado.
 
+## Painel Agora (ao vivo; feito 28/10/2026)
+- **Única página que não publica dado de órgão público**: mostra o movimento do próprio site. `/agora/` + menu antes de Dados.
+- Infra nova no repo: `wrangler.toml` (Pages com `pages_build_output_dir = "site/dist"`), `functions/api/e.js` (recebe o
+  sinal), `functions/api/agora.js` (agrega, cache de 20 s), `db/agora.sql`, `site/public/agora.js`, e um beacon inline no
+  `Base.astro`. Deploy passou a ser `wrangler pages deploy` **sem diretório** (lê a config).
+- **D1 é opcional por desenho**: o passo do deploy cria o banco `nossodinheiro-agora` se não existir, injeta o
+  `database_id` no `wrangler.toml` (o bloco não fica no repo) e tem `continue-on-error`. Sem banco, o site publica igual
+  e `/agora/` diz "indisponível"; o beacon responde 204 em silêncio.
+- **Privacidade (o que está escrito na página)**: grava caminho, título, horário e **domínio** de origem. Não grava IP,
+  cookie, user-agent nem aparelho. O id de sessão é aleatório, vive no `sessionStorage` e morre com a aba. Retenção de
+  48 h, limpeza preguiçosa (1 em 200 gravações). Robôs filtrados por user-agent (lido, não gravado) e `navigator.webdriver`.
+- Testado localmente com `wrangler pages dev` + D1 local: beacon 204, bot ignorado, agregados corretos (UF vem de
+  `/municipios/<uf>/…`, partido de `/deputados/partido/…`, origem do referrer).
+- **Pendências**: duelos lado a lado (exige antes uma página de comparação entre dois parlamentares, que não existe);
+  separar cidade de estado no agregado; amostrar quando passar de ~100 mil gravações/dia (limite do plano gratuito do D1).
+
 ## Convenções
 - Nunca persistir o CPF do parlamentar que vem no CSV da CEAP.
 - Todo número fixo em `config.py` com fonte e data; mudou lá → muda a metodologia na mesma PR.

@@ -1,5 +1,6 @@
 # nossodinheiro.org — dados públicos, metodologia aberta. Rastreio bem-vindo.
 User-agent: *
+Disallow: /api/      # endpoints do painel Agora, não são conteúdo
 Allow: /
 
 Sitemap: https://nossodinheiro.org/sitemap-index.xml

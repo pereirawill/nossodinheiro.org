@@ -1,0 +1,41 @@
+---
+// Painel ao vivo. A casca é estática; os números vêm de /api/agora, que é uma Pages Function lendo o banco.
+import Base from "../../layouts/Base.astro";
+---
+<Base title="Agora: o que o Brasil está olhando no site — Nosso Dinheiro" accent="var(--s3)"
+  description="Quantas pessoas estão no site neste momento, o que mais subiu na última hora, as páginas mais abertas do dia, os partidos e estados mais consultados e de onde as pessoas chegam.">
+  <h1>Agora</h1>
+  <p class="lede">
+    O que está sendo olhado no site neste momento. Esta é a única página em que os números não vêm de órgão público:
+    vêm do próprio movimento daqui. Tudo é contagem agregada, atualizada a cada 20 segundos.
+  </p>
+  <p class="meta">atualiza sozinho a cada 20 segundos · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>O que medimos e o que não medimos.</b> Registramos apenas qual página foi aberta, quando, e o domínio de onde
+    a pessoa veio. <b>Não guardamos endereço de IP, não usamos cookie e não gravamos o navegador nem o aparelho.</b> Para
+    não contar a mesma pessoa duas vezes no número de "agora", o navegador gera um identificador aleatório que vive só
+    enquanto a aba fica aberta e desaparece quando ela fecha — ele não vai para lugar nenhum além da contagem. Nada é
+    cruzado com nada, nada identifica ninguém, e os registros são apagados depois de 48 horas. Robôs são descartados.</div>
+  </div>
+
+  <div id="agora">
+    <div class="card"><p style="margin:0">Carregando o painel ao vivo…</p></div>
+  </div>
+
+  <h2>Por que esta página tem JavaScript</h2>
+  <div class="card">
+    <p style="margin:0">
+      O site inteiro é estático e gerado no build, sem JavaScript, de propósito: carrega rápido e funciona em qualquer
+      lugar. Número ao vivo é a exceção óbvia, porque nenhuma página gerada de manhã sabe quem está lendo agora. Então
+      aqui, e só aqui, a página busca os dados depois de abrir. Se o painel estiver fora do ar, o resto do site não sente.
+    </p>
+  </div>
+</Base>
+<script src="/agora.js" defer></script>
+<style>
+  .barra-cel { padding-left: 8px; width: 120px; }
+  .barra { display: block; height: 12px; border-radius: 2px; min-width: 2px; background: var(--s3); }
+  #agora table { width: 100%; }
+  #agora td.num { white-space: nowrap; }
+</style>

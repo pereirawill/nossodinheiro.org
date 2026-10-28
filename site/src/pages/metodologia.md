@@ -280,6 +280,20 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   polícia de proteção (47% do total), os Países Baixos deixam os palácios fora, e a Dinamarca conta só pagamentos em
   dinheiro a pessoas. A conversão para reais usa a PTAX do dia e serve apenas de ordem de grandeza.
 
+## Agora — o movimento do próprio site
+
+- **O que é:** a única página que não publica dado de órgão público, e sim o movimento daqui: quantas pessoas estão
+  lendo neste momento, o que subiu na última hora, o que foi mais aberto no dia, partidos e estados mais consultados e
+  de qual domínio as pessoas chegaram.
+- **O que coletamos:** caminho da página, título, horário e domínio de origem. **Nada mais.**
+- **O que não coletamos:** endereço de IP, cookie, user-agent, aparelho, tela, localização ou o endereço completo de
+  origem. Para não contar a mesma pessoa duas vezes no número de "agora", o navegador gera um identificador aleatório
+  que morre quando a aba fecha. Nada identifica ninguém, nada é cruzado, e os registros são apagados em **48 horas**.
+- **Robôs são descartados** pelo user-agent, que é lido e não gravado.
+- **É a única página com JavaScript de verdade**, porque número ao vivo não existe em página estática. Se o painel sair
+  do ar, nenhuma outra página do site é afetada.
+- Completo: `docs/metodologia/painel-agora.md`.
+
 ## Inflação — o IPCA desde 1979
 
 - **O que é:** a alta de preços no mês, no ano e em 12 meses; a série mensal desde 1996; o resultado de cada ano comparado com a

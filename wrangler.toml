@@ -1,0 +1,7 @@
+# Configuração do Cloudflare Pages. O site segue estático; o que entra aqui são duas Pages Functions
+# (/api/e e /api/agora) e, quando o banco existe, o binding do D1 que soma os acessos do painel "Agora".
+# O bloco [[d1_databases]] NÃO fica no repo: o workflow de deploy o anexa com o id do banco da conta.
+# Sem ele o deploy funciona igual e /agora/ responde "indisponível" — o resto do site não depende disso.
+name = "nossodinheiro"
+pages_build_output_dir = "site/dist"
+compatibility_date = "2026-10-01"

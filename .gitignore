@@ -8,3 +8,4 @@ site/.astro/
 __pycache__/
 .pytest_cache/
 .venv/
+.wrangler/
