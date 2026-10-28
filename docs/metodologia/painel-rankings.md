@@ -50,3 +50,11 @@ Para cada índice, a posição do Brasil ano a ano desde 1985 (Banco Mundial), 1
 Liberdade econômica (Heritage Foundation, site só com visualização), Freedom in the World (Freedom House deixou de
 publicar a planilha atual gratuitamente), PISA (OCDE, API SDMX a explorar), Global Peace Index (IEP, PDF). Entram quando
 houver forma de atualizar automaticamente citando a fonte primária.
+
+## Nomes de país e resistência de rede (28/10/2026)
+
+Os nomes em português vêm da API de localidades do IBGE, que **recusa os runners do GitHub** (timeout de conexão), o
+mesmo problema já conhecido no SIDRA de metadados. A lista fica versionada em `etl/rankings/paises_pt.json` (193 países)
+e a API só a atualiza quando responde e devolve pelo menos 90% dos nomes — nome de país não muda todo mês. Cada
+requisição do extrator tem três tentativas com espera crescente, porque uma execução faz dezenas de chamadas a quatro
+fontes diferentes e basta uma cair para o job inteiro falhar.

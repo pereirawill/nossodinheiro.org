@@ -305,6 +305,9 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `etl/rankings/extract.py` → `rankings.json`: Banco Mundial API (PIB, PIB pc, expectativa, Gini, educação %PIB,
   homicídios/UNODC), PNUD HDR 2025 CSV (IDH 2023, posição oficial), TI CPI 2025 xlsx (leitor xlsx próprio), nomes PT
   pelo IBGE. Posição calculada por nós nos do BM; oficial no IDH/CPI. Workflow `etl-rankings.yml` (dia 1, 06:37 BRT).
+- 28/10: `_get` com 3 tentativas (o ETL caiu no runner com ConnectTimeout depois dos seis indicadores novos) e os nomes
+  de país **congelados** em `etl/rankings/paises_pt.json` (193 países): a API de localidades do IBGE recusa os runners,
+  como já acontece com o SIDRA de metadados. A API só atualiza o arquivo quando responde e traz ≥90% dos nomes.
 - Pendentes sem arquivo aberto: Heritage (liberdade econômica), Freedom House (sem planilha gratuita), PISA (SDMX
   OCDE), Global Peace Index. Metodologia: `docs/metodologia/painel-rankings.md`.
 ## Painel Comparação internacional (NO AR; feito 28/10/2026)

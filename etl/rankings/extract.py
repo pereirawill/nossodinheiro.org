@@ -77,9 +77,24 @@ def _get(c: httpx.Client, url: str, **kw) -> httpx.Response:
     raise erro
 
 
+PAISES_PT = Path(__file__).with_name("paises_pt.json")
+
+
 def nomes_pt(c: httpx.Client) -> dict[str, str]:
-    d = _get(c, IBGE_PAISES).json()
-    return {p["id"]["ISO-ALPHA-3"]: p["nome"] for p in d if p.get("id", {}).get("ISO-ALPHA-3")}
+    """iso3 → nome em português. A API de localidades do IBGE recusa os runners do GitHub (timeout de conexão), então
+    a lista fica versionada no repo e a API só serve para atualizá-la quando dá: nome de país não muda todo mês."""
+    congelado = json.loads(PAISES_PT.read_text(encoding="utf-8")) if PAISES_PT.exists() else {}
+    try:
+        d = _get(c, IBGE_PAISES).json()
+        vivos = {p["id"]["ISO-ALPHA-3"]: p["nome"] for p in d if p.get("id", {}).get("ISO-ALPHA-3")}
+        if len(vivos) >= len(congelado) * 0.9:
+            if vivos != congelado:
+                PAISES_PT.write_text(json.dumps(vivos, ensure_ascii=False, indent=0, sort_keys=True), encoding="utf-8")
+                log.info("nomes de país atualizados do IBGE: %d", len(vivos))
+            return vivos
+    except httpx.HTTPError as e:
+        log.warning("IBGE de localidades indisponível (%s); usando a lista versionada com %d países", e, len(congelado))
+    return congelado
 
 
 def paises_wb(c: httpx.Client) -> dict[str, str]:
