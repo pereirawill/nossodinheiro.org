@@ -4,7 +4,7 @@
  * grupo em que a página está.
  *
  * Ordem dos grupos = o caminho do dinheiro: entra (quanto pagamos), sai (quem gasta), chega no território
- * (onde), vira serviço (o que recebemos), afeta a vida (como vivemos) e por fim o contexto (no mundo e no tempo).
+ * (onde), vira serviço (o que recebemos), afeta a vida (como vivemos) e por fim a comparação (Brasil comparado).
  */
 export type ItemMenu = { href: string; label: string; nota: string };
 export type GrupoMenu = { slug: string; nome: string; chamada: string; itens: ItemMenu[] };
@@ -63,7 +63,7 @@ export const GRUPOS: GrupoMenu[] = [
     ],
   },
   {
-    slug: "no-mundo-e-no-tempo", nome: "No mundo e no tempo",
+    slug: "brasil-comparado", nome: "Brasil comparado",
     chamada: "O Brasil comparado com outros países e com o próprio passado.",
     itens: [
       { href: "/comparacao/", label: "Comparação", nota: "Quanto cada país gasta nas mesmas coisas, quanto custa a Justiça, a Coroa e os parlamentos." },

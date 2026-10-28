@@ -32,10 +32,13 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - Eram **30 itens numa linha só**. Agora: `site/src/lib/menu.ts` é fonte única com **6 grupos** na ordem do caminho do
   dinheiro — Quanto pagamos (Impostos, Imposto de Renda, Inflação) · Quem gasta (Panorama, Poderes, Presidência,
   Deputados, Senadores, Judiciário, Emendas, Corrupção) · Onde (Estados, Municípios, Obras) · O que recebemos (Saúde,
-  Educação, Segurança, INSS, Aposentadoria) · Como vivemos (Trabalho, Renda, Inadimplência) · No mundo e no tempo
-  (Comparação, Rankings, Histórico). `SERVICO` (Agora, Sugestões, Dados, Metodologia, Sobre) fica numa faixa menor.
-- `Base.astro`: linha 1 = grupos (link para `/secao/<slug>/`) + serviço; linha 2 = **só os painéis do grupo da página
-  atual** (`grupoDe()` resolve pelo painel-pai, então `/deputados/uf/sp/` mostra os itens de Quem gasta). Sem JS.
+  Educação, Segurança, INSS, Aposentadoria) · Como vivemos (Trabalho, Renda, Inadimplência) · Brasil comparado
+  (Comparação, Rankings, Histórico — grupo "Brasil comparado"). `SERVICO` (Agora, Sugestões, Dados, Metodologia, Sobre) fica numa faixa menor.
+- `Base.astro`: **todos os painéis ficam visíveis**, em blocos com legenda pequena (a legenda leva para `/secao/<slug>/`),
+  e o serviço numa faixa separada abaixo de uma linha. Sem JS. **Primeira tentativa (28/10) mostrava só o grupo da página
+  atual e o dono recusou**: ir de Deputados a Impostos passava a exigir dois cliques e ele sentiu as subpáginas
+  inacessíveis. A lição: agrupar é para legibilidade, não para esconder — nenhum painel pode ficar a mais de um clique.
+- O grupo "No mundo e no tempo" virou **"Brasil comparado"** (o dono disse que o nome não fazia sentido).
 - `site/src/pages/secao/[slug].astro` gera as 6 páginas de seção, com um cartão por painel e a frase de cada um — é a
   porta de entrada para quem chega sem saber o que existe. **Painel novo = uma entrada em `menu.ts`** (além de `datasets.ts`).
 

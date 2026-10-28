@@ -75,15 +75,24 @@ if (dataset) {
       .brand .logo svg { width: 22px; height: 22px; }
       .brand .cta { font-size: 13px; color: var(--ink-2); }
       @media (max-width: 720px) { .brand .cta { display: none; } .brand { padding: 12px 16px 6px; } }
-      nav.grupos { max-width: 1040px; margin: 0 auto; padding: 0 16px 6px; display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
-  nav.grupos a { white-space: nowrap; font-size: 13.5px; font-weight: 700; color: var(--ink); text-decoration: none;
-    padding: 6px 10px; border-radius: 8px; }
-  nav.grupos a:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
-  nav.grupos a[aria-current] { background: var(--ink); color: var(--card); }
-  nav.grupos a.servico { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
-  nav.grupos a.servico[aria-current] { background: var(--ink-2); color: var(--card); }
-  nav.grupos .separador { flex: 1 1 auto; min-width: 8px; }
-  @media (max-width: 760px) { nav.grupos .separador { flex-basis: 100%; height: 0; } }
+      /* Menu: todos os painéis visíveis (um clique para qualquer página), agrupados por legenda. */
+  nav.menu { max-width: 1040px; margin: 0 auto; padding: 0 16px 4px; display: flex; flex-wrap: wrap; gap: 2px 18px; align-items: flex-start; }
+  nav.menu .bloco { display: flex; flex-direction: column; gap: 1px; padding-bottom: 6px; }
+  nav.menu .rotulo { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-2); text-decoration: none; padding: 0 6px 2px; white-space: nowrap; }
+  nav.menu .rotulo:hover { color: var(--accent); }
+  nav.menu .bloco[data-atual] .rotulo { color: var(--ink); }
+  nav.menu .itens { display: flex; flex-wrap: wrap; gap: 2px; }
+  nav.menu .itens a { white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink-2); text-decoration: none;
+    padding: 4px 7px; border-radius: 7px; }
+  nav.menu .itens a:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
+  nav.menu .itens a[aria-current] { background: var(--ink); color: var(--card); }
+  nav.servico { max-width: 1040px; margin: 0 auto; padding: 0 16px 10px; display: flex; flex-wrap: wrap; gap: 2px;
+    border-top: 1px solid var(--line); padding-top: 6px; }
+  nav.servico a { white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--ink-2); text-decoration: none;
+    padding: 3px 8px; border-radius: 999px; }
+  nav.servico a:hover { color: var(--accent); }
+  nav.servico a[aria-current] { background: var(--ink-2); color: var(--card); }
   nav.panels { max-width: 1040px; margin: 0 auto; padding: 0 16px 10px; display: flex; flex-wrap: wrap; gap: 4px; }
       nav.panels a { white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink-2); text-decoration: none; padding: 6px 10px; border-radius: 999px; }
       nav.panels a[aria-current] { background: var(--ink); color: var(--card); }
@@ -157,19 +166,20 @@ if (dataset) {
         </a>
         <span class="cta">Só o que os órgãos públicos publicam, com a fonte de cada número.</span>
       </div>
-      <nav class="grupos" aria-label="Seções">
+      <nav class="menu" aria-label="Painéis">
         {GRUPOS.map((g) => (
-          <a href={`/secao/${g.slug}/`} aria-current={grupo?.slug === g.slug ? "true" : undefined}>{g.nome}</a>))}
-        <span class="separador" aria-hidden="true"></span>
-        {SERVICO.map((i) => (
-          <a class="servico" href={i.href} aria-current={servicoAtivo?.href === i.href ? "page" : undefined}>{i.label}</a>))}
+          <div class="bloco" data-atual={grupo?.slug === g.slug ? "sim" : undefined}>
+            <a class="rotulo" href={`/secao/${g.slug}/`}>{g.nome}</a>
+            <div class="itens">
+              {g.itens.map((i) => (
+                <a href={i.href} aria-current={itemAtivo(path, i.href) ? "page" : undefined}>{i.label}</a>))}
+            </div>
+          </div>))}
       </nav>
-      {grupo ? (
-        <nav class="panels" aria-label={grupo.nome}>
-          {grupo.itens.map((i) => (
-            <a href={i.href} aria-current={itemAtivo(path, i.href) ? "page" : undefined}>{i.label}</a>))}
-        </nav>
-      ) : null}
+      <nav class="servico" aria-label="Serviço">
+        {SERVICO.map((i) => (
+          <a href={i.href} aria-current={servicoAtivo?.href === i.href ? "page" : undefined}>{i.label}</a>))}
+      </nav>
       <div class="stripe"></div>
     </header>
     <main style={`--accent:${accent}`}><slot /></main>
