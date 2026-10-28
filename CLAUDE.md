@@ -104,7 +104,17 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - **Sem painel, com motivo documentado**: TJDFT (consulta com reCAPTCHA v3, sem arquivo, embora a página declare CSV/XLS);
   TSE (folha aberta em HTML, mas ministro é cedido do STF/STJ e o arquivo traz só a gratificação eleitoral, ~R$ 21 mil);
   CNJ (`cnj.jus.br/remuneracao/rem.php`, HTML; 9 dos 11 conselheiros são requisitados e o gabinete é nomeado pela vaga).
-  Metodologia `docs/metodologia/painel-tribunais.md` §7. Próximos: TCU e os seis TRFs.
+  Metodologia `docs/metodologia/painel-tribunais.md` §7.
+- 28/10: **TRF4 e TRF6 no ar** (`/judiciario/trf4/`, `/judiciario/trf6/`), rótulo "desembargador". O transform ganhou
+  `gabinete` opcional na linha: quando a lotação do magistrado é genérica, o **adaptador** informa a chave do gabinete.
+  TRF4 casa por **código** (`TRF4/GLIPPEL`, compartilhado com a equipe) e o Total de Créditos já vem pós-teto; busca os
+  4 meses mais recentes (50 por página, ~24 requisições/mês) e a folha de magistrados da fonte para em abr/2026. TRF6 é
+  XML mensal, lotação do desembargador é genérica → casamento por tokens de sobrenome com tolerância de grafia
+  (`KUSCHEL`×`KUSCHELL` na fonte); mês vem do NOME do arquivo (o diretório é o do upload e dois links do índice apontam
+  para o mês errado). Resultado: TRF4 36/39 a R$ 326 mil/mês (14 pessoas/gab), TRF6 16/18 a R$ 186 mil/mês (8 pessoas).
+- **TCU, TRF1 e TRF5 sem painel, com motivo**: TCU tem API JSON viva mas **não publica lotação** (sem isso não há
+  gabinete por ministro); TRF1 está com o sistema em manutenção e só há espelho congelado até 03/2025; TRF5 publica só
+  PDF e está parado em fev/2026. TRF2 e TRF3 em levantamento. Tudo na metodologia §7.
 
 ## Painel Presidência (NO AR, sem chave, mensal dia 15)
 - `etl/presidencia/extract.py cpgf --ano`: ZIP mensal `portaldatransparencia.gov.br/download-de-dados/cpgf/AAAAMM`

@@ -16,7 +16,8 @@ const TRIBUNAIS = [
   { cod: "10000", nome: "Supremo Tribunal Federal", sigla: "STF", href: "/stf/", status: "painel com a folha de ministros e gabinetes" },
   { cod: "11000", nome: "Superior Tribunal de Justiça", sigla: "STJ", href: "/judiciario/stj/", status: "painel com a folha de ministros e gabinetes" },
   { cod: "15000", nome: "Justiça do Trabalho (TST e 24 TRTs)", sigla: "TST", href: "/judiciario/tst/", status: "painel do TST; os 24 TRTs ainda não" },
-  { cod: "12000", nome: "Justiça Federal (CJF e 6 TRFs)", sigla: "TRFs", status: "folha em seis portais regionais, um formato cada" },
+  { cod: "12000", nome: "Justiça Federal (CJF e 6 TRFs)", sigla: "TRFs", href: "/judiciario/trf4/",
+    status: "painéis do TRF4 e do TRF6; os outros quatro, abaixo" },
   { cod: "14000", nome: "Justiça Eleitoral (TSE e 27 TREs)", sigla: "TSE/TREs", status: "folha aberta, mas o ministro é cedido do STF e do STJ" },
   { cod: "16000", nome: "Tribunal de Justiça do DF e Territórios", sigla: "TJDFT", status: "consulta protegida por captcha; sem arquivo aberto" },
   { cod: "13000", nome: "Justiça Militar da União", sigla: "STM", href: "/judiciario/stm/", status: "painel com a folha de ministros e gabinetes" },
@@ -27,7 +28,7 @@ const ESSENCIAIS = [
 ];
 // Painéis de folha já extraídos, no molde do STF: um por arquivo custo_magistrado_<sigla>_<ano>.json
 const PAINEIS = Object.keys(custos).map((caminho) => {
-  const m = caminho.match(/custo_magistrado_([a-z]+)_(\d{4})\.json$/)!;
+  const m = caminho.match(/custo_magistrado_([a-z0-9]+)_(\d{4})\.json$/)!;
   const rows = (custos[caminho] as any[]).filter((r) => !r.convocado);
   const meta = metas[`../../../public/data/meta_${m[1]}_${m[2]}.json`] as any;
   return { sigla: m[1], ano: Number(m[2]), rows, meta,
@@ -85,7 +86,10 @@ const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
     União (SIOP), que cobre todos os tribunais. Em dois casos a folha é aberta e ainda assim <b>não</b> dá um custo por
     magistrado: no <b>CNJ</b>, 9 dos 11 conselheiros são requisitados e recebem do tribunal de origem; no <b>TSE</b>, os
     ministros são cedidos do STF e do STJ e o arquivo traz só a gratificação eleitoral, cerca de R$ 21 mil por mês. Publicar
-    isso como "custo de um ministro" seria enganoso, então não publicamos.</div>
+    isso como "custo de um ministro" seria enganoso, então não publicamos. Entre os Tribunais Regionais Federais,
+    <b>TRF4 e TRF6</b> publicam folha legível por máquina e já têm painel; o <b>TRF5</b> publica só PDF e está parado em
+    fevereiro de 2026; o sistema de folha do <b>TRF1</b> está em manutenção, com arquivo acessível só até março de 2025; e
+    o <b>TCU</b> tem API aberta mas <b>não publica lotação</b>, então não há como somar o gabinete de cada ministro.</div>
   </div>
 
   <h2>Custo de um magistrado com o gabinete, tribunal a tribunal</h2>

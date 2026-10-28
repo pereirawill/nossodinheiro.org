@@ -58,6 +58,16 @@ const arcos = fatias.map((f, i) => { const fr = f.v / uniaoSemEncargos; const a0
   const x0 = C + R * Math.cos(a0), y0 = C + R * Math.sin(a0), x1 = C + R * Math.cos(ang), y1 = C + R * Math.sin(ang);
   return { ...f, fr, cor: CORES[i], d: `M${C},${C} L${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` }; });
 
+// A mesma despesa COM dívida e transferências dentro (pedido de 28/10): a função 28 entra como fatia própria.
+const fatiasCom = [{ nome: "Dívida e transferências (encargos especiais)", v: encargos },
+                   ...fTop.slice(0, 8).map((f) => ({ nome: f.funcao_nome, v: f.pago })),
+                   { nome: "Demais funções", v: fTop.slice(8).reduce((t, f) => t + f.pago, 0) }];
+const CORES_COM = ["#444444", "#1d5a8a", "#e07b00", "#1f9d55", "#c2185b", "#6a1b9a", "#8d6e63", "#00a3c4", "#f1c232", "#9e9e9e"];
+let angC = -Math.PI / 2;
+const arcosCom = fatiasCom.map((f, i) => { const fr = f.v / uniaoTotal; const a0 = angC; angC += fr * 2 * Math.PI;
+  const x0 = C + R * Math.cos(a0), y0 = C + R * Math.sin(a0), x1 = C + R * Math.cos(angC), y1 = C + R * Math.sin(angC);
+  return { ...f, fr, cor: CORES_COM[i], d: `M${C},${C} L${x0.toFixed(2)},${y0.toFixed(2)} A${R},${R} 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` }; });
+
 // Três níveis de governo
 const estTotal = estados.reduce((s, e) => s + e.pago_total, 0);
 const munTotal = metaMun.totais.pago_total;
@@ -139,6 +149,29 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
     </table>
     <p class="src" style="grid-column:1/-1"><b>Pago</b> = dinheiro que saiu do caixa no ano (não o orçado). <b>Por habitante</b> = pago ÷ 212,6 milhões de brasileiros (IBGE): só dá escala, não é quanto cada um recebeu.
       Função é a classificação oficial da Lei Orçamentária. "Encargos especiais" ({compact(encargos)}: juros, amortização e refinanciamento da dívida, transferências constitucionais a estados e municípios) ficam fora da pizza porque não são um serviço prestado; estão no total da União acima. Fonte: SIOP.</p>
+  </div>
+
+  <h2>A mesma despesa, agora <strong>com</strong> dívida e transferências ({ANO})</h2>
+  <div class="card pizza">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label="Despesa total da União por função, incluindo encargos especiais">
+      {arcosCom.map((a) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {compact(a.v)} ({pct(a.v, uniaoTotal)})</title></path>)}
+      <circle cx={C} cy={C} r="46" fill="var(--card)" />
+      <text x={C} y={C - 4} text-anchor="middle" font-size="10" fill="var(--ink-2)">União {ANO}, total</text>
+      <text x={C} y={C + 12} text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{compact(uniaoTotal)}</text>
+    </svg>
+    <table>
+      <thead><tr><th>Função</th><th class="num"><Termo t="pago">Pago</Termo></th><th class="num">% do total</th><th class="num"><Termo t="per_capita">Por habitante</Termo></th></tr></thead>
+      <tbody>{arcosCom.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{compact(a.v)}</td><td class="num">{pct(a.v, uniaoTotal)}</td><td class="num">{brl0(a.v / POP)}</td></tr>))}</tbody>
+    </table>
+    <p class="src" style="grid-column:1/-1">
+      É a despesa inteira da União, {compact(uniaoTotal)}, com os <Termo t="encargos_especiais">encargos especiais</Termo>
+      como primeira fatia: {compact(encargos)}, ou {pct(encargos, uniaoTotal)} de tudo. Dentro deles estão juros,
+      amortização e <b>refinanciamento</b> da dívida — o Tesouro emitindo título novo para pagar título vencido, de modo
+      que o mesmo dinheiro passa duas vezes pelo orçamento — e as transferências constitucionais que estados e municípios
+      tornam a gastar nos orçamentos deles. É por isso que a pizza de cima, sem eles, é a que compara serviço com serviço,
+      e esta é a que fecha com o total do orçamento. O detalhe por etapa (autorizado, empenhado, pago) está em
+      <a href="/poderes/">Poderes</a>. Fonte: SIOP.
+    </p>
   </div>
 
   <h2>Quem paga o quê: União, estados e municípios ({ANO})</h2>

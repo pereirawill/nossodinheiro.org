@@ -16,6 +16,8 @@ seu formato**. O que existe aberto, conferido em 28/10/2026:
 | TST | Transparência → Remuneração | 1 CSV por mês, listado em `/arquivos` (JSON) | 2010 → (CSV nos anos recentes) |
 | STM | Remuneração e proventos (`rem_web`) | 1 CSV por mês, botão "Gerar CSV" (POST com token CSRF) | fev/2013 → |
 | STF | Portal da Transparência → Remuneração | CSV por cargo e por lotação (`etl/stf/`) | painel próprio |
+| TRF4 | Transparência → contracheque | HTML, 50 pessoas por página, POST com paginação | jun/2012 → |
+| TRF6 | Transparência → Anexo VIII | 1 XML por mês, listado no índice | set/2022 → |
 
 **Os runners do GitHub alcançam os três portais** (testado em 28/10/2026, workflow verde), ao contrário do portal do
 STF, que recusa IPs fora do Brasil — por isso o `etl-tribunais.yml` é agendado e o do STF, não. Um tribunal que falhe
@@ -83,6 +85,22 @@ As duas colunas aparecem lado a lado no índice `/judiciario/`, porque cada pain
 ano é o que permite comparar com o painel do STF, que só tem média. A diferença entre elas é de 2% a 13% e vem de quem
 assumiu ou saiu no meio do ano e dos meses em que caem 13º e férias.
 
+## 6b. Os dois Tribunais Regionais Federais com painel
+
+- **TRF4** (39 desembargadores): a consulta devolve 50 pessoas por página e exige repetir o POST com o hash dos
+  critérios, então buscamos os **quatro meses mais recentes** com folha de magistrados (cada mês custa ~24 requisições).
+  O gabinete é casado pelo **código** da lotação (`TRF4/GLIPPEL`), que o desembargador e a equipe compartilham — é o
+  join mais limpo de todos os tribunais. O "Total de Créditos" do TRF4 **já vem abatido o teto**, conferido na própria
+  página. A folha de magistrados do sistema para em **abril de 2026**, embora a de servidores siga atualizada: é lacuna
+  da fonte, não nossa. 36 em exercício em abril de 2026, R$ 325.880 por mês com o gabinete, 14 pessoas por gabinete.
+- **TRF6** (18 desembargadores, criado em 2022): XML do Anexo VIII. O desembargador aparece com lotação **genérica** do
+  tribunal; o gabinete existe só na lotação dos servidores, com o nome dele dentro da string e **nem sempre com a mesma
+  grafia** (há um `KUSCHEL` × `KUSCHELL` na fonte). O casamento é por tokens de sobrenome, com tolerância a diferença no
+  fim da palavra, e quem não casa fica sem gabinete e aparece na lista de exceções — foi o caso dos dois desembargadores
+  que ocupam cargos de direção. 16 com gabinete em setembro de 2026, R$ 185.792 por mês, 8 pessoas por gabinete.
+- O índice do TRF6 tem dois links errados (o "XML" de junho/2026 aponta para julho e o de janeiro/2026 para
+  janeiro/2025), e o diretório do arquivo é o do **upload**, não o do mês: por isso o mês é lido do **nome do arquivo**.
+
 ## 7. O que não está aqui, e por quê
 
 - **TJDFT**: a consulta de remuneração é protegida por **reCAPTCHA v3**, com nomes de campo que mudam a cada
@@ -95,7 +113,19 @@ assumiu ou saiu no meio do ano e dos meses em que caem 13º e férias.
 - **CNJ**: folha aberta (tabela HTML, jun/2012 →), mas 9 dos 11 conselheiros são requisitados e recebem do tribunal de
   origem; o CNJ paga só uma parcela (R$ 2,2 mil a R$ 12,6 mil). Mesmo problema do TSE, e o gabinete é nomeado pela vaga
   ("gabinete vaga juiz TRF"), não pela pessoa, então não há como casar conselheiro e gabinete pelo dado publicado.
-- **TRFs, TRTs e TREs regionais, TCU**: 57 tribunais, um portal cada. Pendência.
+- **TCU**: tem API JSON pública e viva (`consultaremuneracao.apps.tcu.gov.br/api/publico/remuneracoes`), com o mês
+  corrente, mas **não publica lotação em nenhum escopo**. Sem lotação não há como atribuir servidor a ministro, e o
+  painel seria só a remuneração do próprio ministro — outro número, não o deste painel. Os 84 registros com "gabinete"
+  são nomes genéricos de função (chefe, oficial, auxiliar de gabinete).
+- **TRF1**: o sistema de folha (`app.trf1.jus.br/verificafolha`) está **em manutenção**, com aviso de acesso interno por
+  VPN; o que responde é um espelho congelado em 03/04/2025, com XML mensal de 2010 a março de 2025. Publicar um painel
+  "atual" com dado de março de 2025 seria enganoso. Quando o sistema voltar, o XML é bom: 43 desembargadores com gabinete
+  nominal, e a equipe dividida entre `GABINETE` e `ASSESSORIA` do mesmo desembargador, que precisam ser somadas.
+- **TRF5**: publica só **PDF** (com camada de texto, mas em colunas que exigem extração por coordenada) e está parado em
+  **fevereiro de 2026**. Além disso o desembargador tem lotação genérica e o gabinete casa por nome. Fica para depois de
+  um pedido pela Ouvidoria pelo arquivo estruturado.
+- **TRF2 e TRF3**: levantamento em andamento.
+- **TRTs e TREs regionais**: 51 tribunais, um portal cada. Pendência.
 - **Tribunais de Justiça dos estados**: orçamento dos entes, via SICONFI (função 02), no painel Estados.
 
 ## 8. Pendências

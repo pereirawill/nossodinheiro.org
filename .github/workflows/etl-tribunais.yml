@@ -1,4 +1,4 @@
-name: ETL Tribunais — folha de ministros e gabinetes (STJ, TST, STM)
+name: ETL Tribunais — folha de magistrados e gabinetes (STJ, TST, STM, TRF4, TRF6)
 
 on:
   push:
@@ -23,20 +23,20 @@ concurrency:
 jobs:
   etl:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - run: pip install -r requirements.txt
 
-      - name: "Extrair e transformar a folha de cada tribunal (STJ, TST, STM) — sem chave"
+      - name: "Extrair e transformar a folha de cada tribunal (STJ, TST, STM, TRF4, TRF6) — sem chave"
         env:
           ANO: ${{ github.event.inputs.ano || '2026' }}
         run: |
           mkdir -p site/public/data
           falhas=0
-          for t in stj tst stm; do
+          for t in stj tst stm trf6 trf4; do
             # Os portais dos tribunais podem recusar IPs fora do Brasil (o do STF recusa). Um tribunal que falhar
             # não derruba os outros: o painel dele apenas fica com o dado do mês anterior, já commitado.
             if python -m etl.tribunais.extract --tribunal "$t" --ano "$ANO" && \
@@ -48,7 +48,7 @@ jobs:
             fi
           done
           cp data/public/custo_magistrado_*.json data/public/meta_st*.json site/public/data/ || true
-          if [ "$falhas" = "3" ]; then echo "todos os tribunais falharam"; exit 1; fi
+          if [ "$falhas" = "5" ]; then echo "todos os tribunais falharam"; exit 1; fi
 
       - name: Commitar dados agregados
         run: |

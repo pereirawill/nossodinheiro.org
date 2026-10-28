@@ -12,7 +12,7 @@ export async function getStaticPaths() {
   const arquivos = import.meta.glob("../../../public/data/custo_magistrado_*.json", { eager: true, import: "default" });
   const porSigla: Record<string, number> = {};
   for (const caminho of Object.keys(arquivos)) {
-    const m = caminho.match(/custo_magistrado_([a-z]+)_(\d{4})\.json$/);
+    const m = caminho.match(/custo_magistrado_([a-z0-9]+)_(\d{4})\.json$/);
     if (m) porSigla[m[1]] = Math.max(porSigla[m[1]] ?? 0, Number(m[2]));
   }
   return Object.entries(porSigla).map(([sigla, ano]) => ({ params: { sigla }, props: { ano } }));
