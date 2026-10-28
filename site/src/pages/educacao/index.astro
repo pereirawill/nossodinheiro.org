@@ -57,6 +57,39 @@ const maxAnalf = Math.max(...anosAnalf.map((a) => analf[a]));
 const ey = (v: number) => 10 + (EH - 34 - 10) * (1 - v / maxAnalf);
 const CORES_ESC = ["var(--neutro)", "#e0b0a0", "var(--s4)", "#9ec5e8", "var(--s1)", "#c9b8e8", "var(--s3)"];
 
+// pizza da escolaridade (mesma função usada no painel Trabalho)
+const FATIAS_ESC = ordemEsc.map((k: string, i: number) => ({ nome: esc.rotulos[k], v: pct(k), cor: CORES_ESC[i], chave: k }));
+const pizza = (fatias: { nome: string; v: number; cor: string }[], total: number) => {
+  let a = -Math.PI / 2;
+  return fatias.map((f) => {
+    const fr = f.v / total, a0 = a; a += fr * 2 * Math.PI;
+    const x0 = 100 + 86 * Math.cos(a0), y0 = 100 + 86 * Math.sin(a0), x1 = 100 + 86 * Math.cos(a), y1 = 100 + 86 * Math.sin(a);
+    return { ...f, fr, d: `M100,100 L${x0.toFixed(2)},${y0.toFixed(2)} A86,86 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` };
+  });
+};
+const arcosEsc = pizza(FATIAS_ESC, FATIAS_ESC.reduce((t, f) => t + f.v, 0));
+
+// evolução 2016 → último ano, uma linha por nível de instrução
+const NIVEIS_EVOL = ["superior_completo", "medio_completo", "fundamental_incompleto", "sem_instrucao"];
+const maxEvol = Math.max(...NIVEIS_EVOL.flatMap((k) => anosEsc.map((a) => pct(k, a))));
+const vx = (i: number) => 52 + (i * (920 - 52 - 120)) / Math.max(anosEsc.length - 1, 1);
+const vy = (v: number) => 12 + (240 - 30 - 12) * (1 - v / maxEvol);
+
+// analfabetismo desde 1991, três pesquisas do IBGE
+const longo = esc.analfabetismo_longo as Record<string, Record<string, number>>;
+const TRECHOS = [
+  { rotulo: "Censo Demográfico", cor: "var(--s2)", pontos: longo["Censo Demográfico"] ?? {} },
+  { rotulo: "PNAD (antiga)", cor: "var(--s1)", pontos: longo["PNAD (antiga)"] ?? {} },
+  { rotulo: "PNAD Contínua", cor: "var(--s3)", pontos: analf },
+];
+const anosLongo = [...new Set(TRECHOS.flatMap((t) => Object.keys(t.pontos)))].sort();
+const maxLongo = Math.max(...TRECHOS.flatMap((t) => Object.values(t.pontos)));
+const lx = (a: string) => 52 + ((Number(a) - Number(anosLongo[0])) * (920 - 52 - 24)) /
+  Math.max(Number(anosLongo[anosLongo.length - 1]) - Number(anosLongo[0]), 1);
+const ly = (v: number) => 12 + (260 - 34 - 12) * (1 - v / maxLongo);
+const primeiro = TRECHOS[0].pontos[anosLongo[0]];
+const atual = analf[anosAnalf[anosAnalf.length - 1]];
+
 const capitais = new Set((municipiosBase as any[]).filter((m) => m.capital).map((m) => m.cod_ibge));
 const muns = d.municipios as { cod_ibge: number; nome: string; uf: string; ai?: number; af?: number; em?: number }[];
 const topo = (k: "ai" | "af" | "em", n = 25) => muns.filter((m) => m[k] != null).sort((a, b) => (b[k] ?? 0) - (a[k] ?? 0)).slice(0, n);
@@ -147,7 +180,20 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
       <div class="stat"><b>{n1(concluiu.medio)}%</b><span>terminaram o <b class="inline">ensino médio</b> — {n1(concluiuMi.medio)} milhões</span></div>
       <div class="stat"><b>{n1(concluiu.superior)}%</b><span>terminaram o <b class="inline">ensino superior</b> — {n1(concluiuMi.superior)} milhões</span></div>
     </div>
-    <svg viewBox={`0 0 ${EW} ${ordemEsc.length * 30 + 16}`} width="100%" role="img" aria-label="Distribuição da população de 25 anos ou mais por nível de instrução">
+    <div class="pizza">
+      <svg viewBox="0 0 200 200" width="240" role="img" aria-label="Distribuição da população de 25 anos ou mais por nível de instrução">
+        {arcosEsc.map((a: any) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {n1(a.v)}% dos adultos</title></path>)}
+        <circle cx="100" cy="100" r="46" fill="var(--card)" />
+        <text x="100" y="94" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">adultos de 25+</text>
+        <text x="100" y="110" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{n1(Object.values(esc.pessoas_mil).reduce((t: number, v: any) => t + (v[anoEsc] ?? 0), 0) / 1000)} mi</text>
+      </svg>
+      <table>
+        <thead><tr><th>Nível de instrução</th><th class="num">Pessoas</th><th class="num">% dos adultos</th></tr></thead>
+        <tbody>{arcosEsc.map((a: any) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td>
+          <td class="num">{n1(mi(a.chave))} mi</td><td class="num">{n1(a.v)}%</td></tr>))}</tbody>
+      </table>
+    </div>
+    <svg viewBox={`0 0 ${EW} ${ordemEsc.length * 30 + 16}`} width="100%" role="img" aria-label="Distribuição da população de 25 anos ou mais por nível de instrução, em barras">
       {ordemEsc.map((k: string, i: number) => (<g transform={`translate(0 ${i * 30 + 8})`}>
         <text x="200" y="16" text-anchor="end" font-size="12.5" fill="var(--ink)">{esc.rotulos[k]}</text>
         <rect x="208" y="3" width={Math.max(2, (pct(k) / 35) * 560)} height="18" fill={CORES_ESC[i]} rx="2">
@@ -208,6 +254,24 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
 
   <h2>O que mudou de {anosEsc[0]} a {anoEsc}</h2>
   <div class="card">
+    <svg viewBox="0 0 920 240" width="100%" role="img" aria-label="Evolução do nível de instrução dos adultos, por ano">
+      {[10, 20, 30].filter((v) => v < maxEvol).map((v) => (<g>
+        <line x1="52" x2={920 - 120} y1={vy(v)} y2={vy(v)} stroke="var(--line)" />
+        <text x="46" y={vy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}%</text></g>))}
+      {NIVEIS_EVOL.map((k: string, j: number) => (<g>
+        <polyline points={anosEsc.map((a: string, i: number) => `${vx(i).toFixed(1)},${vy(pct(k, a)).toFixed(1)}`).join(" ")}
+          fill="none" stroke={CORES_ESC[ordemEsc.indexOf(k)]} stroke-width="2.5" />
+        <text x={920 - 114} y={vy(pct(k)) + 4} font-size="11.5" fill="var(--ink)">{esc.rotulos[k]}</text>
+        <text x={920 - 114} y={vy(pct(k)) + 17} font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">
+          {n1(pct(k, anosEsc[0]))}% → {n1(pct(k))}%</text>
+      </g>))}
+      {anosEsc.map((a: string, i: number) => (i % 2 === 0 || i === anosEsc.length - 1) &&
+        <text x={vx(i)} y="232" text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
+    </svg>
+    <p class="src" style="margin-bottom:14px">
+      Cada linha é um nível de instrução entre os adultos de 25 anos ou mais. A pesquisa não foi a campo em 2020 e 2021;
+      a linha liga 2019 a 2022 direto.
+    </p>
     <table>
       <thead><tr><th>Indicador</th><th class="num">{anosEsc[0]}</th><th class="num">{anoEsc}</th><th class="num">Diferença</th></tr></thead>
       <tbody>
@@ -231,6 +295,41 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
     </p>
   </div>
 
+  <h2>Analfabetismo desde 1991, o primeiro Censo depois da Constituição</h2>
+  <div class="card">
+    <div class="hero" style="margin:0 0 14px">
+      <div class="stat big"><b>{n1(primeiro)}% → {n1(atual)}%</b><span>é a queda da taxa de analfabetismo entre 15 anos ou mais, de {anosLongo[0]} a {anosAnalf[anosAnalf.length - 1]}</span></div>
+      <div class="stat"><b>{n1(primeiro - atual)} p.p.</b><span>de queda em {Number(anosAnalf[anosAnalf.length - 1]) - Number(anosLongo[0])} anos — a taxa hoje é cerca de <b class="inline">um quarto</b> da de {anosLongo[0]}</span></div>
+    </div>
+    <svg viewBox="0 0 920 260" width="100%" role="img" aria-label="Taxa de analfabetismo das pessoas de 15 anos ou mais desde 1991">
+      {[5, 10, 15, 20].filter((v) => v <= maxLongo).map((v) => (<g>
+        <line x1="52" x2={920 - 24} y1={ly(v)} y2={ly(v)} stroke="var(--line)" />
+        <text x="46" y={ly(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}%</text></g>))}
+      {TRECHOS.map((t) => (<g>
+        <polyline points={Object.keys(t.pontos).sort().map((a) => `${lx(a).toFixed(1)},${ly(t.pontos[a]).toFixed(1)}`).join(" ")}
+          fill="none" stroke={t.cor} stroke-width="2.5" />
+        {Object.keys(t.pontos).sort().map((a) => (
+          <circle cx={lx(a)} cy={ly(t.pontos[a])} r="3" fill={t.cor}><title>{a}: {n1(t.pontos[a])}% ({t.rotulo})</title></circle>))}
+      </g>))}
+      {anosLongo.filter((a) => Number(a) % 5 === 0 || a === anosLongo[anosLongo.length - 1]).map((a) => (
+        <text x={lx(a)} y="252" text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>))}
+    </svg>
+    <div class="legend">{TRECHOS.map((t) => <span><i style={`background:${t.cor}`}></i>{t.rotulo}</span>)}</div>
+    <p class="src">
+      <b>São três pesquisas, não uma série.</b> O IBGE mediu analfabetismo no Censo Demográfico (1991 e 2000), na PNAD
+      antiga (2001 a 2015) e na PNAD Contínua (2016 em diante), com metodologias diferentes — por isso as linhas têm cores
+      diferentes e não as emendamos num traço só. Nas duas primeiras, a taxa de 15 anos ou mais é somada por nós das
+      faixas de idade, porque a tabela não publica o agregado. 2010 não tem ponto: foi ano de Censo e a PNAD não foi a
+      campo. <b>Não existe dado de 1988:</b> o Censo mais próximo depois da Constituição é o de 1991. Fontes: IBGE,
+      tabelas 204 (Censo), 271 (PNAD) e 7113 (PNAD Contínua).
+    </p>
+    <p class="src">
+      <b>Até quando vai cada fonte.</b> A PNAD Contínua anual mais recente é de {anoEsc}, divulgada em {Number(anoEsc) + 1};
+      a edição de 2026 só sai em 2027. O IDEB mais recente é de {ano}, porque o INEP divulga a cada dois anos e cerca de
+      um ano depois da prova. Não há dado de educação de 2026 em nenhuma das duas fontes, e a página não estima nada.
+    </p>
+  </div>
+
   <h2>O que os números dizem</h2>
   <div class="card">
     <ul class="conclusoes">
@@ -245,6 +344,9 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
   <Glossario termos={["ideb", "rede_publica"]} />
 </Base>
 <style>
+  .pizza { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; margin-bottom: 16px; }
+  @media (max-width: 720px) { .pizza { grid-template-columns: 1fr; } }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
   .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; } .tres h3 { margin: 0 0 8px; font-size: 15px; }
   @media (max-width: 900px) { .tres { grid-template-columns: 1fr; } }
   td .uf { color: var(--ink-2); font-size: 12px; font-family: var(--mono); margin-left: 4px; }

@@ -222,9 +222,49 @@ def escolaridade(c: httpx.Client) -> dict:
         "sem_fundamental": sem_fundamental,
         "analfabetismo": analf_serie, "mudanca": mudanca,
         "por_uf": sorted(por_uf.values(), key=lambda d: d["uf"]),
+        "fonte_longo": "IBGE: Censo Demográfico (tabela 204, 1991 e 2000), PNAD antiga (tabela 271, 2001–2015) e PNAD "
+                       "Contínua anual (tabela 7113, 2016 em diante). Taxa de 15 anos ou mais somada das faixas de idade "
+                       "nas duas primeiras, que não publicam o agregado.",
         "fonte": "IBGE, PNAD Contínua anual (módulo Educação): tabela 7189 (pessoas de 25 anos ou mais por nível de "
                  "instrução) e 7113 (taxa de analfabetismo das pessoas de 15 anos ou mais)",
     }
+
+
+
+# --- Analfabetismo desde 1991, juntando três pesquisas do IBGE ----------------------------------------------------
+# Não existe uma série única: o IBGE mediu analfabetismo no Censo, na PNAD antiga e na PNAD Contínua, com metodologias
+# diferentes. Montamos os três trechos e a página marca onde a pesquisa troca — é o mais longe que o dado oficial vai,
+# e 1991 é o primeiro Censo depois da Constituição de 1988.
+#   204 (Censo 1991 e 2000) — população de 5 anos ou mais por alfabetização e grupo de idade
+#   271 (PNAD 2001–2015)    — pessoas de 5 anos ou mais por alfabetização e grupo de idade
+#   7113 (PNAD Contínua 2016–) — taxa de analfabetismo já calculada
+# A taxa de 15 anos ou mais é somada por nós a partir das faixas de idade (as duas primeiras tabelas não publicam o
+# agregado "15 anos ou mais"): não alfabetizadas ÷ total, nas faixas de 15 anos para cima.
+FAIXAS_15_MAIS = {
+    204: "1143,1144,1145,1146,1147,1148,1149,1150,1151,1152,1153,1154,1155,2503",
+    271: "1143,1144,1145,3299,3300,3301,3302",
+}
+TOTAL_ALFAB = {204: 0, 271: 93024}          # código de "Total" na classificação 59, que muda entre as duas tabelas
+
+
+def analfabetismo_longo(c: httpx.Client) -> dict:
+    """Taxa de analfabetismo das pessoas de 15 anos ou mais em cada pesquisa que o IBGE já usou, de 1991 para cá."""
+    trechos: dict[str, dict] = {}
+    for tabela, variavel, rotulo in ((204, 157, "Censo Demográfico"), (271, 121, "PNAD (antiga)")):
+        soma: dict[str, dict[str, float]] = {}
+        for cod, chave in ((1024, "nao_alfabetizadas"), (TOTAL_ALFAB[tabela], "total")):
+            extra = "/c1/0/c2/0" if tabela == 271 else ""
+            for linha in _sidra(c, tabela, "n1", variavel, "all", f"/c59/{cod}/c58/{FAIXAS_15_MAIS[tabela]}{extra}"):
+                valor = _num(linha.get("V"))
+                if valor is not None:
+                    ano = linha["D3N"]          # D3N é o Ano nas duas tabelas (D2N é o nome da variável)
+                    soma.setdefault(ano, {}).setdefault(chave, 0.0)
+                    soma[ano][chave] += valor
+        for ano, v in soma.items():
+            if v.get("total"):
+                trechos.setdefault(rotulo, {})[ano] = round(100 * v["nao_alfabetizadas"] / v["total"], 2)
+    log.info("analfabetismo longo: %s", {k: f"{min(v)}–{max(v)}" for k, v in trechos.items()})
+    return {k: dict(sorted(v.items())) for k, v in trechos.items()}
 
 
 def run(ano: int) -> Path:
@@ -237,6 +277,7 @@ def run(ano: int) -> Path:
             ler_municipios(xlsx_do_zip(baixar(c, f"divulgacao_{nome}_municipios_{ano}.zip")), etapa, ano, municipios)
             log.info("%s: %d municípios com IDEB público", nome, sum(1 for m in municipios.values() if etapa in m))
         esc = escolaridade(c)
+        esc["analfabetismo_longo"] = analfabetismo_longo(c)
     dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "ano": ano,
              "brasil": brasil, "regioes": list(regioes.values()), "estados": sorted(estados.values(), key=lambda e: e["uf"]),
              "municipios": sorted(municipios.values(), key=lambda m: m["cod_ibge"]),

@@ -49,12 +49,16 @@ def nome_curto(nome: str, lotacao: str) -> str:
                     "GABINETE DO DESEMBARGADOR ", "GABINETE DA DESEMBARGADORA ", "GABINETE DO CONSELHEIRO ",
                     "GABINETE DA CONSELHEIRA ", "GABINETE DO JUIZ ", "GABINETE DA JUÍZA ",
                     "GABINETE DO MINISTRO CONVOCADO ", "GABINETE DA MINISTRA CONVOCADA ",
-                    "GAB MIN ", "GAB. MIN. "):
+                    "GAB MIN ", "GAB. MIN. ", "GABINETE DES ", "GABINETE DESA ", "GABINETE DO DES ",
+                    "GABINETE DA DESA "):
         if lotacao.upper().startswith(prefixo):
             base = lotacao[len(prefixo):]
             break
     else:
-        base = " ".join(nome.split()[-2:])
+        partes = nome.split()
+        # dois últimos nomes; se o penúltimo é partícula ("da Costa"), pega três para não começar com ela
+        base = " ".join(partes[-3:] if len(partes) > 2 and partes[-2].lower() in
+                        ("de", "da", "do", "dos", "das", "e") else partes[-2:])
     particulas = ("de", "da", "do", "dos", "das", "e", "e.")
     return " ".join(p.lower() if p.lower() in particulas else p.capitalize() for p in base.split())
 
@@ -80,12 +84,19 @@ def run(sigla: str, ano: int) -> tuple[Path, Path]:
     fora = {_norm(x) for x in t.lotacao_fora_de_exercicio}
     gabinete_re = re.compile(t.padrao_gabinete)
 
+    def chave_gab(linha: dict) -> str:
+        """Gabinete a que a linha pertence. O adaptador pode informar em `gabinete` quando a lotação do magistrado é
+        genérica (TRF4 usa código, TRF6 casa por nome); sem isso, o gabinete é a própria lotação."""
+        return (linha.get("gabinete") or linha.get("lotacao") or "").strip()
+
     def em_exercicio(linha: dict) -> bool:
-        """Tem gabinete próprio: a lotação não é pseudo-unidade (inativo, cedido, exonerado) e parece um gabinete."""
-        n = _norm(linha.get("lotacao", ""))
-        if _norm(linha.get("situacao", "")) in fora:
+        """Tem gabinete próprio: não está em pseudo-unidade (inativo, cedido, exonerado) e tem gabinete identificado."""
+        if _norm(linha.get("situacao", "")) in fora or _norm(linha.get("lotacao", "")) in fora:
             return False
-        return bool(n) and n not in fora and bool(gabinete_re.search(n))
+        if linha.get("gabinete"):
+            return True
+        n = _norm(linha.get("lotacao", ""))
+        return bool(n) and bool(gabinete_re.search(n))
 
     # --- magistrados em exercício (têm gabinete) e aposentados ---------------------------------------------------
     mag: dict[str, dict] = {}
@@ -94,13 +105,13 @@ def run(sigla: str, ano: int) -> tuple[Path, Path]:
     # Lotações chefiadas por um magistrado titular. Um magistrado CONVOCADO só ganha linha própria se o gabinete em
     # que está não tem titular: no STJ ele substitui um ministro afastado e chefia a equipe inteira; no TST ele é juiz
     # auxiliar DENTRO do gabinete de um ministro, e nesse caso entra como pessoal do gabinete, não como centro de custo.
-    lotacoes_titulares = {l["lotacao"] for l in linhas
+    lotacoes_titulares = {chave_gab(l) for l in linhas
                           if _norm(l["cargo"]) in cargos_mag and em_exercicio(l)}
 
     def _acumular(l: dict, convocado: bool) -> None:
         # A grafia do nome varia de um mês para o outro em alguns tribunais; a matrícula, quando existe, é estável.
         chave = l.get("matricula") or l["nome"]
-        m = mag.setdefault(chave, {"nome": l["nome"], "lotacao": l["lotacao"], "meses": set(),
+        m = mag.setdefault(chave, {"nome": l["nome"], "lotacao": chave_gab(l), "meses": set(),
                                    "bruto": 0.0, "liquido": 0.0, "indenizacoes": 0.0, "detalha_verbas": True,
                                    "convocado": convocado, "por_mes": {}})
         m["meses"].add(l["mes"]); m["bruto"] += l["bruto"]; m["liquido"] += l["liquido"]
@@ -109,7 +120,7 @@ def run(sigla: str, ano: int) -> tuple[Path, Path]:
         else:
             m["indenizacoes"] += l["indenizacoes"]
         m["por_mes"][l["mes"]] = m["por_mes"].get(l["mes"], 0.0) + l["bruto"]
-        m["lotacao"] = l["lotacao"]; m["nome"] = l["nome"]
+        m["lotacao"] = chave_gab(l); m["nome"] = l["nome"]
         if not convocado:
             por_mes[l["mes"]].add(chave)
 
@@ -120,7 +131,7 @@ def run(sigla: str, ano: int) -> tuple[Path, Path]:
         if not titular and not convocado and cargo not in cargos_mag_inativo:
             continue
         if convocado:
-            if em_exercicio(l) and l["lotacao"] not in lotacoes_titulares:
+            if em_exercicio(l) and chave_gab(l) not in lotacoes_titulares:
                 _acumular(l, True)
             continue                      # dentro do gabinete de um titular: conta como pessoal, não como gabinete próprio
         if not titular or not em_exercicio(l):
@@ -137,8 +148,10 @@ def run(sigla: str, ano: int) -> tuple[Path, Path]:
     gab_cargos: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     gab_mes_total: dict[str, dict[int, float]] = defaultdict(lambda: defaultdict(float))
     for l in linhas:
-        lot = l["lotacao"]
-        if not lot or _norm(lot) in fora or not gabinete_re.search(_norm(lot)):
+        lot = chave_gab(l)
+        if not lot or _norm(lot) in fora or _norm(l.get("lotacao", "")) in fora:
+            continue
+        if not l.get("gabinete") and not gabinete_re.search(_norm(lot)):
             continue
         if (l.get("matricula") or l["nome"]) in chaves_mag:          # o próprio magistrado não entra no gabinete dele
             continue
@@ -239,9 +252,9 @@ def run(sigla: str, ano: int) -> tuple[Path, Path]:
     f1.write_text(json.dumps(saida, ensure_ascii=False), encoding="utf-8")
     f2.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
     media = resumo_ultimo["custo_medio"]          # mesma base do destaque da página: o último mês publicado
-    log.info("%s %d: %d %ss no último mês (composição legal %s), %d meses; custo médio no último mês R$ %.0f; "
+    log.info("%s %d: %d %s no último mês (composição legal %s), %d meses; custo médio no último mês R$ %.0f; "
              "folha inteira R$ %.1f mi; %d aposentados no último mês",
-             t.sigla, ano, meta["magistrados_em_exercicio"], t.rotulo_magistrado, t.composicao, len(meses), media,
+             t.sigla, ano, meta["magistrados_em_exercicio"], meta["rotulo_plural"], t.composicao, len(meses), media,
              meta["totais"]["folha_inteira"] / 1e6, meta["aposentados"]["quantidade_ultimo_mes"])
     return f1, f2
 

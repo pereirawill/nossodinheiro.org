@@ -173,6 +173,12 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   analfabetismo 4,9% (era 6,7% em 2016). **Analfabetismo funcional não entra**: IBGE não publica mais e o INAF é de
   instituto privado — usamos "sem o fundamental" como medida oficial próxima. **Não dá para medir desde o Plano Real**:
   a série começa em 2016 e a PNAD antiga tem outra metodologia; a página declara isso em vez de emendar séries.
+  28/10 (segunda rodada, pedido do dono): **analfabetismo desde 1991** (`analfabetismo_longo`), juntando SIDRA 204
+  (Censo 1991 e 2000), 271 (PNAD antiga 2001–2015) e 7113 (PNADC 2016–2025) — 20,1% → 4,9%, queda de 15,2 p.p. em 34
+  anos. Nas duas primeiras a taxa de 15+ é somada por nós das faixas de idade (não publicam o agregado). **Não existe
+  1988**: o Censo mais próximo é 1991. Três cores no gráfico, uma por pesquisa, sem emendar. A página ganhou pizza da
+  escolaridade, gráfico de linhas da evolução 2016–2025 e o aviso de que não há dado de 2026 (PNADC 2025 é a última,
+  IDEB 2023 é o último).
 - **Segurança** `etl/seguranca/extract.py` → `seguranca.json`, `/seguranca/`: MJSP Sinesp VDE `bancovde-<ano>.xlsx` (26 MB, servidor
   corta download → 4 tentativas; cache em data/raw), abrangência Estadual, eventos separados (sem MVI), vítimas × ocorrências,
   população SIDRA 6579 do mesmo ano; municípios ≥100 mil + capitais; série 2015+ por UF (baixa 11 arquivos, ~5 min).
