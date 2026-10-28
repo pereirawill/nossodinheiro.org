@@ -46,6 +46,9 @@ publica assim é o **Censo Demográfico de 2022**, e é de lá que sai esta seç
 - 2022: **34,3%** dos ocupados (30,5 milhões) ganhavam até um salário mínimo de trabalho; **58,2%** dos moradores
   (117,5 milhões) viviam em casas com até um salário mínimo por pessoa. Por estado, de 80,4% no Maranhão a menos da metade
   no Sul e Sudeste (tabela na página).
+- A página traz o **acumulado** em 1, 2, 3, 5 e 10 salários mínimos (`acumulado` no JSON, somando as classes com teto
+  menor ou igual ao limite; "sem rendimento" fica **fora** da soma). Até 3 mínimos: **81,3%** dos ocupados (72,1 milhões)
+  e **88,4%** dos moradores (178,6 milhões). Por estado, até 3 mínimos chega a 94,8% dos moradores no Maranhão e no Piauí.
 - **As duas medidas não são a mesma pergunta** e a página diz isso: a primeira conta trabalhadores pelo que recebem; a
   segunda conta todas as pessoas, inclusive crianças e aposentados, dividindo a renda da casa pelo número de moradores.
   Um salário mínimo que sustenta quatro pessoas vira um quarto de mínimo por pessoa.

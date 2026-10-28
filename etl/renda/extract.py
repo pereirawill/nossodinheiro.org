@@ -118,15 +118,24 @@ def censo_salario_minimo(c: httpx.Client) -> dict:
     r = c.get(SGS_SALARIO_MINIMO.format(ano=2022)); r.raise_for_status()
     sm = [float(x["valor"]) for x in r.json() if x["data"].endswith("/2022")][-1]
 
-    ATE_1 = ("ate_1_4", "de_1_4_a_1_2", "de_1_2_a_1")
+    LIMITES = (1, 2, 3, 5, 10)      # "até N salários mínimos", acumulado; "sem rendimento" fica fora da soma
+
+    def _ate(classes: dict[str, float], limite: float) -> float:
+        return sum(v for ch, v in classes.items()
+                   for teto in [next((t for _, (c2, t) in CLASSES_SM.items() if c2 == ch), None)]
+                   if teto is not None and teto <= limite)
+
     def _bloco(d: dict) -> dict:
         total = d["total"] or sum(d["classes"].values())
-        ate1 = sum(d["classes"].get(k, 0) for k in ATE_1)
+        acum = {n: _ate(d["classes"], n) for n in LIMITES}
         return {"total": int(total),
                 "classes": [{"chave": ch, "rotulo": rot, "teto_sm": teto, "pessoas": int(d["classes"].get(ch, 0)),
                              "pct": round(d["classes"].get(ch, 0) / total, 4) if total else None}
                             for rot, (ch, teto) in CLASSES_SM.items()],
-                "ate_1_sm": int(ate1), "pct_ate_1_sm": round(ate1 / total, 4) if total else None}
+                "acumulado": [{"teto_sm": n, "pessoas": int(acum[n]), "pct": round(acum[n] / total, 4) if total else None}
+                              for n in LIMITES],
+                "ate_1_sm": int(acum[1]), "pct_ate_1_sm": round(acum[1] / total, 4) if total else None,
+                "ate_3_sm": int(acum[3]), "pct_ate_3_sm": round(acum[3] / total, 4) if total else None}
 
     brasil = {k: _bloco(_censo_tabela(c, k, "n1")["Brasil"]) for k in CENSO}
     por_uf: dict[str, dict] = {}
@@ -138,9 +147,12 @@ def censo_salario_minimo(c: httpx.Client) -> dict:
             b = _bloco(d)
             por_uf.setdefault(uf, {"uf": uf, "nome": nome})[f"{chave}_pct_ate_1_sm"] = b["pct_ate_1_sm"]
             por_uf[uf][f"{chave}_ate_1_sm"] = b["ate_1_sm"]
+            por_uf[uf][f"{chave}_pct_ate_3_sm"] = b["pct_ate_3_sm"]
+            por_uf[uf][f"{chave}_ate_3_sm"] = b["ate_3_sm"]
             por_uf[uf][f"{chave}_total"] = b["total"]
-    log.info("Censo 2022 (SM R$ %.2f): %.1f%% dos ocupados e %.1f%% dos moradores com até 1 salário mínimo; %d UFs",
-             sm, 100 * brasil["ocupados"]["pct_ate_1_sm"], 100 * brasil["moradores"]["pct_ate_1_sm"], len(por_uf))
+    log.info("Censo 2022 (SM R$ %.2f): até 1 SM %.1f%% dos ocupados e %.1f%% dos moradores; até 3 SM %.1f%% e %.1f%%; %d UFs",
+             sm, 100 * brasil["ocupados"]["pct_ate_1_sm"], 100 * brasil["moradores"]["pct_ate_1_sm"],
+             100 * brasil["ocupados"]["pct_ate_3_sm"], 100 * brasil["moradores"]["pct_ate_3_sm"], len(por_uf))
     return {"ano": 2022, "salario_minimo": sm, **brasil, "por_uf": sorted(por_uf.values(), key=lambda d: d["uf"]),
             "fonte": "IBGE, Censo Demográfico 2022, tabelas 10292 (ocupados, rendimento de todos os trabalhos) e "
                      "10296 (moradores, rendimento domiciliar per capita), em classes de salário mínimo",

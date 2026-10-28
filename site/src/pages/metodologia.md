@@ -162,6 +162,7 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Até um salário mínimo:** a parcela de trabalhadores e de moradores que vive com até um mínimo vem do **Censo de 2022**
   (tabelas 10292 e 10296), porque a PNAD Contínua publica rendimento em reais e não em classes de salário mínimo. São duas
   medidas diferentes: 34,3% dos ocupados pelo rendimento do trabalho e 58,2% das pessoas pela renda da casa por morador.
+  A tabela acumula em 1, 2, 3, 5 e 10 mínimos: até três mínimos são 81,3% dos ocupados e 88,4% das pessoas.
 - Completo: `docs/metodologia/painel-renda.md`.
 
 ## Educação — IDEB por estado e município

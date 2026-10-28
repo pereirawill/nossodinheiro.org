@@ -40,6 +40,11 @@ def test_censo_soma_as_tres_primeiras_classes_como_ate_um_minimo():
     d = renda.censo_salario_minimo(httpx.Client(transport=httpx.MockTransport(handler)))
     assert d["salario_minimo"] == 1212.0 and d["ano"] == 2022
     assert d["ocupados"]["ate_1_sm"] == 500 and d["ocupados"]["pct_ate_1_sm"] == 0.5
+    # acumulado: até 2 SM soma a classe "de 1 a 2"; até 3 não acrescenta nada nesta pasta sintética
+    acum = {a["teto_sm"]: a["pessoas"] for a in d["ocupados"]["acumulado"]}
+    assert acum[1] == 500 and acum[2] == 1000 and acum[3] == 1000
+    assert d["ocupados"]["ate_3_sm"] == 1000 and d["ocupados"]["pct_ate_3_sm"] == 1.0
     assert d["moradores"]["total"] == 1000
     ce = next(u for u in d["por_uf"] if u["uf"] == "CE")
     assert ce["moradores_pct_ate_1_sm"] == 0.5 and ce["ocupados_ate_1_sm"] == 500
+    assert ce["moradores_pct_ate_3_sm"] == 1.0

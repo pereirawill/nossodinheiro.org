@@ -210,12 +210,24 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
   </div>
 
   {censo && (<>
-  <h2>Quantos vivem com até um salário mínimo</h2>
+  <h2>Quantos vivem com até um, dois ou três salários mínimos</h2>
   <div class="card">
     <div class="hero" style="margin:0 0 14px">
       <div class="stat"><b>{pct1(censo.moradores.pct_ate_1_sm * 100)}</b><span>dos brasileiros moravam em casas com renda de <b class="inline">até um salário mínimo por pessoa</b> em {censo.ano} — {(censo.moradores.ate_1_sm / 1e6).toFixed(1).replace(".", ",")} milhões de pessoas</span></div>
       <div class="stat"><b>{pct1(censo.ocupados.pct_ate_1_sm * 100)}</b><span>de quem trabalhava ganhava até um salário mínimo no total dos trabalhos — {(censo.ocupados.ate_1_sm / 1e6).toFixed(1).replace(".", ",")} milhões de trabalhadores</span></div>
+      <div class="stat"><b>{pct1(censo.ocupados.pct_ate_3_sm * 100)}</b><span>ganhavam até <b class="inline">três</b> salários mínimos; entre todos os moradores, {pct1(censo.moradores.pct_ate_3_sm * 100)} viviam com até três mínimos por pessoa</span></div>
     </div>
+    <table style="margin-bottom:16px">
+      <thead><tr><th>Ganhando até…</th><th class="num">Trabalhadores</th><th class="num">% dos ocupados</th><th class="num">Moradores</th><th class="num">% das pessoas</th></tr></thead>
+      <tbody>
+        {censo.ocupados.acumulado.map((a: any, i: number) => (<tr class={a.teto_sm === 1 || a.teto_sm === 3 ? "destaque" : ""}>
+          <td>{a.teto_sm === 1 ? "1 salário mínimo" : `${a.teto_sm} salários mínimos`}</td>
+          <td class="num">{(a.pessoas / 1e6).toFixed(1).replace(".", ",")} mi</td>
+          <td class="num"><b>{pct1(a.pct * 100)}</b></td>
+          <td class="num">{(censo.moradores.acumulado[i].pessoas / 1e6).toFixed(1).replace(".", ",")} mi</td>
+          <td class="num"><b>{pct1(censo.moradores.acumulado[i].pct * 100)}</b></td></tr>))}
+      </tbody>
+    </table>
     <svg viewBox={`0 0 920 ${classesSM.length * 30 + 34}`} width="100%" role="img" aria-label="Distribuição por classes de salário mínimo, ocupados e moradores">
       <text x="196" y="12" text-anchor="end" font-size="11" fill="var(--ink-2)">classe</text>
       <text x="206" y="12" font-size="11" fill="var(--ink-2)">barra de cima: trabalhadores, pelo rendimento do trabalho · de baixo: moradores, pela renda da casa por pessoa</text>
@@ -234,7 +246,8 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
       })}
     </svg>
     <p class="src">
-      São duas perguntas diferentes, e as duas aparecem aqui. A primeira barra conta <b>trabalhadores</b> pelo que recebem de
+      A tabela acumula as classes: "até 3 salários mínimos" inclui quem ganha menos que isso, inclusive quem não ganha nada
+      de trabalho. São duas perguntas diferentes, e as duas aparecem aqui. A primeira barra conta <b>trabalhadores</b> pelo que recebem de
       todos os trabalhos; a segunda conta <b>todas as pessoas</b>, inclusive crianças e aposentados, pela renda da casa dividida
       pelo número de moradores — por isso a segunda dá um número bem maior: um salário mínimo que sustenta quatro pessoas vira
       um quarto de mínimo por pessoa. Fonte: IBGE, Censo Demográfico de {censo.ano}, tabelas 10292 e 10296. O salário mínimo de
@@ -246,12 +259,14 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
   <div class="card" style="margin-top:14px">
     <h3 style="margin:0 0 6px">Por estado</h3>
     <table>
-      <thead><tr><th>Estado</th><th class="num">Moradores com até 1 mínimo por pessoa</th><th class="num">Trabalhadores com até 1 mínimo</th><th class="barra-cab"></th></tr></thead>
+      <thead><tr><th>Estado</th><th class="num">Moradores até 1 mínimo</th><th class="num">Moradores até 3 mínimos</th><th class="num">Trabalhadores até 1 mínimo</th><th class="num">Trabalhadores até 3 mínimos</th><th class="barra-cab"></th></tr></thead>
       <tbody>
         {ufSM.map((u: any) => (<tr>
           <td>{u.nome}</td>
           <td class="num"><b>{pct1(u.moradores_pct_ate_1_sm * 100)}</b></td>
+          <td class="num">{pct1(u.moradores_pct_ate_3_sm * 100)}</td>
           <td class="num">{pct1(u.ocupados_pct_ate_1_sm * 100)}</td>
+          <td class="num">{pct1(u.ocupados_pct_ate_3_sm * 100)}</td>
           <td class="barra-cel"><span class="barra" style={`width:${(u.moradores_pct_ate_1_sm / ufSM[0].moradores_pct_ate_1_sm) * 100}%;background:var(--s3)`}></span></td></tr>))}
       </tbody>
     </table>
