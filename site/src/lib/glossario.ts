@@ -133,6 +133,8 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   consolidado: { rotulo: "Resultado consolidado", texto: "O resultado da empresa somado ao das companhias que ela controla, como se fossem uma só. É o número usado aqui quando a empresa publica os dois." },
   nao_controladores: { rotulo: "Participação de não controladores", texto: "A fatia do lucro de uma controlada que pertence aos outros sócios dela, e não ao grupo. O lucro consolidado inclui essa fatia; a linha seguinte da demonstração mostra quanto cabe aos sócios da controladora." },
   acao_ordinaria: { rotulo: "Ação ordinária", texto: "Ação que dá direito a voto. Quem tem mais da metade delas controla a empresa — por isso o controle é medido por ações ordinárias, e não pelo total de ações." },
+  subvencao_tesouro: { rotulo: "Subvenção do Tesouro", texto: "Dinheiro do Orçamento da União que cobre o custeio de uma estatal que não se paga. Entra como receita na demonstração da empresa — ou seja, o lucro publicado por ela já conta esse dinheiro." },
+  afac: { rotulo: "AFAC", texto: "Adiantamento para Futuro Aumento de Capital: dinheiro que o controlador entrega à empresa antes de formalizar o aumento de capital. Não é despesa nem receita do ano; é capital." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

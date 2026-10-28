@@ -251,3 +251,35 @@ def test_dividendos_le_tabela_22(tmp_path, monkeypatch):
     assert got["total"]["1997"] == 822_340_000.0                  # a planilha está em R$ milhões
     assert got["por_empresa"]["Petrobras"]["1998"] == 1_200_000_000.0
     assert "Concessões e Permissões" not in got["por_empresa"]    # 1.4.1 não é dividendo
+
+def test_sest_subvencao_sai_do_lucro_e_usa_o_mesmo_periodo(tmp_path, monkeypatch):
+    """A subvenção do Tesouro é receita na DRE: o lucro publicado já a inclui. E, no ano que vem do trimestre
+    acumulado, o fluxo tem de ser lido no MESMO trimestre — senão entra o 1º no lugar do 4º."""
+    monkeypatch.setattr(sest, "RAW", tmp_path)
+    linhas = [
+        ["2024", "Anual", "1", "PETROBRAS", "DRE", "500000", "LUCRO OU PREJUÍZO LÍQUIDO DO EXERCÍCIO", "10.000.000"],
+        ["2024", "Anual", "3", "EMBRAPA", "DRE", "500000", "LUCRO OU PREJUÍZO LÍQUIDO DO EXERCÍCIO", "-1.000.000"],
+        ["2024", "Anual", "3", "EMBRAPA", "DRE", "407000", "Subvenção do Tesouro Nacional", "4.000.000"],
+        ["2024", "Anual", "1", "PETROBRAS", "Fluxo de Caixa", "400411", "Dividendos Pagos para UNIÃO", "-2.000.000"],
+        # ano corrente: o 1º trimestre não pode ser confundido com o 4º, que é o acumulado
+        ["2025", "1º Trimestre", "1", "PETROBRAS", "DRE", "290000000", "LUCRO/PREJUÍZO LÍQUIDO", "1.000.000"],
+        ["2025", "4º Trimestre", "1", "PETROBRAS", "DRE", "290000000", "LUCRO/PREJUÍZO LÍQUIDO", "8.000.000"],
+        ["2025", "1º Trimestre", "3", "EMBRAPA", "DRE", "290000000", "LUCRO/PREJUÍZO LÍQUIDO", "-100.000"],
+        ["2025", "4º Trimestre", "3", "EMBRAPA", "DRE", "290000000", "LUCRO/PREJUÍZO LÍQUIDO", "-500.000"],
+        ["2025", "1º Trimestre", "3", "EMBRAPA", "DRE", "260100000", "SUBVENÇÃO DO TESOURO  NACIONAL", "900.000"],
+        ["2025", "4º Trimestre", "3", "EMBRAPA", "DRE", "260100000", "SUBVENÇÃO DO TESOURO  NACIONAL", "5.000.000"],
+    ]
+
+    def handler(req):
+        if "sestidentificacao" in str(req.url):
+            return httpx.Response(200, content=_zip_sest_ident())
+        return httpx.Response(200, content=_zip_sest_fin(linhas))
+    with httpx.Client(transport=httpx.MockTransport(handler)) as c:
+        got = sest.coletar(c)
+    assert got["subvencao"]["2024"] == 4_000_000 and got["agregado"]["2024"] == 9_000_000
+    assert got["agregado_sem_subvencao"]["2024"] == 5_000_000
+    assert got["dividendo_pago"]["2024"] == 2_000_000          # guardado como valor pago, sem o sinal do fluxo
+    assert got["subvencao"]["2025"] == 5_000_000               # o do 4º trimestre, não o do 1º
+    assert got["agregado_sem_subvencao"]["2025"] == 2_500_000  # 7,5 mi de lucro − 5 mi de subvenção
+    embrapa = next(e for e in got["empresas"] if e["sigla"] == "EMBRAPA")
+    assert embrapa["serie"]["2025"] == -500_000 and embrapa["sem_subvencao"]["2025"] == -5_500_000

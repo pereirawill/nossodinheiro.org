@@ -64,6 +64,30 @@ Ceasaminas) não têm DRE de 2025 no arquivo; **o restante não está explicado*
 sobram R$ 2,0 bi de diferença. Por isso os dois números aparecem lado a lado na página, em vez de escolhermos um.
 O número publicado está no JSON (`sest.oficial`) e na página, ao lado do nosso.
 
+### O dinheiro que vai na direção contrária
+
+O arquivo traz as duas pontas, e publicar só uma deixaria a página otimista por construção:
+
+- **Subvenção do Tesouro Nacional** (DRE, `407000` no plano antigo e `260100000` no atual) — dinheiro do Orçamento para
+  custeio de quem não se paga. **Entra como receita na DRE**, ou seja, o lucro publicado já a inclui. Por isso o JSON
+  traz `agregado_sem_subvencao` e, por empresa, `subvencao` e `sem_subvencao`. Em 2025: R$ 30,9 bi de subvenção, com o
+  lucro das federais caindo de R$ 168,1 bi para R$ 137,2 bi sem ela. A subvenção era R$ 12,7 bi em 2016 — 2,4 vezes
+  menor, em valores correntes.
+- **Aporte de capital da União** e **AFAC** (fluxo de caixa, `400700`/`330034000` e `400600`/`330031000`): não passam
+  pelo resultado, são capital.
+- **Dividendos e JCP pagos à União** pelo caixa da própria empresa (`400411`/`330022010` e `400421`/`330025010`).
+  Servem de conferência da série do Tesouro, que continua sendo a fonte oficial do dividendo: 2025 dá R$ 46,2 bi aqui
+  (32,1 de dividendo + 14,2 de JCP) contra R$ 49,8 bi no RTN — fontes e regimes diferentes, por isso os dois ficam
+  separados na página e não são somados.
+
+**Armadilha da periodicidade**: no ano que vem do 4º trimestre (acumulado), o fluxo precisa ser lido no **mesmo**
+trimestre. Ler "o primeiro trimestre que aparecer" dava R$ 6,8 bi de subvenção em 2025 em vez de R$ 30,9 bi. Tem teste.
+
+**O efeito na leitura das dependentes**: a EBSERH publica resultado de −R$ 159 mi em 2025; antes da subvenção de
+R$ 13,7 bi, são −R$ 13,8 bi. Com as 42 empresas, 13 fecharam 2025 no vermelho pelo número publicado e **18** sem a
+subvenção. Isso ainda **não** é o custo total das dependentes para o Orçamento: investimento e outras transferências
+entram por rubricas que não estão neste arquivo (estão em `/poderes/`).
+
 **"Dependente do Tesouro"** é classificação da própria SEST: 17 empresas que não se sustentam com receita própria e
 recebem dinheiro do Orçamento para pessoal e custeio. Para elas o resultado contábil não mede o custo para o país — a
 página diz isso e aponta para `/poderes/`.

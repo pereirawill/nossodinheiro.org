@@ -222,6 +222,10 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   nas três esferas**, de quem entrega demonstração à CVM (desde 2010).
 - **Fontes:** Tesouro Nacional (Resultado do Tesouro Nacional, série histórica, tabela 2.2, linha 1.4.2); Ministério da Gestão/SEST
   (microdado de dados financeiros das estatais federais); CVM (DFP e formulário de referência).
+- **As duas pontas:** a página mostra o que a União recebe (dividendo) e o que o Orçamento põe (subvenção do Tesouro, aporte de
+  capital, AFAC). A **subvenção entra como receita na DRE**, então o lucro publicado já a inclui: em 2025 foram R$ 30,9 bi, e sem
+  eles o lucro das federais cai de R$ 168,1 bi para R$ 137,2 bi. Pelo número publicado, 13 das 42 fecharam o ano no vermelho; sem a
+  subvenção, 18. Não entram nessa conta renúncia fiscal, crédito subsidiado nem garantia da União — não há base aberta por empresa.
 - **Atenção:** lucro é resultado contábil da empresa — não é dinheiro no caixa do governo. O que entra no Tesouro é o dividendo, pago
   no ano seguinte e só sobre a fatia do poder público. Os três recortes **não se somam**. O conjunto de empresas muda de ano para ano
   (a Eletrobras saiu do grupo das federais em 17/06/2022), então o agregado não é série comparável sem ressalva — incluindo quem era

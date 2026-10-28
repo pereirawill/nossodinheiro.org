@@ -39,7 +39,15 @@ BASE = "https://www.gov.br/gestao/pt-br/assuntos/estatais/transparencia/{arquivo
 REFERER = "https://www.gov.br/gestao/pt-br/assuntos/estatais/transparencia"
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/131.0.0.0 Safari/537.36")
-CONTAS_LUCRO = {"500000", "290000000"}   # plano antigo e plano atual
+CONTAS_LUCRO = {"500000", "290000000"}       # plano antigo e plano atual
+# O dinheiro que vai na direção contrária: o que o Orçamento põe na empresa. A **subvenção do Tesouro entra como
+# receita na DRE**, então ela já está dentro do lucro publicado — por isso o JSON traz também o resultado antes dela.
+CONTAS_SUBVENCAO = {"407000", "260100000"}   # "Subvenção do Tesouro Nacional", nos dois planos
+CONTAS_APORTE = {"400700", "330034000"}      # aporte de capital da União (fluxo de caixa)
+CONTAS_AFAC = {"400600", "330031000"}        # adiantamento para futuro aumento de capital
+# E o que volta, pelo caixa da própria empresa (confere com a série do Tesouro, que é a fonte oficial do dividendo)
+CONTAS_DIVIDENDO = {"400411", "330022010"}
+CONTAS_JCP = {"400421", "330025010"}
 # Divulgação oficial, para conferência (nota do Ministério da Gestão de 02/07/2026).
 OFICIAL = {
     "2025": 169.4e9,
@@ -96,25 +104,37 @@ def coletar(c: httpx.Client) -> dict:
 
     # lucro por ano e empresa; o ano sem linha "Anual" (o corrente) vem do 4º trimestre, que é acumulado
     bruto: dict[str, dict[str, dict[str, float]]] = defaultdict(lambda: defaultdict(dict))
+    # o dinheiro que entra e o que sai, na mesma estrutura {ano: {periodicidade: {empresa: valor}}}
+    fluxos: dict[str, dict[str, dict[str, dict[str, float]]]] = {
+        k: defaultdict(lambda: defaultdict(dict)) for k in ("subvencao", "aporte", "afac", "dividendo", "jcp")}
+    quais = (("subvencao", CONTAS_SUBVENCAO), ("aporte", CONTAS_APORTE), ("afac", CONTAS_AFAC),
+             ("dividendo", CONTAS_DIVIDENDO), ("jcp", CONTAS_JCP))
     for x in linhas:
-        if x["demonstrativo"] != "DRE" or x["rubrica_codigo"] not in CONTAS_LUCRO or x["codigo_siest"] in grupos:
+        if x["codigo_siest"] in grupos:
             continue
         valor = _num(x["valor"])
         if valor is None:
             continue
-        bruto[x["exercicio"]][x["periodicidade"]][x["codigo_siest"]] = valor
+        if x["demonstrativo"] == "DRE" and x["rubrica_codigo"] in CONTAS_LUCRO:
+            bruto[x["exercicio"]][x["periodicidade"]][x["codigo_siest"]] = valor
+        for nome, contas in quais:
+            if x["rubrica_codigo"] in contas:
+                # dividendo e JCP saem da empresa, então vêm negativos no fluxo de caixa: guardamos o valor pago
+                v = abs(valor) if nome in ("dividendo", "jcp") else valor
+                fluxos[nome][x["exercicio"]][x["periodicidade"]][x["codigo_siest"]] = v
 
     anos = sorted(bruto)
-    por_ano, periodicidade = {}, {}
+    por_ano, periodicidade, per_bruta = {}, {}, {}
     for a in anos:
         if bruto[a].get("Anual"):
-            por_ano[a], periodicidade[a] = bruto[a]["Anual"], "exercício fechado"
+            per_bruta[a], periodicidade[a] = "Anual", "exercício fechado"
         elif bruto[a].get("4º Trimestre"):
-            por_ano[a], periodicidade[a] = bruto[a]["4º Trimestre"], "4º trimestre, acumulado no ano"
+            per_bruta[a], periodicidade[a] = "4º Trimestre", "4º trimestre, acumulado no ano"
         else:
             ultimo = max(bruto[a], key=lambda p: ("1º", "2º", "3º", "4º").index(p[:2]) if p[:2] in
                          ("1º", "2º", "3º", "4º") else -1)
-            por_ano[a], periodicidade[a] = bruto[a][ultimo], f"{ultimo.lower()}, acumulado no ano"
+            per_bruta[a], periodicidade[a] = ultimo, f"{ultimo.lower()}, acumulado no ano"
+        por_ano[a] = bruto[a][per_bruta[a]]
 
     # ano em que quase ninguém entregou ainda (acontece no começo do ano seguinte) não entra: viraria o ano de
     # referência da página com meia dúzia de empresas
@@ -124,7 +144,21 @@ def coletar(c: httpx.Client) -> dict:
         log.info("ano %s fica de fora: só %d empresas de controle direto no arquivo (piso: %.0f)", a, conta[a], piso)
     anos = [a for a in anos if conta[a] >= piso]
 
+    def do_ano(nome: str, a: str) -> dict[str, float]:
+        """Mesma periodicidade que o lucro daquele ano — senão o 4º trimestre acumulado viraria o 1º."""
+        return (fluxos[nome].get(a) or {}).get(per_bruta[a], {})
+
+    entra = {n: {a: do_ano(n, a) for a in anos} for n in fluxos}
+    soma_direta = lambda n, a: round(sum(v for cod, v in entra[n][a].items() if cod in diretas), 2)
+    subvencao = {a: soma_direta("subvencao", a) for a in anos}
+    aporte = {a: soma_direta("aporte", a) for a in anos}
+    afac = {a: soma_direta("afac", a) for a in anos}
+    dividendo_pago = {a: soma_direta("dividendo", a) for a in anos}
+    jcp_pago = {a: soma_direta("jcp", a) for a in anos}
+
     agregado = {a: round(sum(v for cod, v in por_ano[a].items() if cod in diretas), 2) for a in anos}
+    # a subvenção é receita na DRE: o lucro publicado já a inclui
+    agregado_sem_subvencao = {a: round(agregado[a] - subvencao[a], 2) for a in anos}
     com_inativas = {a: round(sum(v for cod, v in por_ano[a].items() if cod in diretas or cod in saiu), 2)
                     for a in anos}
     quantas = {a: sum(1 for cod in por_ano[a] if cod in diretas) for a in anos}
@@ -132,7 +166,13 @@ def coletar(c: httpx.Client) -> dict:
 
     def ficha(cod: str, reg: dict, ativa: bool) -> dict:
         serie = {a: round(por_ano[a][cod], 2) for a in anos if cod in por_ano[a]}
-        return {"sigla": reg.get("sigla", ""), "nome": reg.get("nome", ""), "setor": reg.get("setor", ""),
+        subv = {a: round(entra["subvencao"][a][cod], 2) for a in anos if cod in entra["subvencao"][a]}
+        return {
+                "subvencao": subv,
+                "sem_subvencao": {a: round(v - subv.get(a, 0.0), 2) for a, v in serie.items()},
+                "dividendo_pago": {a: round(entra["dividendo"][a][cod], 2) for a in anos
+                                   if cod in entra["dividendo"][a]},
+                "jcp_pago": {a: round(entra["jcp"][a][cod], 2) for a in anos if cod in entra["jcp"][a]},"sigla": reg.get("sigla", ""), "nome": reg.get("nome", ""), "setor": reg.get("setor", ""),
                 "segmento": reg.get("segmento", ""), "dependente": reg.get("dependencia", "").startswith("Dependente"),
                 "capital": reg.get("capital_aberto_fechado", ""), "cnpj": reg.get("cnpj", ""),
                 "ministerio": reg.get("ministerio_supervisor", ""), "ativa": ativa,
@@ -147,10 +187,15 @@ def coletar(c: httpx.Client) -> dict:
 
     dependentes = sorted((e for e in empresas if e["dependente"]), key=lambda e: e["ultimo_lucro"] or 0)
     ult = anos[-1]
-    log.info("SEST %s–%s: %d empresas de controle direto no último ano; lucro %s = R$ %.1f bi (%s)",
-             anos[0], ult, quantas[ult], ult, agregado[ult] / 1e9, periodicidade[ult])
+    log.info("SEST %s–%s: %d empresas de controle direto no último ano; lucro %s = R$ %.1f bi (%s); "
+             "subvenção do Tesouro R$ %.1f bi, lucro sem ela R$ %.1f bi",
+             anos[0], ult, quantas[ult], ult, agregado[ult] / 1e9, periodicidade[ult],
+             subvencao[ult] / 1e9, agregado_sem_subvencao[ult] / 1e9)
     return {
         "anos": anos, "agregado": agregado, "agregado_com_inativas": com_inativas,
+        "agregado_sem_subvencao": agregado_sem_subvencao,
+        "subvencao": subvencao, "aporte": aporte, "afac": afac,
+        "dividendo_pago": dividendo_pago, "jcp_pago": jcp_pago,
         "empresas_no_agregado": quantas, "empresas_que_sairam": quantas_fora,
         "periodicidade": periodicidade, "empresas": empresas,
         "dependentes_do_tesouro": [e["sigla"] for e in dependentes],

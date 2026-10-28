@@ -12,7 +12,7 @@ const defl = h.deflator as Record<string, number>;
 const real = (v: number, ano: string) => v * (defl[ano] ?? 1);
 const bi = (v: number) => `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e9).toFixed(1).replace(".", ",")} bi`;
 const bi2 = (v: number) => `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e9).toFixed(2).replace(".", ",")} bi`;
-const compact = (v: number) => v === 0 ? "R$ 0" : Math.abs(v) >= 1e12 ? `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e12).toFixed(2).replace(".", ",")} tri`
+const compact = (v: number) => v === 0 ? "R$ 0" : Math.abs(v) < 1e6 ? `${v < 0 ? "−" : ""}menos de R$ 1 mi` : Math.abs(v) >= 1e12 ? `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e12).toFixed(2).replace(".", ",")} tri`
   : Math.abs(v) >= 1e9 ? bi(v) : `${v < 0 ? "−" : ""}R$ ${(Math.abs(v) / 1e6).toFixed(0)} mi`;
 const pct = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")}%`;
 
@@ -34,6 +34,16 @@ const sestSerie = (sest.anos as string[]).map((a) => ({
   comInativas: sest.agregado_com_inativas[a], n: sest.empresas_no_agregado[a], per: sest.periodicidade[a],
 }));
 const sestUlt = sestSerie[sestSerie.length - 1];
+// o que o Orçamento põe nas estatais: a subvenção é receita na DRE, então já está dentro do lucro publicado
+const posto = (sest.anos as string[]).map((a) => ({
+  ano: a, subvencao: sest.subvencao?.[a] ?? 0, aporte: sest.aporte?.[a] ?? 0, afac: sest.afac?.[a] ?? 0,
+  semSubvencao: sest.agregado_sem_subvencao?.[a] ?? sest.agregado[a],
+  lucro: sest.agregado[a], dividendoRtn: div.total[a] ?? null,
+}));
+const postoUlt = posto[posto.length - 1];
+const postoIni = posto[0];
+const somaSubv = posto.reduce((t, x) => t + x.subvencao + x.afac + x.aporte, 0);
+const somaDiv = posto.reduce((t, x) => t + (x.dividendoRtn ?? 0), 0);
 const sestOficial = sest.oficial[sestUlt.ano] as number | undefined;
 const noAno = (e: any, ano: string) => e.serie[ano] !== undefined;
 const sestNoUltimo = (sest.empresas as any[]).filter((e) => noAno(e, sestUlt.ano)).sort((a, b) => b.serie[sestUlt.ano] - a.serie[sestUlt.ano]);
@@ -76,7 +86,7 @@ const barras = (n: number) => ({ passo: (W - L - R) / n, largura: (W - L - R) / 
 
 const esc1 = escala(divSerie.map((x) => x.real));
 const b1 = barras(divSerie.length);
-const esc2 = escala(sestSerie.map((x) => x.real));
+const esc2 = escala([...sestSerie.map((x) => x.real), ...posto.map((x, i) => real(x.semSubvencao, x.ano))]);
 const b2 = barras(sestSerie.length);
 const esc3 = escala(cvmSerie.map((x) => x.real));
 const b3 = barras(cvmSerie.length);
@@ -93,16 +103,18 @@ const FONTES_ATE = [
   <h1>O lucro das estatais</h1>
   <p class="lede">
     Quanto as empresas do poder público lucraram ou perderam, e — o que é outra conta — quanto disso chegou de fato ao
-    Tesouro. Em {sestUlt.ano}, as {sestUlt.n} estatais federais de controle direto que já publicaram demonstração somaram
-    <strong>{bi(sestUlt.nominal)}</strong> de lucro líquido, e a União recebeu <strong>{bi(divUlt.nominal)}</strong> em dividendos. Nem toda estatal dá lucro: {sestPrejuizo.length} delas
-    fecharam o ano no vermelho.
+    Tesouro — e quanto o Orçamento põe de volta nelas. Em {sestUlt.ano}, as {sestUlt.n} estatais federais de controle direto
+    que já publicaram demonstração somaram <strong>{bi(sestUlt.nominal)}</strong> de lucro líquido, a União recebeu
+    <strong>{bi(divUlt.nominal)}</strong> em dividendos e pagou <strong>{bi(postoUlt.subvencao)}</strong> de subvenção do
+    Orçamento — que entra como receita e já está dentro daquele lucro. {sestPrejuizo.length} das {sestUlt.n} fecharam o ano
+    no vermelho{maiorPrejuizo ? `, a maior delas os Correios, com ${bi(maiorPrejuizo.serie[sestUlt.ano])}` : ""}.
   </p>
   <p class="meta">atualizado em {fmt.format(quando)} · fontes: Ministério da Gestão (SEST), Tesouro Nacional, CVM · <a href="/metodologia/">metodologia</a></p>
 
   <div class="hero">
-    <div class="stat big"><b>{bi(sestUlt.nominal)}</b><span>o lucro somado das {sestUlt.n} estatais federais de controle direto que publicaram demonstração de {sestUlt.ano} ({sestUlt.per}); {petro ? `${pct(petro.serie[sestUlt.ano] / sestUlt.nominal)} disso é da Petrobras` : ""}</span></div>
+    <div class="stat big"><b>{bi(sestUlt.nominal)}</b><span>o lucro somado das {sestUlt.n} estatais federais de controle direto que publicaram demonstração de {sestUlt.ano} ({sestUlt.per}) — {bi(postoUlt.semSubvencao)} sem a subvenção do Tesouro; {petro ? `${pct(petro.serie[sestUlt.ano] / sestUlt.nominal)} disso é da Petrobras` : ""}</span></div>
     <div class="stat"><b>{bi(divUlt.nominal)}</b><span>o que entrou no Tesouro como dividendo em {divUlt.ano} — a parte do lucro que cabe à União como acionista</span></div>
-    {maiorPrejuizo && <div class="stat"><b>{bi(maiorPrejuizo.serie[sestUlt.ano])}</b><span>o maior prejuízo de {sestUlt.ano}: {maiorPrejuizo.nome.replace(/\s*\(.*/, "")}</span></div>}
+    <div class="stat"><b>{bi(postoUlt.subvencao)}</b><span>a subvenção do Tesouro que o Orçamento pagou às estatais em {sestUlt.ano} — era {bi(postoIni.subvencao)} em {postoIni.ano}</span></div>
   </div>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
@@ -146,18 +158,24 @@ const FONTES_ATE = [
 
   <h2>O lucro das estatais federais, {sestSerie[0].ano}–{sestUlt.ano}</h2>
   <div class="card">
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Lucro ou prejuízo somado das estatais federais de controle direto, por ano, em reais corrigidos">
+    <div class="legend"><span><i style="background:var(--s2)"></i>Lucro publicado</span><span><i style="background:var(--ink);height:3px;margin-bottom:3px"></i>Sem a subvenção do Tesouro</span></div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Lucro ou prejuízo somado das estatais federais de controle direto, por ano, em reais corrigidos, com e sem a subvenção do Tesouro">
       {[1, 0.5].map((t) => <g><line x1={L} x2={W - R} y1={esc2.y(esc2.max * t)} y2={esc2.y(esc2.max * t)} stroke="var(--line)" /><text x={L - 6} y={esc2.y(esc2.max * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{bi(esc2.max * t)}</text></g>)}
       <line x1={L} x2={W - R} y1={esc2.zero} y2={esc2.zero} stroke="var(--ink-2)" />
       {sestSerie.map((x, i) => (<g>
         <rect x={L + i * b2.passo + 1} y={Math.min(esc2.zero, esc2.y(x.real))} width={b2.largura} height={Math.max(1, Math.abs(esc2.zero - esc2.y(x.real)))} fill={x.real < 0 ? "#a3302a" : "var(--s2)"}>
-          <title>{x.ano}: {bi2(x.real)} em reais de {base} (no ano, {bi2(x.nominal)}), {x.n} empresas</title></rect>
+          <title>{x.ano}: {bi2(x.real)} em reais de {base} (no ano, {bi2(x.nominal)}), {x.n} empresas · sem a subvenção do Tesouro: {bi2(real(posto[i].semSubvencao, x.ano))}</title></rect>
+        <line x1={L + i * b2.passo + 1} x2={L + i * b2.passo + 1 + b2.largura} y1={esc2.y(real(posto[i].semSubvencao, x.ano))} y2={esc2.y(real(posto[i].semSubvencao, x.ano))} stroke="var(--ink)" stroke-width="2">
+          <title>{x.ano} sem a subvenção do Tesouro: {bi2(real(posto[i].semSubvencao, x.ano))}</title></line>
         <text x={L + i * b2.passo + b2.largura / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{x.ano}</text>
       </g>))}
     </svg>
     <p class="src">
       Em reais de {base}, só as <Termo t="controle_direto">empresas de controle direto</Termo> — {sest.controle_direto} das {sest.total_ativas} estatais
       federais. As outras {sest.controle_indireto} são subsidiárias, e o resultado delas já está dentro da mãe.
+      {" "}A linha escura em cada barra é o mesmo lucro <strong>sem a subvenção do Tesouro</strong>, que entra como receita
+      na demonstração de quem depende do Orçamento. Somando os {sestSerie.length} anos, o lucro das federais foi de
+      {" "}{compact(sestSerie.reduce((t, x) => t + x.nominal, 0))}, dos quais {pct(sestSerie.reduce((t, x) => t + (petro?.serie[x.ano] ?? 0), 0) / sestSerie.reduce((t, x) => t + x.nominal, 0))} vieram da Petrobras.
       {sestOficial ? ` Nossa soma de ${sestUlt.ano} dá ${bi(sestUlt.nominal)}; o Ministério da Gestão divulgou ${bi(sestOficial)} — diferença de ${pct(Math.abs(sestUlt.nominal / sestOficial - 1))}. Parte dela são duas empresas sem demonstração de ${sestUlt.ano} no arquivo (CDRJ e Ceasaminas); o restante não está explicado, e por isso os dois números aparecem aqui lado a lado.` : ""}
     </p>
   </div>
@@ -170,20 +188,52 @@ const FONTES_ATE = [
     diante as duas contas dão o mesmo número.</div>
   </div>
 
+  <h2>As duas pontas: o que a União recebe e o que põe</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      O lucro é da empresa. Para o Orçamento, o que conta são duas correntes em sentidos opostos: o <Termo t="dividendo_uniao">dividendo</Termo> que
+      entra e o dinheiro que sai para sustentar as estatais que não se pagam — <Termo t="subvencao_tesouro">subvenção do
+      Tesouro</Termo>, aporte de capital e adiantamento para futuro aumento de capital (AFAC). Em {postoUlt.ano} entraram
+      {" "}{bi(divUlt.nominal)} e saíram {bi(postoUlt.subvencao + postoUlt.aporte + postoUlt.afac)}.
+    </p>
+    <table>
+      <thead><tr><th>Ano</th><th class="num">Dividendos que a União recebeu</th><th class="num">Subvenção do Tesouro</th><th class="num">Aporte de capital</th><th class="num">AFAC</th><th class="num">Diferença</th></tr></thead>
+      <tbody>{[...posto].reverse().map((x) => { const sai = x.subvencao + x.aporte + x.afac; const entra = x.dividendoRtn ?? 0; return (<tr>
+        <td>{x.ano}</td>
+        <td class="num">{x.dividendoRtn !== null ? compact(x.dividendoRtn) : "—"}</td>
+        <td class="num">{compact(x.subvencao)}</td>
+        <td class="num">{compact(x.aporte)}</td>
+        <td class="num">{compact(x.afac)}</td>
+        <td class={`num${entra - sai < 0 ? " neg" : ""}`}>{x.dividendoRtn !== null ? compact(entra - sai) : "—"}</td></tr>); })}
+      </tbody>
+    </table>
+    <p class="src">
+      Somando {postoIni.ano}–{postoUlt.ano}: {compact(somaDiv)} de dividendos recebidos contra {compact(somaSubv)} de
+      subvenção, aporte e AFAC. <b>As duas colunas não são da mesma natureza</b> e por isso a diferença é só uma ordem de
+      grandeza, não um saldo contábil: o dividendo é <Termo t="regime_caixa">regime de caixa</Termo> e vem do Tesouro; a
+      subvenção é o valor reconhecido na demonstração da empresa, publicado pela SEST. Também não entram aqui renúncia
+      fiscal, crédito subsidiado nem garantia da União — não há base aberta que os reúna por empresa.
+    </p>
+  </div>
+
   <h2>Uma por uma: as estatais federais em {sestUlt.ano}</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Empresa</th><th>Setor</th><th>Depende do Tesouro</th><th class="num">Lucro/prejuízo {sestUlt.ano}</th><th class="num">{sestSerie[sestSerie.length - 2].ano}</th></tr></thead>
+      <thead><tr><th>Empresa</th><th>Setor</th><th>Depende do Tesouro</th><th class="num">Lucro/prejuízo {sestUlt.ano}</th><th class="num">Subvenção do Tesouro</th><th class="num">Sem a subvenção</th><th class="num">{sestSerie[sestSerie.length - 2].ano}</th></tr></thead>
       <tbody>{sestNoUltimo.map((e) => (<tr>
         <td>{e.sigla}{e.ativa ? "" : ` (saiu em ${e.saiu_em})`}<br /><span class="sub">{e.nome.length > 58 ? e.nome.slice(0, 56) + "…" : e.nome}</span></td>
         <td>{e.segmento || e.setor}</td>
         <td>{e.dependente ? "Sim" : "Não"}</td>
         <td class={`num${e.serie[sestUlt.ano] < 0 ? " neg" : ""}`}>{compact(e.serie[sestUlt.ano])}</td>
+        <td class="num">{e.subvencao?.[sestUlt.ano] ? compact(e.subvencao[sestUlt.ano]) : "—"}</td>
+        <td class={`num${(e.sem_subvencao?.[sestUlt.ano] ?? 0) < 0 ? " neg" : ""}`}>{e.subvencao?.[sestUlt.ano] ? compact(e.sem_subvencao[sestUlt.ano]) : "—"}</td>
         <td class={`num${(e.serie[sestSerie[sestSerie.length - 2].ano] ?? 0) < 0 ? " neg" : ""}`}>{e.serie[sestSerie[sestSerie.length - 2].ano] !== undefined ? compact(e.serie[sestSerie[sestSerie.length - 2].ano]) : "—"}</td></tr>))}
       </tbody>
     </table>
     <p class="src">
-      Clique no cabeçalho para ordenar. {sestLucro.length} com lucro, {sestPrejuizo.length} com prejuízo em {sestUlt.ano}.
+      Clique no cabeçalho para ordenar. {sestLucro.length} com lucro, {sestPrejuizo.length} com prejuízo em {sestUlt.ano} —
+      e {sestNoUltimo.filter((e) => (e.sem_subvencao?.[sestUlt.ano] ?? e.serie[sestUlt.ano]) < 0).length} se tirarmos a
+      subvenção do Tesouro da conta.
       "Depende do Tesouro" é a classificação da própria SEST: são {sest.total_dependentes} empresas que recebem dinheiro do
       Orçamento para pagar pessoal e custeio — para elas o resultado contábil não mede o custo para o país.
       Fonte: {sest.fonte} (<a href={sest.url}>dados</a>).
@@ -195,13 +245,24 @@ const FONTES_ATE = [
     <p style="margin:0 0 10px">
       Das {sest.total_ativas} estatais federais, {sest.total_dependentes} são <Termo t="dependente_tesouro">dependentes do
       Tesouro</Termo>: não se sustentam com receita própria e recebem recursos do Orçamento da União. São estas, pelo
-      resultado de {sestUlt.ano}:
+      resultado de {sestUlt.ano}. <b>O resultado publicado por elas já inclui a subvenção</b>, que entra como receita —
+      por isso a terceira coluna, que é o resultado antes de o Orçamento entrar, é a que mostra o tamanho da conta.
     </p>
     <table>
-      <thead><tr><th>Empresa</th><th>Setor</th><th class="num">Resultado {sestUlt.ano}</th></tr></thead>
-      <tbody>{dependentes.map((e) => (<tr><td>{e.sigla}<br /><span class="sub">{e.nome.length > 58 ? e.nome.slice(0, 56) + "…" : e.nome}</span></td><td>{e.segmento || e.setor}</td><td class={`num${e.serie[sestUlt.ano] < 0 ? " neg" : ""}`}>{compact(e.serie[sestUlt.ano])}</td></tr>))}</tbody>
+      <thead><tr><th>Empresa</th><th>Setor</th><th class="num">Resultado publicado</th><th class="num">Subvenção do Tesouro</th><th class="num">Resultado antes dela</th></tr></thead>
+      <tbody>{dependentes.map((e) => (<tr>
+        <td>{e.sigla}<br /><span class="sub">{e.nome.length > 58 ? e.nome.slice(0, 56) + "…" : e.nome}</span></td>
+        <td>{e.segmento || e.setor}</td>
+        <td class={`num${e.serie[sestUlt.ano] < 0 ? " neg" : ""}`}>{compact(e.serie[sestUlt.ano])}</td>
+        <td class="num">{e.subvencao?.[sestUlt.ano] ? compact(e.subvencao[sestUlt.ano]) : "—"}</td>
+        <td class={`num${(e.sem_subvencao?.[sestUlt.ano] ?? 0) < 0 ? " neg" : ""}`}>{e.sem_subvencao?.[sestUlt.ano] !== undefined ? compact(e.sem_subvencao[sestUlt.ano]) : "—"}</td></tr>))}</tbody>
     </table>
-    <p class="src">O quanto cada uma recebe do Orçamento está em <a href="/poderes/">Poderes</a> (despesa por órgão); aqui aparece só o resultado da empresa.</p>
+    <p class="src">
+      Juntas, as {dependentes.length} receberam {compact(dependentes.reduce((t, e) => t + (e.subvencao?.[sestUlt.ano] ?? 0), 0))} de
+      subvenção em {sestUlt.ano} e teriam fechado o ano com {compact(dependentes.reduce((t, e) => t + (e.sem_subvencao?.[sestUlt.ano] ?? 0), 0))} sem
+      ela. Isso <b>não</b> é o custo total delas para o Orçamento: investimento e outras transferências entram por outras
+      rubricas, que estão em <a href="/poderes/">Poderes</a> (despesa por órgão).
+    </p>
   </div>
 
   <h2>Empresa por empresa, nas três esferas, {anosCvm[0]}–{cvmUlt}</h2>
@@ -267,7 +328,7 @@ const FONTES_ATE = [
     e outro universo, e por isso não entra aqui.
   </p>
 
-  <Glossario termos={["lucro_liquido", "dividendo_uniao", "regime_caixa", "controle_direto", "dependente_tesouro", "consolidado", "nao_controladores", "acao_ordinaria"]} />
+  <Glossario termos={["lucro_liquido", "dividendo_uniao", "subvencao_tesouro", "afac", "regime_caixa", "controle_direto", "dependente_tesouro", "consolidado", "nao_controladores", "acao_ordinaria"]} />
 </Base>
 <style>
   .sub { font-size: 12px; color: var(--ink-2); }
