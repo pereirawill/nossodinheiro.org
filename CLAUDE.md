@@ -138,6 +138,11 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `etl/impostos/extract.py`: CSV `gov.br/receitafederal/dados/arrecadacao-estado.csv` (2000→, por mês × UF × tributo).
   Parser `_brl()` lida com formatos misturados ('8762245,567' = decimal; '1,006,523,961' = milhar); famílias agregado ×
   detalhado deduplicadas. Bases de incidência = convenção nossa (ver metodologia). Conferido: mar/2026 224,6 bi (RFB 229,25).
+- 28/10: `serie_longa` (tabela **TRIB 01-B**, "Total da Receita Tributária" em % do PIB) dá a carga **ano a ano de 2002
+  a 2024** — a Tab_01 que usávamos pula anos. Gráfico de `/impostos/` passou a usá-la. **Não dá para ir a 1989**: as
+  edições pré-2015 do estudo dão 404 e cada edição republica a série com PIB revisado; a página diz isso em vez de
+  emendar bases. Mín. 29,0% (2020), máx. 32,2% (2024). E `ocde` (tabela 07) trouxe Brasil × média de 36 países da OCDE
+  por base: total 32,0% × 34,1%, mas bens e serviços 13,0% × 10,5% e renda 9,1% × 12,3% — está em `/comparacao/`.
 - Saída `impostos.json`: anual (2000→), mensal (24 m), por UF, tributos do ano. Página `/impostos/`. Pendente: estados e
   municípios via SICONFI para "quanto já foi arrecadado" oficial (Impostômetro da ACSP é privado — não usar).
 

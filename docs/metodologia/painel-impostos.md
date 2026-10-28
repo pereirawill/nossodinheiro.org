@@ -50,3 +50,24 @@ não um dado da Receita.
    Tesouro) para um "quanto já foi arrecadado no Brasil" oficial, alternativa ao Impostômetro (que é contador privado da ACSP).
 2. Deflacionar a série anual (IPCA, IBGE).
 3. Carga tributária % do PIB (Receita publica anualmente; Tesouro "Estimativa da carga tributária").
+
+## Carga tributária ano a ano (28/10/2026)
+
+O gráfico da carga usa a tabela **TRIB 01-B** do estudo "Carga Tributária no Brasil" da Receita (receita tributária por
+tributo em % do PIB), cuja linha "Total da Receita Tributária" dá a série **ano a ano de 2002 ao último ano publicado**,
+num arquivo único. A Tab_01, que usávamos antes, traz só os anos recentes mais alguns de referência — era por isso que a
+série pulava anos.
+
+**Por que não vai a 1989.** As edições do estudo anteriores a 2015 não estão no endereço que a Receita mantém hoje (dão
+404), e cada edição republica a série com o PIB revisado pelo IBGE e com mudanças de metodologia. Chegar a 1989 exigiria
+emendar edições de bases diferentes, o que esta página não faz — a mesma regra que vale para o analfabetismo em Educação
+e para a série do CNJ no Judiciário. 2002 é o começo da série que a própria Receita publica de uma vez.
+
+Resultado: 30,3% do PIB em 2002, mínimo de 29,0% em 2020, máximo de 32,2% em 2024.
+
+## Brasil × média da OCDE
+
+A tabela **07** do mesmo estudo compara Brasil e média de 36 países da OCDE por base de incidência, com números que a
+Receita monta a partir do Revenue Statistics da OCDE. Em 2023: carga total 32,0% contra 34,1%, mas **bens e serviços
+13,0% contra 10,5%** e **renda, lucro e ganho de capital 9,1% contra 12,3%**. A carga total é parecida; o que se cobra é
+diferente. Está na aba Comparação.

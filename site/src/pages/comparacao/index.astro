@@ -60,6 +60,16 @@ const cargaWB = idx("carga_governo_central");
 const cargaBR = (imp as any).carga;
 const cargaTotal = (cargaBR?.serie?.[cargaBR.ano]?.carga ?? 0) * 100;
 const bases = cargaBR?.bases?.linhas ?? [];
+// Brasil × média da OCDE por base, da tabela 07 do próprio estudo da Receita (que usa o Revenue Statistics da OCDE)
+const ocde = cargaBR?.ocde;
+const basesOcde = ocde ? Object.entries(ocde.bases as Record<string, Record<string, any>>)
+  .map(([base, anos]) => {
+    const ultimo = Object.keys(anos).sort().pop()!;
+    const primeiro = Object.keys(anos).sort()[0];
+    return { base, ano: ultimo, ano0: primeiro, br: anos[ultimo]?.brasil, oc: anos[ultimo]?.ocde,
+             br0: anos[primeiro]?.brasil, oc0: anos[primeiro]?.ocde };
+  }).filter((x) => x.br != null && x.oc != null) : [];
+const maxOcde = Math.max(...basesOcde.map((x) => Math.max(x.br, x.oc)), 1);
 
 // o que o Brasil gasta de fato, pelo nosso próprio dado (SIOP), para o leitor conferir a ordem de grandeza
 const f = (cod: string) => (funcoes as any[]).find((x) => x.funcao === cod)?.pago ?? 0;
@@ -336,6 +346,27 @@ const maxParl = Math.max(...parlamentos.map((p2) => p2.reais ?? 0));
           <td class="num">{b.municipal ? compact(b.municipal * 1e6) : "—"}</td></tr>))}
       </tbody>
     </table>
+    <h3 style="margin:18px 0 6px">Brasil e a média da OCDE, base por base</h3>
+    <svg viewBox={`0 0 ${W} ${basesOcde.length * 44 + 12}`} width="100%" role="img" aria-label="Carga tributária do Brasil e média da OCDE, por base de incidência">
+      {basesOcde.map((x, i) => (<g transform={`translate(0 ${i * 44 + 8})`}>
+        <text x={rotuloW - 8} y="14" text-anchor="end" font-size="12.5" fill="var(--ink)">{x.base}</text>
+        <text x={rotuloW - 8} y="28" text-anchor="end" font-size="10.5" fill="var(--ink-2)">% do PIB em {x.ano}</text>
+        <rect x={rotuloW} y="2" width={Math.max(2, (x.br / maxOcde) * barraW)} height="14" fill="var(--s4)" rx="2">
+          <title>Brasil: {n1(x.br)}% do PIB em {x.ano} (era {n1(x.br0)}% em {x.ano0})</title></rect>
+        <rect x={rotuloW} y="18" width={Math.max(2, (x.oc / maxOcde) * barraW)} height="14" fill="var(--neutro)" rx="2">
+          <title>Média da OCDE: {n1(x.oc)}% do PIB em {x.ano} (era {n1(x.oc0)}% em {x.ano0})</title></rect>
+        <text x={rotuloW + barraW + 10} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1(x.br)}%</text>
+        <text x={rotuloW + barraW + 10} y="30" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n1(x.oc)}%</text>
+      </g>))}
+    </svg>
+    <div class="legend"><span><i style="background:var(--s4)"></i>Brasil</span><span><i style="background:var(--neutro)"></i>média da OCDE</span></div>
+    <p class="src">
+      <b>A carga total é parecida; o que cobra é diferente.</b> A tabela é da própria Receita Federal, montada com o
+      Revenue Statistics da OCDE, e mostra que o Brasil arrecada <b>mais sobre bens e serviços</b> e <b>menos sobre renda,
+      lucro e ganho de capital</b> que a média de 36 países da OCDE — com carga total quase igual. É o mesmo fato que a
+      aba <a href="/imposto-de-renda/">Imposto de Renda</a> mostra por dentro, na alíquota que cai no topo. Fonte:
+      {" "}{ocde?.fonte}.
+    </p>
     <p class="src">
       Comparar carga tributária entre países é a armadilha mais comum. O indicador do Banco Mundial cobre o
       <b> governo central</b>, e no Brasil estados e municípios arrecadam quase um terço do total — ICMS, ISS, IPVA e

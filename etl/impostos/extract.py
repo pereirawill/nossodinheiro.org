@@ -207,6 +207,65 @@ def bases_de_incidencia(wb) -> dict | None:
     return {"total_milhoes": round(total, 2), "tabela": "INC 01-A", "linhas": linhas}
 
 
+def serie_longa(wb) -> dict[str, float]:
+    """
+    Carga tributária ano a ano, da tabela TRIB 01-B (receita por tributo em % do PIB): a linha "Total da Receita
+    Tributária" dá 2002 → último ano em uma única tabela, sem emendar edições do estudo. A Tab_01 traz só os anos
+    recentes e alguns de referência, e é por isso que a série dela pula anos.
+    """
+    if "T01B" not in wb.sheetnames:
+        return {}
+    linhas = [list(r) for r in wb["T01B"].iter_rows(max_col=40, values_only=True)]
+    cab = next((l for l in linhas if sum(1 for v in l if _texto(v).isdigit() and len(_texto(v)) == 4) >= 5), None)
+    if not cab:
+        log.warning("T01B: linha de anos não encontrada")
+        return {}
+    anos = {i: _texto(v) for i, v in enumerate(cab) if _texto(v).isdigit() and len(_texto(v)) == 4}
+    # o rótulo fica na coluna 2 ou 3 conforme a aba; procuramos nas primeiras colunas
+    total = next((l for l in linhas
+                  if any(_texto(v).startswith("Total da Receita Tribut") for v in l[:4])), None)
+    if not total:
+        log.warning("T01B: linha de total não encontrada")
+        return {}
+    saida = {ano: round(float(total[i]), 6) for i, ano in anos.items()
+             if i < len(total) and isinstance(total[i], (int, float))}
+    log.info("série longa da carga (T01B): %d anos, %s a %s", len(saida), min(saida), max(saida))
+    return saida
+
+
+def ocde(wb) -> dict | None:
+    """Brasil × média da OCDE por base de incidência (Tab_07, que a Receita monta com o Revenue Statistics da OCDE)."""
+    if "Tab_07" not in wb.sheetnames:
+        return None
+    linhas = [list(r) for r in wb["Tab_07"].iter_rows(max_row=12, max_col=12, values_only=True)]
+    grupos = next((l for l in linhas if any(_texto(v).startswith("Carga Tribut") for v in l[:4])), None)
+    anos_l = next((l for l in linhas if sum(1 for v in l if _texto(v).isdigit() and len(_texto(v)) == 4) >= 4), None)
+    if not grupos or not anos_l:
+        return None
+    # os rótulos de grupo vêm em células mescladas: repete o último rótulo visto
+    rotulos, atual = {}, None
+    for i, v in enumerate(grupos):
+        if _texto(v):
+            atual = _texto(v)
+        if atual:
+            rotulos[i] = atual
+    dados: dict[str, dict] = {}
+    for l in linhas:
+        quem = next((_texto(v) for v in l[:3] if _texto(v)), "")
+        if not quem.startswith(("Brasil", "Média OCDE")):
+            continue
+        chave = "brasil" if quem.startswith("Brasil") else "ocde"
+        for i, ano in ((i, _texto(v)) for i, v in enumerate(anos_l) if _texto(v).isdigit()):
+            if i < len(l) and isinstance(l[i], (int, float)):
+                dados.setdefault(rotulos.get(i, "?"), {}).setdefault(ano, {})[chave] = round(float(l[i]), 2)
+    if not dados:
+        return None
+    log.info("Brasil × OCDE (Tab_07): %d bases, anos %s", len(dados),
+             sorted({a for v in dados.values() for a in v}))
+    return {"bases": dados, "fonte": "Receita Federal, Carga Tributária no Brasil, tabela 07, a partir do Revenue "
+                                     "Statistics da OCDE (média de 36 países)"}
+
+
 def carga_tributaria(c: httpx.Client) -> dict | None:
     """
     Carga tributária bruta (tudo que União, estados e municípios arrecadam em tributos, sobre o PIB), da planilha oficial
@@ -254,7 +313,7 @@ def carga_tributaria(c: httpx.Client) -> dict | None:
     log.info("carga tributária (CTB %d): %s = %.2f%% do PIB; %d anos na série; %d entes", edicao, ultimo,
              100 * (next((e["pct_pib"] for e in entes if e["ente"] == "Total"), 0) or serie.get(ultimo, {}).get("carga", 0)), len(serie), len(entes))
     return {"edicao": edicao, "ano": ultimo, "serie": serie, "por_ente": entes,
-            "bases": bases_de_incidencia(wb),
+            "bases": bases_de_incidencia(wb), "serie_longa": serie_longa(wb), "ocde": ocde(wb),
             "fonte": f"Receita Federal, Carga Tributária no Brasil {edicao} (tabelas 01, 02 e INC 01-A)",
             "url": CTB.format(ano=edicao)}
 
