@@ -7,6 +7,8 @@ import Glossario from "../../components/Glossario.astro";
 import rankings from "../../../public/data/rankings.json";
 import imp from "../../../public/data/impostos.json";
 import funcoes from "../../../public/data/poderes_funcao_2025.json";
+import cambio from "../../../public/data/cambio.json";
+import { JUDICIARIO_BR, JUDICIARIO_EUROPA, JUDICIARIO_EUROPA_META, MONARQUIAS } from "../../lib/comparacao";
 
 const n1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
 const n2 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(2).replace(".", ",");
@@ -61,6 +63,24 @@ const AREAS_BR = [
   { nome: "Assistência Social", v: f("08") }, { nome: "Defesa Nacional", v: f("05") },
 ];
 const pibBR = (cargaBR?.serie?.[cargaBR.ano]?.pib ?? 0) * 1e9;
+
+// Judiciário: a coluna comparável com o CNJ é a dos tribunais
+const jud = [{ pais: "Brasil", tribunais: JUDICIARIO_BR.pct_pib_calculado, sistema: null, eurostat: null, nota: "", br: true },
+             ...JUDICIARIO_EUROPA.map((l) => ({ ...l, br: false }))]
+  .sort((a, b) => (b.tribunais ?? b.sistema ?? 0) - (a.tribunais ?? a.sistema ?? 0));
+const maxJud = Math.max(...jud.map((l) => l.tribunais ?? 0));
+const vezes = JUDICIARIO_BR.pct_pib_calculado / JUDICIARIO_EUROPA_META.mediana_tribunais;
+
+// Monarquias: converte pela PTAX do dia para dar ordem de grandeza, com a data declarada
+const ptax = Object.fromEntries((cambio.moedas as any[]).map((m) => [m.simbolo, m.hoje]));
+const dataPtax = (cambio.moedas as any[])[0]?.data_hoje ?? cambio.usd_ultimo_mes;
+const monarquias = MONARQUIAS.map((m) => {
+  const taxa = ptax[m.moeda];
+  return { ...m, reais: taxa ? m.valor * taxa : null,
+           reais_ajustado: taxa && m.ajustado ? m.ajustado.valor * taxa : null };
+}).sort((a, b) => (b.reais ?? 0) - (a.reais ?? 0));
+const pop = (idx("populacao")?.paises ?? []) as any[];
+const habDe = (iso: string) => pop.find((p) => p.iso3 === iso)?.valor ?? null;
 ---
 <Base title="Quanto cada país gasta nas mesmas coisas — Nosso Dinheiro" accent="var(--s5)"
   description="Gasto público em educação, saúde, defesa e benefícios como percentual do PIB, no Brasil e em 20 países de referência, com os dados do Banco Mundial.">
@@ -121,6 +141,90 @@ const pibBR = (cargaBR?.serie?.[cargaBR.ano]?.pib ?? 0) * 1e9;
       quase 200 países, e a posição do Brasil entre todos eles está em <a href="/rankings/">Rankings</a>:
       {AREAS.map((a) => <> {a.rotulo.toLowerCase()} {a.ind.brasil?.posicao}º de {a.ind.brasil?.total};</>)}
     </p>
+  </div>
+
+  <h2>Quanto custa a Justiça, em % do PIB</h2>
+  <div class="card">
+    <div class="hero" style="margin:0 0 14px">
+      <div class="stat big"><b>{n1(JUDICIARIO_BR.pct_pib)}%</b><span>do PIB é o que o Poder Judiciário brasileiro gastou em {JUDICIARIO_BR.ano}: {compact(JUDICIARIO_BR.despesa)}, ou R$ {n2(JUDICIARIO_BR.por_habitante)} por habitante</span></div>
+      <div class="stat"><b>{n2(JUDICIARIO_EUROPA_META.mediana_tribunais)}%</b><span>é a mediana europeia do mesmo conceito (orçamento dos tribunais), entre os {JUDICIARIO_EUROPA_META.paises_cepej} países que responderam à CEPEJ</span></div>
+      <div class="stat"><b>{n1(vezes)}×</b><span>é a razão entre os dois — e o Brasil tem <b class="inline">metade</b> dos juízes por habitante: {n2(JUDICIARIO_BR.magistrados_100k)} contra {n2(JUDICIARIO_EUROPA_META.mediana_magistrados_100k)} por 100 mil</span></div>
+    </div>
+    <svg viewBox={`0 0 ${W} ${jud.filter((l) => l.tribunais).length * 24 + 12}`} width="100%" role="img" aria-label="Orçamento dos tribunais como percentual do PIB, por país">
+      {jud.filter((l) => l.tribunais).map((l, i) => (<g transform={`translate(0 ${i * 24 + 8})`}>
+        <text x={rotuloW - 8} y="13" text-anchor="end" font-size="12" fill="var(--ink)">{l.pais}</text>
+        <rect x={rotuloW} y="2" width={Math.max(2, ((l.tribunais ?? 0) / maxJud) * barraW)} height="14"
+          fill={l.br ? "var(--s4)" : "var(--neutro)"} rx="2"><title>{l.pais}: {n2(l.tribunais)}% do PIB</title></rect>
+        <text x={rotuloW + barraW + 10} y="13" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n2(l.tribunais)}%</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      <b>São conceitos que precisam casar, e este é o detalhe que inverte comparações.</b> O CNJ mede <b>só os
+      tribunais</b>; Ministério Público, Defensoria e Advocacia Pública não entram. A CEPEJ mede tribunais mais
+      Ministério Público e assistência judiciária, e por isso a coluna usada aqui é a dos <b>tribunais</b> — comparar o
+      número do CNJ com o total europeu seria erro de construção. Brasil de {JUDICIARIO_BR.ano}, CEPEJ de
+      {" "}{JUDICIARIO_EUROPA_META.ano_cepej} (o ciclo com dados de 2025 ainda não saiu), Eurostat de
+      {" "}{JUDICIARIO_EUROPA_META.ano_eurostat}: os anos não batem e está dito.
+    </p>
+    <p class="src">
+      <b>Por habitante, a leitura se inverte — e as duas são verdade.</b> Os R$ {n2(JUDICIARIO_BR.por_habitante)} por
+      habitante equivalem a € {n2(JUDICIARIO_BR.por_habitante_eur)} (câmbio médio de 2025, R$ 6,3085 por euro), perto dos
+      € {n2(JUDICIARIO_EUROPA_META.ue27_por_habitante_eur)} da União Europeia. Como percentual do PIB o Brasil está muito
+      acima; por habitante, na média. As duas coisas convivem porque o PIB por habitante brasileiro é bem menor. O CNJ
+      publica também a despesa <b>sem aposentados e pensionistas</b>, que são 15,3% do total: {n1(JUDICIARIO_BR.pct_pib_sem_inativos)}%
+      do PIB. Não conseguimos confirmar se os orçamentos europeus incluem pensões, então a comparação vale nos dois
+      cenários e não afirmamos nada além disso. Duas diferenças estruturais: o Brasil tem Justiça Eleitoral e Justiça do
+      Trabalho como ramos do Judiciário, sem par orçamentário na Europa, e não tem ramo de tribunais administrativos, que
+      existe quase em toda a Europa. O Judiciário brasileiro também arrecada {compact(JUDICIARIO_BR.arrecadacao)} em custas
+      e taxas, 41% da própria despesa. Fontes: {JUDICIARIO_BR.fonte}; {JUDICIARIO_EUROPA_META.fonte}.
+    </p>
+  </div>
+
+  <h2>Quanto custa a Coroa, nas monarquias</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>País</th><th class="num">Valor no orçamento</th><th class="num">Em reais</th><th class="num">Por habitante</th><th>Ano</th></tr></thead>
+      <tbody>{monarquias.map((m) => (<tr>
+        <td>{m.pais}</td>
+        <td class="num">{m.moeda} {Math.round(m.valor).toLocaleString("pt-BR")}</td>
+        <td class="num">{m.reais ? compact(m.reais) : "—"}</td>
+        <td class="num">{m.reais && habDe(m.iso3) ? `R$ ${(m.reais / habDe(m.iso3)!).toFixed(2).replace(".", ",")}` : "—"}</td>
+        <td>{m.ano}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Convertido pela PTAX de fechamento do Banco Central na data do painel de <a href="/inflacao/">Câmbio</a>; a cotação
+      muda todo dia e o valor em reais serve só para dar ordem de grandeza. "Por habitante" usa a população do Banco
+      Mundial. Para comparação: a Presidência da República brasileira tem painel próprio em <a href="/presidencia/">Presidência</a>,
+      e os ex-presidentes aparecem em <a href="/beneficios/">Benefícios</a>.
+    </p>
+    <p class="src">
+      <b>As oito linhas não medem a mesma coisa, e isso não é detalhe.</b> Cada país decide o que entra na rubrica da
+      Coroa:
+    </p>
+    <table>
+      <thead><tr><th>País</th><th>O que está dentro</th><th>O que está fora</th></tr></thead>
+      <tbody>{monarquias.map((m) => (<tr>
+        <td>{m.pais}</td><td>{m.inclui}</td><td>{m.fora}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Os casos extremos: a <b>Dinamarca</b> conta apenas pagamentos em dinheiro a pessoas — nem palácio, nem pessoal, nem
+      segurança; a <b>Espanha</b> tem uma linha única, e palácios e Guarda Real ficam em outros órgãos; a <b>Bélgica</b> é
+      a única que coloca a polícia de proteção dentro da conta, cerca de 47% do total, e sem ela cairia para
+      {" "}{monarquias.find((m) => m.iso3 === "BEL")?.ajustado?.valor.toLocaleString("pt-BR")} euros; os <b>Países
+      Baixos</b> deixam os palácios fora, e com eles subiria para
+      {" "}{monarquias.find((m) => m.iso3 === "NLD")?.ajustado?.valor.toLocaleString("pt-BR")} euros. O britânico não é
+      dotação comum: é uma fórmula sobre o lucro do Crown Estate, que cai de 25% para 20,5% em 2027-28, e não inclui a
+      renda dos ducados de Lancaster e Cornualha. Fonte de cada linha na coluna abaixo; todas são documento oficial do
+      próprio país, verificado em 28/10/2026.
+    </p>
+    <table>
+      <thead><tr><th>País</th><th>Situação</th><th>Fonte</th></tr></thead>
+      <tbody>{monarquias.map((m) => (<tr>
+        <td>{m.pais}</td><td>{m.status}</td><td><a href={m.url} rel="nofollow noopener">{m.fonte}</a></td></tr>))}
+      </tbody>
+    </table>
   </div>
 
   <h2>Carga tributária: por que o número internacional é menor</h2>

@@ -318,7 +318,17 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   saúde pública 4,3% (mediana 6,4), saúde total 9,7%, defesa 1,1%, despesa do governo central 32,4%, transferências
   62,8% da despesa. **A armadilha da carga**: o Banco Mundial mede só o governo central (15,4% do PIB) e a Receita mede
   os três níveis (32,2%) — a página explica, com a tabela INC 01-A ao lado.
-- Pendente na página: Judiciário em % do PIB (CNJ × CEPEJ) e custo das monarquias — levantamento em curso.
+- 28/10 (2ª rodada): **Judiciário comparado e custo das Coroas** em `site/src/lib/comparacao.ts` (constantes com fonte,
+  página e data, como `beneficios.ts`). Brasil 1,3% do PIB (CNJ, Justiça em Números **2026**, ano-base 2025; R$ 164,6 bi;
+  R$ 771,48/hab; 19.094 magistrados, 8,95/100 mil) × mediana europeia de **0,186%** (CEPEJ, dados de 2022 — o ciclo com
+  2025 não saiu). **O pareamento é o ponto**: CNJ mede só tribunais; CEPEJ e Eurostat incluem MP e assistência
+  judiciária, então usar o total europeu seria erro de construção. Por habitante inverte: R$ 771,48 = € 122 contra € 132
+  da UE27, porque o PIB por habitante é menor — as duas leituras estão na página. Inativos (15,3%) não confirmados na
+  Europa → publicamos 1,3% e 1,1%.
+- Monarquias: 8 países com documento oficial próprio (UK realizado/auditado, NO e SE aprovados, DK e NL orçados, BE
+  ajustado, JP submetido, ES prorrogado). **Não medem a mesma coisa**: BE inclui polícia de proteção (47% do total),
+  NL deixa palácios fora (+€ 21,4 mi), DK conta só dinheiro a pessoas. Conversão pela PTAX do dia; `etl/cambio` passou a
+  trazer as 10 moedas da PTAX (entraram DKK, NOK, SEK) e `rankings` ganhou `populacao` (SP.POP.TOTL) para o per capita.
 
 - Visual: `accent` por página (prop do `Base.astro`): deputados s1, senadores s3, STF s5, emendas s4, poderes s2, rankings s5.
 

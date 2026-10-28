@@ -257,7 +257,17 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   o número comparável com a OCDE é o da Receita, de 32,2%, porque estados e municípios arrecadam quase um terço do total.
 - **Os 20 países são escolha nossa** (vizinhos, maiores economias e os de comparação habitual) e está dito na página; a
   base tem quase 200 países e a posição do Brasil entre todos está em Rankings.
-- Pendente: gasto com o Judiciário em % do PIB (CNJ × CEPEJ) e o custo das monarquias, em levantamento.
+- **Judiciário:** o Brasil gastou 1,3% do PIB com o Poder Judiciário em 2025 (CNJ, Justiça em Números 2026) contra uma
+  mediana europeia de 0,19% no mesmo conceito (CEPEJ, dados de 2022). O par tem de casar escopo: o CNJ mede **só
+  tribunais**, e a CEPEJ mede tribunais mais Ministério Público e assistência judiciária — comparar o número do CNJ com o
+  total europeu seria erro de construção. Por habitante a leitura se inverte e as duas são verdade: R$ 771,48 equivalem a
+  € 122, perto dos € 132 da União Europeia, porque o PIB por habitante brasileiro é muito menor. Não conseguimos
+  confirmar se os orçamentos europeus incluem aposentadorias, então publicamos os dois números brasileiros (1,3% com
+  inativos e 1,1% sem) e não afirmamos nada além.
+- **Monarquias:** oito países, cada valor do documento oficial do próprio país, em moeda local. As oito linhas **não
+  medem a mesma coisa** e a página mostra o que entra e o que fica fora em cada uma: a Bélgica é a única que inclui a
+  polícia de proteção (47% do total), os Países Baixos deixam os palácios fora, e a Dinamarca conta só pagamentos em
+  dinheiro a pessoas. A conversão para reais usa a PTAX do dia e serve apenas de ordem de grandeza.
 
 ## Inflação — o IPCA desde 1979
 

@@ -36,7 +36,9 @@ REAL = "01/07/1994"                     # mês em que o real entrou em circulaç
 # O PTAX só cobre dez moedas (AUD, CAD, CHF, DKK, EUR, GBP, JPY, NOK, SEK, USD). Yuan e peso argentino não estão lá,
 # apesar de China e Argentina serem parceiros comerciais grandes — fica declarado na página e na metodologia.
 MOEDAS = {"USD": "Dólar dos Estados Unidos", "EUR": "Euro", "GBP": "Libra esterlina", "CHF": "Franco suíço",
-          "JPY": "Iene japonês", "CAD": "Dólar canadense", "AUD": "Dólar australiano"}
+          "JPY": "Iene japonês", "CAD": "Dólar canadense", "AUD": "Dólar australiano",
+          # as três nórdicas entraram em 28/10/2026 para converter o custo das monarquias em /comparacao/
+          "DKK": "Coroa dinamarquesa", "NOK": "Coroa norueguesa", "SEK": "Coroa sueca"}
 
 
 def _sgs(c: httpx.Client, serie: int, inicio: str) -> dict[str, float]:

@@ -48,6 +48,7 @@ INDICADORES_WB = [
     ("expectativa_vida", "SP.DYN.LE00.IN", "Expectativa de vida", "Anos de vida esperados ao nascer", "anos", True),
     ("gini", "SI.POV.GINI", "Desigualdade (Gini)", "Índice de Gini da renda: 0 = todos iguais, 100 = um só tem tudo", "índice (menor é mais igual)", False),
     ("educacao_pct_pib", "SE.XPD.TOTL.GD.ZS", "Gasto público em educação", "Despesa pública em educação como % do PIB", "% do PIB", True),
+    ("populacao", "SP.POP.TOTL", "População", "População total", "habitantes", True),
     # Gasto público por área, para a página de comparação internacional (pedido de 28/10/2026).
     ("saude_pct_pib", "SH.XPD.GHED.GD.ZS", "Gasto público em saúde", "Despesa do governo em saúde como % do PIB (não inclui plano e desembolso das famílias)", "% do PIB", True),
     ("saude_total_pct_pib", "SH.XPD.CHEX.GD.ZS", "Gasto total em saúde", "Despesa em saúde de todas as fontes, pública e privada, como % do PIB", "% do PIB", True),
