@@ -39,6 +39,7 @@ const mediaStfMes = stf.reduce((s2, r) => s2 + r.custo_mensal_medio, 0) / stf.le
 const COMPARA = [
   { sigla: "STF", nome: "Supremo Tribunal Federal", href: "/stf/", n: stf.length, composicao: 11,
     meses: metaStf.meses_com_folha.length, media: mediaStfMes, ultimo: null, mesUltimo: metaStf.ultimo_mes,
+    instancia: "superior", cargo: "ministro",
     remun: stf.reduce((s2, r) => s2 + r.remuneracao_mensal_media, 0) / stf.length,
     pessoas: Math.round(stf.reduce((s2, r) => s2 + r.gabinete_pessoas_ultimo_mes, 0) / stf.length) },
   ...PAINEIS.map((p) => ({
@@ -46,9 +47,16 @@ const COMPARA = [
     n: p.meta.ultimo_mes_resumo.magistrados, composicao: p.meta.composicao_legal,
     meses: p.meta.meses_com_folha.length, media: p.media,
     ultimo: p.meta.ultimo_mes_resumo.custo_medio, mesUltimo: p.meta.ultimo_mes,
+    instancia: p.meta.instancia ?? "superior", cargo: p.meta.rotulo_magistrado ?? "ministro",
     remun: p.rows.reduce((a: number, r: any) => a + r.remuneracao_mensal_media, 0) / Math.max(p.rows.length, 1),
     pessoas: Math.round(p.meta.ultimo_mes_resumo.pessoas_nos_gabinetes / Math.max(p.meta.ultimo_mes_resumo.magistrados, 1)) })),
 ].sort((a, b) => b.media - a.media);
+// Agrupa a comparação: tribunais superiores e, quando houver painel, os Tribunais Regionais Federais.
+const GRUPOS_COMPARA = [
+  { titulo: "Tribunais superiores", itens: COMPARA.filter((t) => t.instancia === "superior") },
+  { titulo: "Tribunais Regionais Federais", itens: COMPARA.filter((t) => t.instancia === "regional") },
+].filter((g) => g.itens.length);
+const maxCompara = Math.max(...COMPARA.map((t) => t.media), 1);
 
 const tcu = soma("03000");
 const totalJud = TRIBUNAIS.reduce((s, t) => s + soma(t.cod), 0);
@@ -80,17 +88,20 @@ const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
     isso como "custo de um ministro" seria enganoso, então não publicamos.</div>
   </div>
 
-  <h2>Custo de um ministro com o gabinete, tribunal a tribunal</h2>
+  <h2>Custo de um magistrado com o gabinete, tribunal a tribunal</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Tribunal</th><th class="num">Ministros</th><th class="num">Remuneração / mês</th><th class="num">Pessoas no gabinete</th><th class="num">Custo médio no ano</th><th class="num">No último mês</th><th class="barra-cab"></th></tr></thead>
-      <tbody>{COMPARA.map((t) => (
+      <thead><tr><th>Tribunal</th><th class="num">Magistrados</th><th class="num">Remuneração / mês</th><th class="num">Pessoas no gabinete</th><th class="num">Custo médio no ano</th><th class="num">No último mês</th><th class="barra-cab"></th></tr></thead>
+      <tbody>{GRUPOS_COMPARA.map((g) => (<>
+        {GRUPOS_COMPARA.length > 1 ? <tr class="sub-cab"><td colspan="7">{g.titulo}</td></tr> : null}
+        {g.itens.map((t) => (
         <tr><td><a href={t.href}><strong>{t.sigla}</strong></a> · {t.nome}</td>
           <td class="num">{t.n}{t.composicao ? ` / ${t.composicao}` : ""}</td>
           <td class="num">{brl0(t.remun)}</td><td class="num">{t.pessoas}</td>
           <td class="num"><b>{brl0(t.media)}</b></td>
           <td class="num">{t.ultimo ? brl0(t.ultimo) : "—"}</td>
-          <td class="barra-cel"><span class="barra" style={`width:${(t.media / COMPARA[0].media) * 100}%`}></span></td></tr>))}
+          <td class="barra-cel"><span class="barra" style={`width:${(t.media / maxCompara) * 100}%`}></span></td></tr>))}
+      </>))}
       </tbody>
     </table>
     <p class="src">
@@ -132,6 +143,8 @@ const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
 </Base>
 <style>
   .prep { color: var(--ink-2); font-size: 13px; }
+  tr.sub-cab td { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2);
+    border-top: 2px solid var(--line); padding-top: 10px; }
   .barra-cab { width: 140px; } .barra-cel { padding-left: 8px; }
   .barra { display: block; height: 12px; border-radius: 2px; min-width: 2px; background: var(--s5); }
   td a { color: var(--accent); }

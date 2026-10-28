@@ -199,7 +199,8 @@ def run(sigla: str, ano: int) -> tuple[Path, Path]:
     ultimo = ultimo_mes
     ap_ultimo = aposentados.get(ultimo, {"pessoas": set(), "bruto": 0.0})
     meta = {
-        "tribunal": t.sigla, "nome": t.nome, "rotulo_magistrado": t.rotulo_magistrado, "ano": ano,
+        "tribunal": t.sigla, "nome": t.nome, "rotulo_magistrado": t.rotulo_magistrado,
+        "rotulo_plural": t.rotulo_plural or f"{t.rotulo_magistrado}s", "instancia": t.instancia, "ano": ano,
         "meses_com_folha": meses, "ultimo_mes": ultimo,
         "magistrados_em_exercicio": len(por_mes.get(ultimo_mes, ())),
         "magistrados_no_ano": sum(1 for x in saida if not x["convocado"]),

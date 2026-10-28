@@ -28,6 +28,7 @@ const compact = (v: number) =>
   v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const cargo = meta.rotulo_magistrado ?? "ministro";
+const cargos = meta.rotulo_plural ?? `${cargo}s`;
 const Cargo = cargo.charAt(0).toUpperCase() + cargo.slice(1);
 
 const nMeses = meta.meses_com_folha.length;
@@ -60,7 +61,7 @@ const x = (v: number) => (v / max) * plotW;
   <h1>Quanto custa um {cargo} do {meta.tribunal}?</h1>
   <p class="lede">
     <Termo t="remuneracao_bruta">Remuneração</Termo> de cada {cargo} do {meta.nome} e a folha do seu gabinete
-    (servidores, assessores, requisitados), como o próprio tribunal publica. Em {meta.ano}, são {nMeses} meses com folha ({MESES[meta.meses_com_folha[0] - 1]} a {mesUltimo}), {meta.magistrados_em_exercicio} {cargo}s em
+    (servidores, assessores, requisitados), como o próprio tribunal publica. Em {meta.ano}, são {nMeses} meses com folha ({MESES[meta.meses_com_folha[0] - 1]} a {mesUltimo}), {meta.magistrados_em_exercicio} {cargos} em
     exercício{meta.composicao_legal ? ` para ${meta.composicao_legal} cargos previstos em lei` : ""}.
   </p>
   <p class="meta">atualizado em {dataFmt} · fonte: {meta.fonte} · <a href="/judiciario/">todos os tribunais</a> · <a href="/metodologia/">metodologia</a></p>
@@ -72,7 +73,7 @@ const x = (v: number) => (v / max) * plotW;
   </div>
   <div class="hero" style="margin-top:0">
     <div class="stat"><b>{compact(anualProj)}</b><span>os {resumo.magistrados} gabinetes <strong>por ano</strong> (<Termo t="projecao">projeção</Termo> de {mesUltimo} × 12; 13º e férias caem em meses próprios)</span></div>
-    <div class="stat"><b>{brl0(meta.aposentados.bruto_ultimo_mes)}</b><span>pagos em {mesUltimo} a {meta.aposentados.quantidade_ultimo_mes} <Termo t="ministro_aposentado">{cargo}s aposentados</Termo> ou cedidos (fora do total)</span></div>
+    <div class="stat"><b>{brl0(meta.aposentados.bruto_ultimo_mes)}</b><span>pagos em {mesUltimo} a {meta.aposentados.quantidade_ultimo_mes} <Termo t="ministro_aposentado">{cargos} aposentados</Termo> ou cedidos (fora do total)</span></div>
     {indeniz ? <div class="stat"><b>{brl0(indeniz)}</b><span>em <Termo t="indenizacoes">indenizações</Termo> por {cargo} por mês (auxílios e ajudas de custo), <b class="inline">fora</b> dos valores acima</span></div> : null}
     <div class="stat"><b>{compact(meta.totais.folha_inteira)}</b><span>folha inteira do tribunal em {nMeses} meses ({meta.totais.pessoas_ultimo_mes.toLocaleString("pt-BR")} pessoas em {mesUltimo}, incluindo inativos e pensionistas)</span></div>
   </div>
@@ -81,7 +82,7 @@ const x = (v: number) => (v / max) * plotW;
     <span aria-hidden="true">ⓘ</span>
     <div><b>É folha publicada, não estimativa.</b> O valor é a remuneração bruta após o <Termo t="teto_constitucional">teto
     constitucional</Termo>, somadas as outras verbas: subsídio mais vantagens pessoais, abono de permanência e retroativos, que
-    explicam a diferença entre {cargo}s. O gabinete é a soma da mesma coluna para todas as pessoas lotadas nele, sem contar o
+    explicam a diferença entre {cargos}. O gabinete é a soma da mesma coluna para todas as pessoas lotadas nele, sem contar o
     próprio {cargo}. A média mensal é dos meses já pagos; 13º e férias caem em meses específicos e elevam o total do ano.
     {porOutro > 0 ? <> Dos gabinetes, {compact(porOutro)} em {nMeses} meses são pagos pelo <b>órgão de origem</b> de quem é
     requisitado, e por isso não entram no custo do tribunal.</> : null}
@@ -112,7 +113,7 @@ const x = (v: number) => (v / max) * plotW;
       Fonte: {meta.fonte}.</p>
   </div>
 
-  <h2>Todos os {cargo}s em exercício</h2>
+  <h2>Todos os {cargos} em exercício</h2>
   <table>
     <thead><tr><th>#</th><th>{Cargo}</th><th>Gabinete</th><th class="num">Meses</th><th class="num"><Termo t="remuneracao_bruta">Bruto</Termo> em {mesUltimo}</th>{meta.detalha_verbas ? <th class="num"><Termo t="indenizacoes">Indenizações</Termo> / mês</th> : null}<th class="num">Gabinete em {mesUltimo}</th><th class="num"><Termo t="pessoas_gabinete">Pessoas</Termo></th><th class="num">Custo no mês</th><th class="num">Média do ano</th></tr></thead>
     <tbody>

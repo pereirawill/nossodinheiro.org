@@ -49,6 +49,11 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   com `ideCadastro`) → −21%, explicado por lideranças (sem ideCadastro) e ex-deputados. A conferir.
 - Já calculado mas sem página: `ceap_categoria`, `ceap_fornecedor` (com url da NF), `fornecedor_rede`
   (CNPJ atendendo ≥5 deputados). Top categoria 2026: divulgação R$ 52,3 mi (37%).
+- 28/10 (pedido do dono): `url_foto` passou do raw para o `custo_deputado_<ano>.json` (a coluna `urlFoto` da API já estava
+  na tabela `deputados` do transform, só não era selecionada) e `TabelaDeputados.astro` mostra a foto quando a linha traz
+  `url_foto` — vale para deputados e senadores (o Senado já publicava `url_foto`). As imagens são carregadas do site da
+  Câmara e do Senado, com `loading="lazy"`, não copiadas para o repo. `/deputados/` ganhou `MapaBrasil` com a bancada por
+  estado (513 em 27 estados) e `/senadores/`, mapa do custo médio por senador por estado (o tamanho da bancada é fixo em 3).
 - Filtros por UF e partido são páginas estáticas (`/deputados/uf/{uf}/`, `/deputados/partido/{slug}/`,
   `site/src/pages/deputados/`, componente `TabelaDeputados.astro` + `PaginaFiltro.astro`, slug em `site/src/lib/slug.ts`).
 - Pendências: teto CEAP por UF (Ato da Mesa 43/2009), gasto real de gabinete, confirmar 13º/férias,

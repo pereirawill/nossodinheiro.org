@@ -5,11 +5,14 @@
  * Props: rows (já filtradas), todos (todas as linhas, p/ montar os links), proj (sufixo " (projeção)"),
  *        ufAtiva?, partidoAtivo?, base? ("/deputados" | "/senadores"), raiz? ("/" | "/senadores/"),
  *        rotuloNome? ("Deputado(a)" | "Senador(a)"), cotaKey? ("ceap" | "ceaps"), rotuloCota?.
+ * A foto aparece quando a linha traz `url_foto` — é a URL que a própria Câmara e o próprio Senado publicam na API,
+ * carregada do site deles (lazy), não copiada para cá.
  */
 import { slug } from "../lib/slug";
 const { rows, todos, proj = "", ufAtiva, partidoAtivo, base = "/deputados", raiz = "/deputados/",
         rotuloNome = "Deputado(a)", cotaKey = "ceap", rotuloCota = "Cota parlamentar" } = Astro.props;
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const temFoto = rows.some((r: any) => r.url_foto);
 const ufs = [...new Set<string>(todos.map((r: any) => r.uf))].sort();
 const partidos = [...new Set<string>(todos.map((r: any) => r.partido))].sort();
 ---
@@ -23,10 +26,12 @@ const partidos = [...new Set<string>(todos.map((r: any) => r.partido))].sort();
   </div>
 </div>
 <table>
-  <thead><tr><th>#</th><th>{rotuloNome}</th><th>Partido · UF</th><th class="num">{rotuloCota}</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
+  <thead><tr><th>#</th>{temFoto ? <th class="col-foto"><span class="vis-oculto">Foto</span></th> : null}<th>{rotuloNome}</th><th>Partido · UF</th><th class="num">{rotuloCota}</th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
   <tbody>
     {rows.map((r: any, i: number) => (
-      <tr><td class="rank">{i + 1}</td><td>{r.nome}</td>
+      <tr><td class="rank">{i + 1}</td>
+          {temFoto ? <td class="cel-foto">{r.url_foto ? <img src={r.url_foto} alt="" width="36" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer" /> : null}</td> : null}
+          <td>{r.nome}</td>
           <td><a href={`${base}/partido/${slug(r.partido)}/`}>{r.partido}</a> · <a href={`${base}/uf/${slug(r.uf)}/`}>{r.uf}</a></td>
           <td class="num">{brl0(r[cotaKey])}</td><td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
     ))}
@@ -40,4 +45,7 @@ const partidos = [...new Set<string>(todos.map((r: any) => r.partido))].sort();
   .filtros a[aria-current] { background: var(--accent); color: #fff; border-color: var(--accent); }
   .filtros a:hover { border-color: var(--accent); color: var(--accent); }
   td a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--line); }
+  .col-foto { width: 44px; } .cel-foto { padding: 2px 6px 2px 0; }
+  .cel-foto img { display: block; width: 36px; height: 48px; object-fit: cover; border-radius: 4px; background: var(--line); }
+  .vis-oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>

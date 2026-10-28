@@ -2,6 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import Chart from "../../components/CustoDeputadoChart.astro";
 import Tabela from "../../components/TabelaDeputados.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
 import BeneficiosBox from "../../components/BeneficiosBox.astro";
@@ -30,6 +31,15 @@ const series = [
   ["ceaps", "var(--s2)", "Cota CEAPS (gasto real)"],
   ["nao_inclusos", "var(--s4)", "Fora da cota: diárias, passagens, correios (gasto real)"],
 ] as const;
+// Por estado: os três senadores de cada um, somados e na média (a cota usada difere muito de um para outro)
+const porUfSen: Record<string, { n: number; custo: number }> = {};
+for (const r of rows) {
+  const u = (porUfSen[r.uf] ??= { n: 0, custo: 0 });
+  u.n += 1; u.custo += r.custo_mensal_medio;
+}
+const estados = Object.entries(porUfSen).map(([uf, v]) => ({ uf, ...v, media: v.custo / v.n }))
+  .sort((a, b) => b.media - a.media);
+const mapaSen = Object.fromEntries(estados.map((e) => [e.uf, e.media]));
 ---
 <Base title="Quanto custa um senador? — Nosso Dinheiro" accent="var(--s3)">
   <h1>Quanto custa um senador?</h1>
@@ -67,6 +77,23 @@ const series = [
   </div>
 
   <h2>Todos os senadores</h2>
+  <h2>Custo médio de um senador, por estado</h2>
+  <div class="card">
+    <MapaBrasil valores={mapaSen} formato={(v) => brl0(v)}
+      titulo="Custo médio mensal de um senador, por estado" legenda="custo médio por senador, por mês" />
+    <table style="margin-top:14px">
+      <thead><tr><th>Estado</th><th class="num">Senadores</th><th class="num">Custo da bancada / mês</th><th class="num">Média por senador / mês</th></tr></thead>
+      <tbody>{estados.map((e) => (
+        <tr><td><a href={`/senadores/uf/${e.uf.toLowerCase()}/`}>{e.uf}</a></td><td class="num">{e.n}</td>
+          <td class="num">{compact(e.custo)}</td><td class="num">{brl0(e.media)}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Cada estado e o Distrito Federal elegem <b>três</b> senadores (Constituição, art. 46), então o que varia no mapa não é
+      o tamanho da bancada e sim quanto cada um usou da cota e dos gastos fora dela. O subsídio é igual para todos.
+    </p>
+  </div>
+
   <Tabela rows={rows} todos={rows} proj={proj} base="/senadores" raiz="/senadores/" rotuloNome="Senador(a)" cotaKey="ceaps" rotuloCota="Cota (CEAPS)" />
   <Glossario termos={["subsidio", "ceaps_senado", "gastos_nao_inclusos", "imovel_funcional", "auxilio_moradia", "projecao"]} />
 </Base>

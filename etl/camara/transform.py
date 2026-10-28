@@ -108,7 +108,7 @@ WITH ceap_agg AS (
          COUNT(DISTINCT mes) AS meses_com_ceap
   FROM ceap WHERE ano = {ano} GROUP BY id_deputado
 )
-SELECT d.id_deputado, d.nome, d.partido, d.uf,
+SELECT d.id_deputado, d.nome, d.partido, d.uf, d.url_foto,
        {ano}::INTEGER                     AS ano,
        {meses}::INTEGER                   AS meses_considerados,
        {subsidio_ano}::DOUBLE             AS subsidio,

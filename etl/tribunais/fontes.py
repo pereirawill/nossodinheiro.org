@@ -244,6 +244,8 @@ class Tribunal:
     # Entra na tabela com rótulo próprio, mas NÃO conta na composição legal do tribunal.
     cargos_do_magistrado_convocado: tuple[str, ...] = ()
     rotulo_magistrado: str = "ministro"
+    rotulo_plural: str = ""                    # vazio = rótulo + "s" (ministros); desembargador → desembargadores
+    instancia: str = "superior"                # "superior" | "regional", para agrupar a comparação no índice
     composicao: int | None = None              # nº de cargos previstos em lei, para conferência
     # Lotações que NÃO são gabinete: aposentado, pensionista, cedido a outro órgão. Comparadas sem acento e em
     # maiúsculas. Quem está numa delas fica fora do custo por magistrado e entra na estatística separada.

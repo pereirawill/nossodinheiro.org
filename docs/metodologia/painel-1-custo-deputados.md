@@ -117,3 +117,12 @@ Mudou um número lá → mudou aqui, na mesma PR.
 - [ ] Gasto real da verba de gabinete por deputado (substituir teto).
 - [ ] Confirmar 13º/férias do subsídio na folha publicada.
 - [x] Só deputados com `ultimoStatus.situacao = Exercício` entram (v0.2). Pendente: proporcionalizar o subsídio pelo período real de exercício de quem assumiu no meio do ano.
+
+## Foto e mapa (28/10/2026)
+
+A foto de cada parlamentar vem do campo `urlFoto` da própria API da Câmara (e `url_foto` da API do Senado), carregada do
+site deles no navegador de quem acessa, com `loading="lazy"`. Não copiamos as imagens para o repositório nem as
+redistribuímos. O mapa de `/deputados/` mostra quantos deputados **em exercício** cada estado tem, que pode ser uma
+cadeira menos que o total do estado quando há vaga aberta; o número de cadeiras é fixado pela Constituição (art. 45) e
+atualizado pelo TSE a cada censo. Em `/senadores/` o mapa mostra o custo médio por senador, porque a bancada é sempre de
+três (art. 46) e o que varia é o uso da cota.
