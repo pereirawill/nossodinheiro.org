@@ -325,6 +325,10 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   judiciária, então usar o total europeu seria erro de construção. Por habitante inverte: R$ 771,48 = € 122 contra € 132
   da UE27, porque o PIB por habitante é menor — as duas leituras estão na página. Inativos (15,3%) não confirmados na
   Europa → publicamos 1,3% e 1,1%.
+- 28/10 (ajuste do dono): o gráfico usa **média** (a mediana ficou estranha para ele) e a nota traz a mediana como
+  conferência — as duas ficam a <1 ponto em todas as áreas. E a Coroa passou a ser comparada com a **Presidência da
+  República** (chefe de Estado), não com o Judiciário: R$ 1,87 bi a unidade, R$ 3,36 bi o órgão com ABIN e EBC; o
+  Congresso (Câmara 7,03 + Senado 5,86 = R$ 12,89 bi) fica para a comparação parlamento × parlamento, em levantamento.
 - Monarquias: 8 países com documento oficial próprio (UK realizado/auditado, NO e SE aprovados, DK e NL orçados, BE
   ajustado, JP submetido, ES prorrogado). **Não medem a mesma coisa**: BE inclui polícia de proteção (47% do total),
   NL deixa palácios fora (+€ 21,4 mi), DK conta só dinheiro a pessoas. Conversão pela PTAX do dia; `etl/cambio` passou a

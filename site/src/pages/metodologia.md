@@ -255,6 +255,12 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   número. "Despesa do governo central" e "transferências" não incluem estados e municípios.
 - **A armadilha da carga tributária:** o indicador internacional cobre só o governo central (15,4% do PIB no Brasil);
   o número comparável com a OCDE é o da Receita, de 32,2%, porque estados e municípios arrecadam quase um terço do total.
+- **Média, não mediana:** o gráfico mostra a média dos 20 países e a nota traz a mediana como conferência. Nas seis
+  áreas as duas ficam a menos de um ponto uma da outra, então nenhuma conclusão depende da escolha.
+- **A Coroa é o chefe de Estado**, então o par brasileiro é a Presidência da República (R$ 1,87 bi em 2025 como unidade
+  orçamentária, R$ 3,36 bi com ABIN e EBC), não o Judiciário nem o Congresso. A ressalva vale nos dois lados: a
+  Presidência inclui estrutura de governo que numa monarquia parlamentarista fica com o primeiro-ministro. Parlamento com
+  parlamento é outra comparação, em levantamento.
 - **Os 20 países são escolha nossa** (vizinhos, maiores economias e os de comparação habitual) e está dito na página; a
   base tem quase 200 países e a posição do Brasil entre todos está em Rankings.
 - **Judiciário:** o Brasil gastou 1,3% do PIB com o Poder Judiciário em 2025 (CNJ, Justiça em Números 2026) contra uma

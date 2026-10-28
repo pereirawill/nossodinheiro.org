@@ -7,6 +7,7 @@ import Glossario from "../../components/Glossario.astro";
 import rankings from "../../../public/data/rankings.json";
 import imp from "../../../public/data/impostos.json";
 import funcoes from "../../../public/data/poderes_funcao_2025.json";
+import orgaos from "../../../public/data/poderes_orgaos_2025.json";
 import cambio from "../../../public/data/cambio.json";
 import { JUDICIARIO_BR, JUDICIARIO_EUROPA, JUDICIARIO_EUROPA_META, MONARQUIAS } from "../../lib/comparacao";
 
@@ -38,6 +39,9 @@ const linhasRef = REF.map((iso) => {
 }).filter((l) => Object.values(l.valores).some(Boolean));
 
 // gráfico de barras das áreas no Brasil, com a mediana dos países de referência ao lado
+// Média e mediana dos países de referência. A página mostra a MÉDIA, que é a palavra que todo mundo entende, e a
+// nota traz a mediana como conferência: nas seis áreas as duas ficam a menos de 1 ponto uma da outra, então nenhuma
+// conclusão depende da escolha.
 const mediana = (xs: number[]) => {
   const v = [...xs].sort((a, b) => a - b);
   return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : 0;
@@ -45,9 +49,10 @@ const mediana = (xs: number[]) => {
 const comparacao = AREAS.map((a) => {
   const br = valorDe(a.ind, "BRA");
   const outros = linhasRef.filter((l) => l.iso !== "BRA").map((l) => l.valores[a.id]?.valor).filter((v): v is number => v != null);
-  return { ...a, br, mediana: mediana(outros), n: outros.length };
+  const media = outros.length ? outros.reduce((t, v) => t + v, 0) / outros.length : 0;
+  return { ...a, br, media, mediana: mediana(outros), n: outros.length };
 });
-const maxComp = Math.max(...comparacao.flatMap((c) => [c.br?.valor ?? 0, c.mediana]));
+const maxComp = Math.max(...comparacao.flatMap((c) => [c.br?.valor ?? 0, c.media]));
 const W = 920, rotuloW = 240, barraW = 500;
 
 // carga tributária: o Banco Mundial mede só o governo central; a Receita mede os três níveis
@@ -80,7 +85,14 @@ const monarquias = MONARQUIAS.map((m) => {
            reais_ajustado: taxa && m.ajustado ? m.ajustado.valor * taxa : null };
 }).sort((a, b) => (b.reais ?? 0) - (a.reais ?? 0));
 const pop = (idx("populacao")?.paises ?? []) as any[];
+// A Coroa é o chefe de Estado: o par brasileiro é a Presidência da República, não o Judiciário nem o Congresso.
+const orgao = (cod: string) => (orgaos as any[]).filter((o) => o.cod_superior === cod);
+const presidenciaOrgao = orgao("20000");
+const presidenciaSo = presidenciaOrgao.find((o) => o.orgao === "Presidência da República")?.pago ?? 0;
+const presidenciaTudo = presidenciaOrgao.reduce((t, o) => t + o.pago, 0);
+const congresso = orgao("01000").concat(orgao("02000")).reduce((t, o) => t + o.pago, 0);
 const habDe = (iso: string) => pop.find((p) => p.iso3 === iso)?.valor ?? null;
+const habBR = habDe("BRA");
 ---
 <Base title="Quanto cada país gasta nas mesmas coisas — Nosso Dinheiro" accent="var(--s5)"
   description="Gasto público em educação, saúde, defesa e benefícios como percentual do PIB, no Brasil e em 20 países de referência, com os dados do Banco Mundial.">
@@ -100,25 +112,27 @@ const habDe = (iso: string) => pop.find((p) => p.iso3 === iso)?.valor ?? null;
     incluem</b> estados e municípios, que no Brasil gastam mais que a União em saúde e educação.</div>
   </div>
 
-  <h2>Brasil e a mediana dos países de referência</h2>
+  <h2>Brasil e a média dos países de referência</h2>
   <div class="card">
-    <div class="legend"><span><i style="background:var(--s4)"></i>Brasil</span><span><i style="background:var(--neutro)"></i>mediana dos outros 20 países</span></div>
-    <svg viewBox={`0 0 ${W} ${comparacao.length * 46 + 12}`} width="100%" role="img" aria-label="Gasto por área no Brasil e a mediana dos países de referência">
+    <div class="legend"><span><i style="background:var(--s4)"></i>Brasil</span><span><i style="background:var(--neutro)"></i>média dos outros 20 países</span></div>
+    <svg viewBox={`0 0 ${W} ${comparacao.length * 46 + 12}`} width="100%" role="img" aria-label="Gasto por área no Brasil e a média dos países de referência">
       {comparacao.map((c, i) => (<g transform={`translate(0 ${i * 46 + 8})`}>
         <text x={rotuloW - 8} y="14" text-anchor="end" font-size="12.5" fill="var(--ink)">{c.rotulo}</text>
         <text x={rotuloW - 8} y="28" text-anchor="end" font-size="10.5" fill="var(--ink-2)">{c.ind.unidade}</text>
         <rect x={rotuloW} y="2" width={Math.max(2, ((c.br?.valor ?? 0) / maxComp) * barraW)} height="14" fill="var(--s4)" rx="2">
           <title>Brasil: {n2(c.br?.valor)} {c.ind.unidade} ({c.br?.ano})</title></rect>
-        <rect x={rotuloW} y="18" width={Math.max(2, (c.mediana / maxComp) * barraW)} height="14" fill="var(--neutro)" rx="2">
-          <title>Mediana dos {c.n} países de referência: {n2(c.mediana)}</title></rect>
+        <rect x={rotuloW} y="18" width={Math.max(2, (c.media / maxComp) * barraW)} height="14" fill="var(--neutro)" rx="2">
+          <title>Média dos {c.n} países de referência: {n2(c.media)} (mediana {n2(c.mediana)})</title></rect>
         <text x={rotuloW + barraW + 10} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1(c.br?.valor)}</text>
-        <text x={rotuloW + barraW + 10} y="30" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n1(c.mediana)}</text>
+        <text x={rotuloW + barraW + 10} y="30" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n1(c.media)}</text>
       </g>))}
     </svg>
     <p class="src">
-      Cada par de barras é uma área: em cima o Brasil, embaixo a mediana dos outros 20 países da tabela abaixo. A mediana
-      é o país do meio, não a média, para um valor extremo não puxar a conta. O Brasil aparece em
-      {" "}{comparacao.filter((c) => (c.br?.valor ?? 0) > c.mediana).length} das {comparacao.length} áreas acima da mediana.
+      Cada par de barras é uma área: em cima o Brasil, embaixo a média dos outros 20 países da tabela abaixo. O Brasil
+      aparece em {comparacao.filter((c) => (c.br?.valor ?? 0) > c.media).length} das {comparacao.length} áreas acima da
+      média. Conferimos também pela <b>mediana</b>, o país do meio, que não se deixa puxar por um valor extremo: ela dá
+      {" "}{comparacao.map((c) => `${c.rotulo.toLowerCase()} ${n1(c.mediana)}`).join(", ")} — a menos de um ponto da média
+      em todas as áreas, de modo que nenhuma conclusão desta página depende de qual das duas se usa.
       Fonte: Banco Mundial, indicadores {AREAS.map((a) => a.ind.url.split("/").pop()).join(", ")}.
     </p>
   </div>
@@ -180,8 +194,17 @@ const habDe = (iso: string) => pop.find((p) => p.iso3 === iso)?.valor ?? null;
     </p>
   </div>
 
-  <h2>Quanto custa a Coroa, nas monarquias</h2>
+  <h2>Quanto custa a Coroa, e com o que isso se compara no Brasil</h2>
   <div class="card">
+    <p class="explica">
+      A Coroa é o <b>chefe de Estado</b>. O que corresponde a ela no Brasil é a <b>Presidência da República</b>, não o
+      Judiciário nem o Congresso — o rei não julga nem legisla. A Presidência brasileira pagou
+      {" "}<b>{compact(presidenciaSo)}</b> em 2025 como unidade orçamentária, ou {compact(presidenciaTudo)} contando todo o
+      órgão superior, que inclui a ABIN e a EBC. Por habitante dá
+      {" "}{habBR ? `R$ ${(presidenciaSo / habBR).toFixed(2).replace(".", ",")}` : "—"} só a Presidência. Para efeito de
+      escala, o Congresso Nacional (Câmara mais Senado) custou {compact(congresso)} — comparar <b>parlamento com
+      parlamento</b> é outra conta, e está na seção seguinte.
+    </p>
     <table>
       <thead><tr><th>País</th><th class="num">Valor no orçamento</th><th class="num">Em reais</th><th class="num">Por habitante</th><th>Ano</th></tr></thead>
       <tbody>{monarquias.map((m) => (<tr>
@@ -195,8 +218,11 @@ const habDe = (iso: string) => pop.find((p) => p.iso3 === iso)?.valor ?? null;
     <p class="src">
       Convertido pela PTAX de fechamento do Banco Central na data do painel de <a href="/inflacao/">Câmbio</a>; a cotação
       muda todo dia e o valor em reais serve só para dar ordem de grandeza. "Por habitante" usa a população do Banco
-      Mundial. Para comparação: a Presidência da República brasileira tem painel próprio em <a href="/presidencia/">Presidência</a>,
-      e os ex-presidentes aparecem em <a href="/beneficios/">Benefícios</a>.
+      Mundial. A Presidência da República tem painel próprio em <a href="/presidencia/">Presidência</a> e os
+      ex-presidentes aparecem em <a href="/beneficios/">Benefícios</a>. <b>A ressalva vale nos dois lados:</b> a
+      Presidência brasileira inclui a estrutura de governo (Casa Civil, Gabinete de Segurança Institucional, Secretaria de
+      Comunicação), que numa monarquia parlamentarista fica com o primeiro-ministro, não com o rei. Então a linha da
+      Presidência serve de escala, não de empate.
     </p>
     <p class="src">
       <b>As oito linhas não medem a mesma coisa, e isso não é detalhe.</b> Cada país decide o que entra na rubrica da
