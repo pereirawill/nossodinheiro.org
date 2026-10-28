@@ -33,3 +33,10 @@ irpf: ## imposto de renda: planilha dos Grandes Números do IRPF (cache em data/
 	python -m etl.irpf.extract
 	cp data/public/irpf.json site/public/data/
 .PHONY: irpf
+
+TRIBUNAL ?= stj
+tribunais: ## folha de um tribunal superior (TRIBUNAL=stj|tst|stm): extract + transform
+	python -m etl.tribunais.extract --tribunal $(TRIBUNAL) --ano $(ANO)
+	python -m etl.tribunais.transform --tribunal $(TRIBUNAL) --ano $(ANO)
+	cp data/public/custo_magistrado_$(TRIBUNAL)_*.json data/public/meta_$(TRIBUNAL)_*.json site/public/data/
+.PHONY: tribunais

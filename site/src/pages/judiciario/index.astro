@@ -5,24 +5,50 @@ import Glossario from "../../components/Glossario.astro";
 import orgaos from "../../../public/data/poderes_orgaos_2025.json";
 import stf from "../../../public/data/custo_ministro_stf_2026.json";
 import metaStf from "../../../public/data/meta_stf_2026.json";
+const custos = import.meta.glob("../../../public/data/custo_magistrado_*.json", { eager: true, import: "default" });
+const metas = import.meta.glob("../../../public/data/meta_*.json", { eager: true, import: "default" });
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) => v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
 const POP = 212_600_000;
 const soma = (cod: string) => orgaos.filter((o) => o.cod_superior === cod).reduce((s, o) => s + o.pago, 0);
 const TRIBUNAIS = [
-  { cod: "10000", nome: "Supremo Tribunal Federal", sigla: "STF", href: "/stf/", status: "painel com folha real de ministros e gabinetes" },
-  { cod: "11000", nome: "Superior Tribunal de Justiça", sigla: "STJ", status: "em preparação" },
-  { cod: "15000", nome: "Justiça do Trabalho (TST e 24 TRTs)", sigla: "TST/TRTs", status: "em preparação" },
-  { cod: "12000", nome: "Justiça Federal (CJF e 6 TRFs)", sigla: "TRFs", status: "em preparação" },
-  { cod: "14000", nome: "Justiça Eleitoral (TSE e 27 TREs)", sigla: "TSE/TREs", status: "em preparação" },
-  { cod: "16000", nome: "Tribunal de Justiça do DF e Territórios", sigla: "TJDFT", status: "em preparação" },
-  { cod: "13000", nome: "Justiça Militar da União", sigla: "STM", status: "em preparação" },
-  { cod: "17000", nome: "Conselho Nacional de Justiça", sigla: "CNJ", status: "em preparação" },
+  { cod: "10000", nome: "Supremo Tribunal Federal", sigla: "STF", href: "/stf/", status: "painel com a folha de ministros e gabinetes" },
+  { cod: "11000", nome: "Superior Tribunal de Justiça", sigla: "STJ", href: "/judiciario/stj/", status: "painel com a folha de ministros e gabinetes" },
+  { cod: "15000", nome: "Justiça do Trabalho (TST e 24 TRTs)", sigla: "TST", href: "/judiciario/tst/", status: "painel do TST; os 24 TRTs ainda não" },
+  { cod: "12000", nome: "Justiça Federal (CJF e 6 TRFs)", sigla: "TRFs", status: "folha em seis portais regionais, um formato cada" },
+  { cod: "14000", nome: "Justiça Eleitoral (TSE e 27 TREs)", sigla: "TSE/TREs", status: "folha aberta, mas o ministro é cedido do STF e do STJ" },
+  { cod: "16000", nome: "Tribunal de Justiça do DF e Territórios", sigla: "TJDFT", status: "consulta protegida por captcha; sem arquivo aberto" },
+  { cod: "13000", nome: "Justiça Militar da União", sigla: "STM", href: "/judiciario/stm/", status: "painel com a folha de ministros e gabinetes" },
+  { cod: "17000", nome: "Conselho Nacional de Justiça", sigla: "CNJ", status: "folha aberta, mas conselheiro é pago pelo tribunal de origem" },
 ];
 const ESSENCIAIS = [
   { cod: "34000", nome: "Ministério Público da União", sigla: "MPU" }, { cod: "29000", nome: "Defensoria Pública da União", sigla: "DPU" }, { cod: "59000", nome: "Conselho Nacional do MP", sigla: "CNMP" },
 ];
+// Painéis de folha já extraídos, no molde do STF: um por arquivo custo_magistrado_<sigla>_<ano>.json
+const PAINEIS = Object.keys(custos).map((caminho) => {
+  const m = caminho.match(/custo_magistrado_([a-z]+)_(\d{4})\.json$/)!;
+  const rows = (custos[caminho] as any[]).filter((r) => !r.convocado);
+  const meta = metas[`../../../public/data/meta_${m[1]}_${m[2]}.json`] as any;
+  return { sigla: m[1], ano: Number(m[2]), rows, meta,
+           media: rows.reduce((a, r) => a + r.custo_mensal_medio, 0) / Math.max(rows.length, 1) };
+});
+const porSigla = Object.fromEntries(PAINEIS.map((p) => [p.meta.tribunal, p]));
+const mediaStfMes = stf.reduce((s2, r) => s2 + r.custo_mensal_medio, 0) / stf.length;
+// Comparação entre tribunais, todos pela média mensal dos meses com folha publicada no ano corrente
+const COMPARA = [
+  { sigla: "STF", nome: "Supremo Tribunal Federal", href: "/stf/", n: stf.length, composicao: 11,
+    meses: metaStf.meses_com_folha.length, media: mediaStfMes,
+    remun: stf.reduce((s2, r) => s2 + r.remuneracao_mensal_media, 0) / stf.length,
+    pessoas: Math.round(stf.reduce((s2, r) => s2 + r.gabinete_pessoas_ultimo_mes, 0) / stf.length) },
+  ...PAINEIS.map((p) => ({
+    sigla: p.meta.tribunal, nome: p.meta.nome, href: `/judiciario/${p.sigla}/`,
+    n: p.meta.ultimo_mes_resumo.magistrados, composicao: p.meta.composicao_legal,
+    meses: p.meta.meses_com_folha.length, media: p.media,
+    remun: p.rows.reduce((a: number, r: any) => a + r.remuneracao_mensal_media, 0) / Math.max(p.rows.length, 1),
+    pessoas: Math.round(p.meta.ultimo_mes_resumo.pessoas_nos_gabinetes / Math.max(p.meta.ultimo_mes_resumo.magistrados, 1)) })),
+].sort((a, b) => b.media - a.media);
+
 const tcu = soma("03000");
 const totalJud = TRIBUNAIS.reduce((s, t) => s + soma(t.cod), 0);
 const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
@@ -38,14 +64,44 @@ const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
 
   <div class="hero">
     <div class="stat big"><b>{compact(totalJud)}</b><span>pagos pelo Judiciário da União em 2025 · {brl0(totalJud / POP)} por habitante</span></div>
-    <div class="stat"><b>{brl0(mediaStf)}</b><span>por mês, um ministro do STF com seu gabinete (folha real, {metaStf.meses_com_folha.length} meses de 2026) · <a href="/stf/">ver painel</a></span></div>
+    <div class="stat"><b>{brl0(COMPARA[0].media)}</b><span>por mês, um ministro do {COMPARA[0].sigla} com o gabinete — o mais caro entre os {COMPARA.length} tribunais com folha extraída · <a href={COMPARA[0].href}>ver painel</a></span></div>
     <div class="stat"><b>{compact(tcu)}</b><span>Tribunal de Contas da União em 2025 (controle externo, auxiliar do Legislativo)</span></div>
   </div>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
-    <div><b>Uma aba por tribunal, conforme a folha de cada um é extraída.</b> Todos os tribunais publicam remuneração por pessoa
-    (Resolução CNJ 102/2009), cada um no seu portal. O STF já tem painel com ministros e gabinetes; os demais entram no mesmo molde.
-    Enquanto isso, o total pago de cada um vem do orçamento da União (SIOP), que cobre todos.</div>
+    <div><b>Uma aba por tribunal, conforme a folha de cada um é extraída.</b> Todos publicam remuneração por pessoa
+    (Resolução CNJ 102/2009), mas cada um no seu portal e no seu formato: o STJ publica um CSV em dados abertos, o TST um CSV
+    mensal, o CNJ só uma tabela HTML, e o <b>TJDFT protege a consulta com captcha e não oferece arquivo</b>, apesar de a própria
+    página declarar que publica em CSV e XLS. Onde a folha não está aberta, o que mostramos é o total pago pelo orçamento da
+    União (SIOP), que cobre todos os tribunais. Em dois casos a folha é aberta e ainda assim <b>não</b> dá um custo por
+    magistrado: no <b>CNJ</b>, 9 dos 11 conselheiros são requisitados e recebem do tribunal de origem; no <b>TSE</b>, os
+    ministros são cedidos do STF e do STJ e o arquivo traz só a gratificação eleitoral, cerca de R$ 21 mil por mês. Publicar
+    isso como "custo de um ministro" seria enganoso, então não publicamos.</div>
+  </div>
+
+  <h2>Custo de um ministro com o gabinete, tribunal a tribunal</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Tribunal</th><th class="num">Ministros</th><th class="num">Remuneração / mês</th><th class="num">Pessoas no gabinete</th><th class="num">Custo com o gabinete / mês</th><th class="barra-cab"></th></tr></thead>
+      <tbody>{COMPARA.map((t) => (
+        <tr><td><a href={t.href}><strong>{t.sigla}</strong></a> · {t.nome}</td>
+          <td class="num">{t.n}{t.composicao ? ` / ${t.composicao}` : ""}</td>
+          <td class="num">{brl0(t.remun)}</td><td class="num">{t.pessoas}</td>
+          <td class="num"><b>{brl0(t.media)}</b></td>
+          <td class="barra-cel"><span class="barra" style={`width:${(t.media / COMPARA[0].media) * 100}%`}></span></td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Média mensal dos meses com folha publicada em 2026 ({COMPARA.map((t) => `${t.sigla}: ${t.meses}`).join(", ")} meses),
+      somando a remuneração do ministro e a folha de todas as pessoas lotadas no gabinete dele. A coluna "ministros" mostra
+      quantos estão em exercício e quantos cargos a lei prevê. <b>O número do STF é subestimado</b> para o presidente, que
+      aparece com o Gabinete da Presidência, menor que um gabinete de ministro. Cada tribunal publica a folha no seu portal,
+      em formato próprio, por exigência da Resolução CNJ 102/2009; as colunas foram equalizadas para o mesmo conceito de
+      remuneração bruta após o teto constitucional, <b>sem indenizações</b> (auxílio-alimentação, saúde, moradia e ajuda
+      de custo, que cada tribunal publica em coluna separada e podem passar de R$ 30 mil por mês por ministro).
+      <b>Exceção declarada:</b> o CSV do STM traz um único valor bruto, com indenizações dentro e antes da retenção do teto,
+      o que eleva a coluna de remuneração dele. Fontes em cada painel.
+    </p>
   </div>
 
   <h2>Tribunais da União, despesa paga em 2025</h2>
@@ -71,5 +127,7 @@ const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
 </Base>
 <style>
   .prep { color: var(--ink-2); font-size: 13px; }
+  .barra-cab { width: 140px; } .barra-cel { padding-left: 8px; }
+  .barra { display: block; height: 12px; border-radius: 2px; min-width: 2px; background: var(--s5); }
   td a { color: var(--accent); }
 </style>

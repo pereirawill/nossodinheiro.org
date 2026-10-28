@@ -45,6 +45,16 @@ export const DATASETS: Dataset[] = [
     periodo: "2025/2026", atualizacao: "mensal",
   },
   {
+    slug: "/judiciario/", nome: "Custo por ministro dos tribunais superiores",
+    descricao: "Remuneração de cada ministro (bruta após o teto constitucional, sem indenizações) e folha de todas as pessoas lotadas no gabinete dele, no STJ, no TST e no STM, com indenizações, aposentados e unidades de direção em campos separados.",
+    arquivos: ["custo_magistrado_stj_2026.json", "custo_magistrado_tst_2026.json", "custo_magistrado_stm_2026.json",
+               "meta_stj_2026.json", "meta_tst_2026.json", "meta_stm_2026.json"],
+    fontes: [{ nome: "STJ — Dados Abertos, Folha de Pagamento de Pessoal", url: "https://dadosabertos.web.stj.jus.br/dataset/folha-de-pagamento-de-pessoal" },
+             { nome: "TST — Transparência, Remuneração", url: "https://transparencia-remuneracao.tst.jus.br/" },
+             { nome: "STM — Remuneração e proventos", url: "https://www.stm.jus.br/transparencia-e-prestacao-de-contas/gestao-de-pessoas" }],
+    periodo: "2026", atualizacao: "mensal",
+  },
+  {
     slug: "/emendas/", nome: "Emendas parlamentares por autor",
     descricao: "Empenhado, liquidado e pago por autor e tipo de emenda (individual, bancada, comissão), com cruzamento para deputados e senadores.",
     arquivos: ["emendas_por_autor_2025.json"],

@@ -1,0 +1,169 @@
+---
+// Painel de custo por magistrado de um tribunal superior, no mesmo molde de /stf/.
+// Uma rota por arquivo custo_magistrado_<sigla>_<ano>.json publicado em public/data.
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+
+const custos = import.meta.glob("../../../public/data/custo_magistrado_*.json", { eager: true, import: "default" });
+const metas = import.meta.glob("../../../public/data/meta_*.json", { eager: true, import: "default" });
+
+export async function getStaticPaths() {
+  const arquivos = import.meta.glob("../../../public/data/custo_magistrado_*.json", { eager: true, import: "default" });
+  const porSigla: Record<string, number> = {};
+  for (const caminho of Object.keys(arquivos)) {
+    const m = caminho.match(/custo_magistrado_([a-z]+)_(\d{4})\.json$/);
+    if (m) porSigla[m[1]] = Math.max(porSigla[m[1]] ?? 0, Number(m[2]));
+  }
+  return Object.entries(porSigla).map(([sigla, ano]) => ({ params: { sigla }, props: { ano } }));
+}
+
+const { sigla } = Astro.params;
+const { ano } = Astro.props;
+const rows = (custos[`../../../public/data/custo_magistrado_${sigla}_${ano}.json`] ?? []) as any[];
+const meta = metas[`../../../public/data/meta_${sigla}_${ano}.json`] as any;
+
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) =>
+  v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const cargo = meta.rotulo_magistrado ?? "ministro";
+const Cargo = cargo.charAt(0).toUpperCase() + cargo.slice(1);
+
+const nMeses = meta.meses_com_folha.length;
+const mesUltimo = MESES[meta.ultimo_mes - 1];
+const resumo = meta.ultimo_mes_resumo;                 // base dos destaques: um único mês, sem misturar períodos
+const titulares = rows.filter((r: any) => !r.convocado);
+const convocados = rows.filter((r: any) => r.convocado && r.gabinete_pessoas_ultimo_mes > 0);
+const noResumo = titulares.filter((r: any) => r.no_ultimo_mes && r.gabinete_no_ultimo_mes);
+const n = titulares.length;
+const remMes = resumo.remuneracao / Math.max(resumo.magistrados, 1);
+const remMin = Math.min(...noResumo.map((r: any) => r.remuneracao_ultimo_mes));
+const remMax = Math.max(...noResumo.map((r: any) => r.remuneracao_ultimo_mes));
+const gabMes = resumo.gabinetes / Math.max(resumo.magistrados, 1);
+const pessoasMed = Math.round(resumo.pessoas_nos_gabinetes / Math.max(resumo.magistrados, 1));
+const anualProj = resumo.custo_total * 12;
+const porOutro = rows.reduce((s: number, r: any) => s + (r.gabinete_pago_por_outro_orgao ?? 0), 0);
+const indeniz = meta.detalha_verbas
+  ? titulares.reduce((s: number, r: any) => s + r.indenizacoes / Math.max(r.meses_com_folha, 1), 0) / Math.max(n, 1)
+  : null;
+const parciais = titulares.filter((r: any) => r.meses_com_folha < nMeses);
+const ordenados = [...titulares].sort((a: any, b: any) => b.custo_ultimo_mes - a.custo_ultimo_mes);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const dataFmt = fmt.format(new Date(meta.gerado_em_utc));
+const max = Math.max(1, ...ordenados.map((r: any) => r.custo_ultimo_mes), 1);
+const W = 920, labelW = 270, plotW = W - labelW - 110, rowH = 30;
+const x = (v: number) => (v / max) * plotW;
+---
+<Base title={`Quanto custa um ${cargo} do ${meta.tribunal}? — Nosso Dinheiro`} accent="var(--s5)"
+  description={`Remuneração de cada ${cargo} do ${meta.nome} e folha do seu gabinete, mês a mês, como o próprio tribunal publica.`}>
+  <h1>Quanto custa um {cargo} do {meta.tribunal}?</h1>
+  <p class="lede">
+    <Termo t="remuneracao_bruta">Remuneração</Termo> de cada {cargo} do {meta.nome} e a folha do seu gabinete
+    (servidores, assessores, requisitados), como o próprio tribunal publica. Em {meta.ano}, são {nMeses} meses com folha ({MESES[meta.meses_com_folha[0] - 1]} a {mesUltimo}), {meta.magistrados_em_exercicio} {cargo}s em
+    exercício{meta.composicao_legal ? ` para ${meta.composicao_legal} cargos previstos em lei` : ""}.
+  </p>
+  <p class="meta">atualizado em {dataFmt} · fonte: {meta.fonte} · <a href="/judiciario/">todos os tribunais</a> · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{brl0(resumo.custo_medio)}</b><span>custo de um {cargo} com o gabinete em <strong>{mesUltimo} de {meta.ano}</strong>, em média entre os {resumo.magistrados} com folha publicada no mês</span></div>
+    <div class="stat"><b>{brl0(remMes)}</b><span><Termo t="remuneracao_bruta">remuneração bruta</Termo> média do {cargo} em {mesUltimo} · de {brl0(remMin)} a {brl0(remMax)}</span></div>
+    <div class="stat"><b>{brl0(gabMes)}</b><span>folha do gabinete em {mesUltimo}, em média ({pessoasMed} pessoas por gabinete; {resumo.pessoas_nos_gabinetes.toLocaleString("pt-BR")} no total)</span></div>
+  </div>
+  <div class="hero" style="margin-top:0">
+    <div class="stat"><b>{compact(anualProj)}</b><span>os {resumo.magistrados} gabinetes <strong>por ano</strong> (<Termo t="projecao">projeção</Termo> de {mesUltimo} × 12; 13º e férias caem em meses próprios)</span></div>
+    <div class="stat"><b>{brl0(meta.aposentados.bruto_ultimo_mes)}</b><span>pagos em {mesUltimo} a {meta.aposentados.quantidade_ultimo_mes} <Termo t="ministro_aposentado">{cargo}s aposentados</Termo> ou cedidos (fora do total)</span></div>
+    {indeniz ? <div class="stat"><b>{brl0(indeniz)}</b><span>em <Termo t="indenizacoes">indenizações</Termo> por {cargo} por mês (auxílios e ajudas de custo), <b class="inline">fora</b> dos valores acima</span></div> : null}
+    <div class="stat"><b>{compact(meta.totais.folha_inteira)}</b><span>folha inteira do tribunal em {nMeses} meses ({meta.totais.pessoas_ultimo_mes.toLocaleString("pt-BR")} pessoas em {mesUltimo}, incluindo inativos e pensionistas)</span></div>
+  </div>
+
+  <div class="disclaimer">
+    <span aria-hidden="true">ⓘ</span>
+    <div><b>É folha publicada, não estimativa.</b> O valor é a remuneração bruta após o <Termo t="teto_constitucional">teto
+    constitucional</Termo>, somadas as outras verbas: subsídio mais vantagens pessoais, abono de permanência e retroativos, que
+    explicam a diferença entre {cargo}s. O gabinete é a soma da mesma coluna para todas as pessoas lotadas nele, sem contar o
+    próprio {cargo}. A média mensal é dos meses já pagos; 13º e férias caem em meses específicos e elevam o total do ano.
+    {porOutro > 0 ? <> Dos gabinetes, {compact(porOutro)} em {nMeses} meses são pagos pelo <b>órgão de origem</b> de quem é
+    requisitado, e por isso não entram no custo do tribunal.</> : null}
+    <b>Indenizações ficam fora</b> do valor comparável: auxílio-alimentação, saúde, moradia e ajuda de custo são publicados
+    em coluna própria por exigência da Resolução CNJ 102/2009, e a coluna que o STF publica não as inclui — somá-las em um
+    tribunal e não no outro inviabilizaria comparar. Aparecem em destaque próprio.
+    Não entram: prédio, segurança, viagens, inativos. {meta.observacao ? <><b> {meta.observacao}</b></> : null}
+    <a href="/metodologia/">Metodologia</a>.</div>
+  </div>
+
+  <h2>Por {cargo}, em {mesUltimo} de {meta.ano}</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--s3)"></i>Remuneração do {cargo}</span><span><i style="background:var(--s1)"></i>Folha do gabinete</span></div>
+    <svg viewBox={`0 0 ${W} ${rows.length * rowH + 20}`} width="100%" role="img" aria-label={`Custo mensal médio por ${cargo} do ${meta.tribunal}`}>
+      {ordenados.map((r, i) => (
+        <g transform={`translate(0 ${10 + i * rowH})`}>
+          <text x={labelW - 8} y={rowH / 2 + 4} text-anchor="end" font-size="12" fill="var(--ink)">{r.nome_curto}</text>
+          <rect x={labelW} y="5" width={Math.max(0, x(r.remuneracao_ultimo_mes) - 1)} height={rowH - 10} fill="var(--s3)" rx="2"><title>Remuneração em {mesUltimo}: {brl0(r.remuneracao_ultimo_mes)}</title></rect>
+          <rect x={labelW + x(r.remuneracao_ultimo_mes)} y="5" width={Math.max(0, x(r.gabinete_ultimo_mes) - 1)} height={rowH - 10} fill="var(--s1)" rx="2"><title>Gabinete em {mesUltimo}: {brl0(r.gabinete_ultimo_mes)}, {r.gabinete_pessoas_ultimo_mes} pessoas</title></rect>
+          <text x={labelW + x(r.custo_ultimo_mes) + 6} y={rowH / 2 + 4} font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl0(r.custo_ultimo_mes)}</text>
+        </g>
+      ))}
+    </svg>
+    <p class="src">Folha de {mesUltimo} de {meta.ano}, o último mês publicado, do maior para o menor custo. Um único mês, para
+      não misturar períodos: quem assumiu ou saiu no meio do ano teria média distorcida.
+      {parciais.length ? ` ${parciais.length} ${parciais.length > 1 ? "aparecem" : "aparece"} com menos meses por ter assumido ou saído no meio do ano: ${parciais.map((r) => r.nome_curto).join(", ")}.` : ""}
+      {resumo.fora_do_resumo.length ? <> Fora da média: {resumo.fora_do_resumo.map((f: any) => `${f.nome_curto} (${f.motivo})`).join("; ")}.</> : null}
+      Fonte: {meta.fonte}.</p>
+  </div>
+
+  <h2>Todos os {cargo}s em exercício</h2>
+  <table>
+    <thead><tr><th>#</th><th>{Cargo}</th><th>Gabinete</th><th class="num">Meses</th><th class="num"><Termo t="remuneracao_bruta">Bruto</Termo> em {mesUltimo}</th>{meta.detalha_verbas ? <th class="num"><Termo t="indenizacoes">Indenizações</Termo> / mês</th> : null}<th class="num">Gabinete em {mesUltimo}</th><th class="num"><Termo t="pessoas_gabinete">Pessoas</Termo></th><th class="num">Custo no mês</th><th class="num">Média do ano</th></tr></thead>
+    <tbody>
+      {ordenados.map((r, i) => (
+        <tr><td class="rank">{i + 1}</td><td>{r.nome_curto}</td>
+            <td>{r.unidade.replace(/^Gabinete d[oa] (Ministr[oa]|Desembargador[a]?|Conselheir[oa]) /i, "").replace(/^Gabinete d[ae] /i, "")}</td>
+            <td class="num">{r.meses_com_folha}</td>
+            <td class="num">{brl0(r.remuneracao_ultimo_mes)}</td>
+            {meta.detalha_verbas ? <td class="num">{brl0(r.indenizacoes / Math.max(r.meses_com_folha, 1))}</td> : null}
+            <td class="num">{brl0(r.gabinete_ultimo_mes)}</td><td class="num">{r.gabinete_pessoas_ultimo_mes}</td>
+            <td class="num"><b>{brl0(r.custo_ultimo_mes)}</b></td><td class="num">{brl0(r.custo_mensal_medio)}</td></tr>
+      ))}
+    </tbody>
+  </table>
+  <p class="src">Clique no cabeçalho para ordenar. "Gabinete" é o nome da lotação como o tribunal publica, sem o prefixo.</p>
+
+  {convocados.length ? (<>
+  <h2>Gabinetes chefiados por magistrado convocado</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Magistrado convocado</th><th class="num">Bruto em {mesUltimo}</th><th class="num">Gabinete em {mesUltimo}</th><th class="num">Pessoas</th><th class="num">Custo no mês</th></tr></thead>
+      <tbody>{convocados.map((r: any) => (
+        <tr><td>{r.nome_curto}</td><td class="num">{brl0(r.remuneracao_ultimo_mes)}</td><td class="num">{brl0(r.gabinete_ultimo_mes)}</td>
+            <td class="num">{r.gabinete_pessoas_ultimo_mes}</td><td class="num">{brl0(r.custo_ultimo_mes)}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Magistrado de outro tribunal convocado para o {meta.tribunal}. Entra em tabela própria quando chefia um gabinete
+      inteiro, o que acontece quando o {cargo} titular está afastado ou a cadeira está vaga — o gabinete continua
+      funcionando e custando. Quando o convocado é juiz auxiliar <b>dentro</b> do gabinete de um titular, ele conta como
+      pessoal daquele gabinete, não como centro de custo próprio, para não contar as mesmas pessoas duas vezes.
+    </p>
+  </div>
+  </>) : null}
+
+  {meta.gabinetes_institucionais?.length ? (<>
+  <h2>Unidades de direção e apoio, fora do custo por {cargo}</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Unidade</th><th class="num">Folha em {nMeses} meses</th><th class="num">Pessoas ({mesUltimo})</th></tr></thead>
+      <tbody>{meta.gabinetes_institucionais.slice(0, 15).map((g: any) => (
+        <tr><td>{g.unidade}</td><td class="num">{compact(g.bruto)}</td><td class="num">{g.pessoas_ultimo_mes}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Presidência, Corregedoria, Ouvidoria e escolas judiciais têm folha própria e <b>não</b> são somadas ao custo de nenhum
+      {" "}{cargo}: quem ocupa o cargo de direção acumula o próprio gabinete, e somar os dois contaria as mesmas pessoas duas
+      vezes. Aparecem aqui para que a conta feche com a folha inteira do tribunal.
+    </p>
+  </div>
+  </>) : null}
+
+  <Glossario termos={["remuneracao_bruta", "teto_constitucional", "pessoas_gabinete", "ministro_aposentado", "projecao"]} />
+</Base>

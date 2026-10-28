@@ -74,7 +74,29 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   avisado na página. Aposentados (16) como estatística separada. 2026 jan–ago: 10 ministros, média R$ 811 mil/mês
   (remuneração 53 mil + gabinete 758 mil, ~33 pessoas). **O portal do STF devolve 403 a IPs fora do Brasil** (runners
   do GitHub, qualquer UA) → sem agendamento; atualização mensal manual: `make stf ANO=2026` + commit. `etl-stf.yml` só dispatch.
-- Site: `/stf/`. Metodologia: `docs/metodologia/painel-stf.md`. Próximo: STJ/TST/TSE/CNJ no mesmo molde.
+- Site: `/stf/`. Metodologia: `docs/metodologia/painel-stf.md`.
+
+## Painéis STJ, TST e STM (NO AR, mensal dia 24; feitos 28/10/2026)
+- `etl/tribunais/` (`fontes.py` com um adaptador por tribunal, `extract.py`, `transform.py`) → `custo_magistrado_<sigla>_<ano>.json`
+  + `meta_<sigla>_<ano>.json`; página única `site/src/pages/judiciario/[sigla].astro` (rota por arquivo publicado).
+- Fontes: **STJ** dados abertos CKAN, 1 CSV cumulativo de 110 MB desde 2020 (resolver o recurso por `package_show`, o id
+  muda; cache por `last_modified`); **TST** `transparencia-remuneracao.tst.jus.br/arquivos` (JSON) + `/arquivo?data-referencia=<ano>-<mês>-completo`
+  (CSV); **STM** `www2.stm.jus.br/rem_web` (POST com cookie + token CSRF, botão Gerar CSV). Nenhuma traz CPF.
+- **Medida comparável = bruto após o teto SEM indenizações.** Foi o achado que mudou tudo: o `Total de Créditos` do STJ
+  inclui indenizações (R$ 30,8 mi num mês para um ministro; média R$ 36 mil/mês), e a coluna do STF não. Sem essa
+  correção a comparação dava R$ 1,1 mi contra R$ 811 mil do STF. O CSV do STM não detalha verbas e é antes do teto →
+  declarado em `coluna_valor`, na página e na metodologia.
+- 2026 (até set): STJ 32/33 ministros R$ 851 mil/mês, TST 26/27 R$ 829 mil, STF 10/11 R$ 811 mil, STM 13/15 R$ 304 mil
+  (gabinetes de 43, 41, 31 e 15 pessoas). Destaques usam o **último mês**, não a média: em 2026 um ministro do STJ está
+  afastado e a equipe passou ao gabinete de um desembargador convocado em fevereiro.
+- Regras no transform: magistrado convocado só vira linha se chefia gabinete **sem titular** (no TST é juiz auxiliar
+  dentro do gabinete de um ministro → conta como pessoal); unidades de direção fora do custo por ministro, em tabela
+  própria; pseudo-lotações (INATIVO, PENSIONISTA, À DISPOSIÇÃO, EXONERADO) fora; chave por matrícula, porque a grafia do
+  nome muda de mês para mês no STJ. Invariante: nenhum mês pode ter mais magistrados que a composição legal.
+- **Sem painel, com motivo documentado**: TJDFT (consulta com reCAPTCHA v3, sem arquivo, embora a página declare CSV/XLS);
+  TSE (folha aberta em HTML, mas ministro é cedido do STF/STJ e o arquivo traz só a gratificação eleitoral, ~R$ 21 mil);
+  CNJ (`cnj.jus.br/remuneracao/rem.php`, HTML; 9 dos 11 conselheiros são requisitados e o gabinete é nomeado pela vaga).
+  Metodologia `docs/metodologia/painel-tribunais.md` §7. Próximos: TCU e os seis TRFs.
 
 ## Painel Presidência (NO AR, sem chave, mensal dia 15)
 - `etl/presidencia/extract.py cpgf --ano`: ZIP mensal `portaldatransparencia.gov.br/download-de-dados/cpgf/AAAAMM`
@@ -317,7 +339,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
    (abr/2025: 11.469 de 22.621) e buscar valor liquidado/pago por obra, que o CIPI não publica.
 5. `etl/camara/validate.py`: invariantes (513±, liquido = documento − glosa, total ≥ 95% do run anterior),
    reconciliação api × bulk × total oficial, falhar o job antes de commitar dado ruim.
-6. Judiciário fase 2: remuneração de magistrados (CNJ), Justiça em Números; TJs via SICONFI.
+6. Judiciário fase 3: TCU e os seis TRFs no molde de `etl/tribunais/`; série histórica (STJ desde 2020, STM desde 2013);
+   Justiça em Números do CNJ; TJs estaduais via SICONFI (função 02).
 7. DNS: adicionar `www` como custom domain no Pages; TXT anti-spoofing (SPF `v=spf1 -all`, DMARC `p=reject`).
 
 ## Descoberta / SEO (feito 27/10/2026)

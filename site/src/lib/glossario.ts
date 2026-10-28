@@ -124,7 +124,7 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   aliquota_efetiva: { rotulo: "Alíquota efetiva", texto: "Imposto devido dividido por toda a renda declarada, incluindo a isenta. É diferente da alíquota da tabela do IR (até 27,5%), que incide só sobre a parte tributável." },
   rendimento_isento: { rotulo: "Rendimento isento", texto: "Renda que a lei manda declarar mas não tributa na pessoa física: lucros e dividendos, herança e doação, poupança, parcela da aposentadoria de quem tem 65 anos ou mais, indenizações, entre outras." },
   lucros_dividendos: { rotulo: "Lucros e dividendos", texto: "Parte do lucro que a empresa distribui aos sócios. É isenta na pessoa física desde a Lei 9.249/1995 — a empresa já pagou IRPJ e CSLL sobre o lucro." },
-  tributacao_exclusiva: { rotulo: "Tributação exclusiva na fonte", texto: "Rendimento tributado na hora em que é pago, com alíquota própria, e que não se soma aos demais na declaração: 13º salário, aplicações financeiras, ganho na venda de bens, participação nos lucros." },
+  tributacao_exclusiva: { rotulo: "Tributação exclusiva na fonte", texto: "Rendimento tributado na hora em que é pago, com alíquota própria, e que não se soma aos demais na declaração: 13º salário, aplicações financeiras, ganho na venda de bens, participação nos lucros." },  indenizacoes: { rotulo: "Indenizações", texto: "Auxílio-alimentação, auxílio-saúde, auxílio-moradia, ajuda de custo e verbas de caráter indenizatório. A Resolução CNJ 102/2009 manda publicá-las em coluna separada da remuneração, e elas não entram no teto constitucional." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

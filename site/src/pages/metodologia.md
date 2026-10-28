@@ -221,6 +221,23 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   e as médias por ocupação, cada uma com a tabela de origem.
 - Completo: `docs/metodologia/painel-imposto-de-renda.md`.
 
+## Tribunais superiores — custo por ministro com o gabinete
+
+- **O que é:** a remuneração de cada ministro e a folha de todas as pessoas lotadas no gabinete dele, no STJ, no TST e no
+  STM, no mesmo molde do painel do STF, mais a comparação entre os quatro tribunais.
+- **Fontes:** a folha que cada tribunal publica por exigência da Resolução CNJ 102/2009 — dados abertos do STJ (CSV),
+  Transparência do TST (CSV mensal), `rem_web` do STM (CSV mensal) e Portal da Transparência do STF.
+- **Medida comparável:** remuneração bruta **após o teto constitucional** e **sem indenizações** (auxílio-alimentação,
+  saúde, moradia, ajuda de custo), que aparecem em destaque próprio porque passam de R$ 30 mil por mês por ministro em
+  alguns tribunais. O CSV do STM não detalha verbas e é antes do teto: está declarado na página dele e na comparação.
+- **Atenção:** os destaques usam o **último mês publicado**, não a média do ano, porque quem assume ou sai no meio do ano
+  distorce média — em 2026 um ministro do STJ está afastado e a equipe passou a um desembargador convocado. Unidades de
+  direção (Presidência, Corregedoria) não entram no custo de nenhum ministro, para não contar pessoas duas vezes.
+- **O que não tem, e por quê:** o TJDFT protege a consulta com captcha e não publica arquivo; no TSE e no CNJ a folha é
+  aberta, mas os ministros e conselheiros são cedidos ou requisitados e o arquivo traz só a parcela que aquele órgão
+  paga — publicar isso como custo seria enganoso.
+- Completo: `docs/metodologia/painel-tribunais.md`.
+
 ## Inflação — o IPCA desde 1979
 
 - **O que é:** a alta de preços no mês, no ano e em 12 meses; a série mensal desde 1996; o resultado de cada ano comparado com a
