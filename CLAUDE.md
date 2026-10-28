@@ -28,6 +28,17 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 `make site`. Disparar workflow via REST (GraphQL bloqueado no gh):
 `gh api -X POST repos/pereirawill/nossodinheiro.org/actions/workflows/etl-portal.yml/dispatches -f ref=main -f 'inputs[etapa]=poderes' -f 'inputs[ano]=2025'`
 
+## Menu em dois níveis (28/10/2026)
+- Eram **30 itens numa linha só**. Agora: `site/src/lib/menu.ts` é fonte única com **6 grupos** na ordem do caminho do
+  dinheiro — Quanto pagamos (Impostos, Imposto de Renda, Inflação) · Quem gasta (Panorama, Poderes, Presidência,
+  Deputados, Senadores, Judiciário, Emendas, Corrupção) · Onde (Estados, Municípios, Obras) · O que recebemos (Saúde,
+  Educação, Segurança, INSS, Aposentadoria) · Como vivemos (Trabalho, Renda, Inadimplência) · No mundo e no tempo
+  (Comparação, Rankings, Histórico). `SERVICO` (Agora, Sugestões, Dados, Metodologia, Sobre) fica numa faixa menor.
+- `Base.astro`: linha 1 = grupos (link para `/secao/<slug>/`) + serviço; linha 2 = **só os painéis do grupo da página
+  atual** (`grupoDe()` resolve pelo painel-pai, então `/deputados/uf/sp/` mostra os itens de Quem gasta). Sem JS.
+- `site/src/pages/secao/[slug].astro` gera as 6 páginas de seção, com um cartão por painel e a frase de cada um — é a
+  porta de entrada para quem chega sem saber o que existe. **Painel novo = uma entrada em `menu.ts`** (além de `datasets.ts`).
+
 ## Estrutura do site (26/10/2026)
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
