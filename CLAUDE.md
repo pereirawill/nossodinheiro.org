@@ -28,19 +28,14 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 `make site`. Disparar workflow via REST (GraphQL bloqueado no gh):
 `gh api -X POST repos/pereirawill/nossodinheiro.org/actions/workflows/etl-portal.yml/dispatches -f ref=main -f 'inputs[etapa]=poderes' -f 'inputs[ano]=2025'`
 
-## Menu em dois níveis (28/10/2026)
-- Eram **30 itens numa linha só**. Agora: `site/src/lib/menu.ts` é fonte única com **6 grupos** na ordem do caminho do
-  dinheiro — Quanto pagamos (Impostos, Imposto de Renda, Inflação) · Quem gasta (Panorama, Poderes, Presidência,
-  Deputados, Senadores, Judiciário, Emendas, Corrupção) · Onde (Estados, Municípios, Obras) · O que recebemos (Saúde,
-  Educação, Segurança, INSS, Aposentadoria) · Como vivemos (Trabalho, Renda, Inadimplência) · Brasil comparado
-  (Comparação, Rankings, Histórico — grupo "Brasil comparado"). `SERVICO` (Agora, Sugestões, Dados, Metodologia, Sobre) fica numa faixa menor.
-- `Base.astro`: **todos os painéis ficam visíveis**, em blocos com legenda pequena (a legenda leva para `/secao/<slug>/`),
-  e o serviço numa faixa separada abaixo de uma linha. Sem JS. **Primeira tentativa (28/10) mostrava só o grupo da página
-  atual e o dono recusou**: ir de Deputados a Impostos passava a exigir dois cliques e ele sentiu as subpáginas
-  inacessíveis. A lição: agrupar é para legibilidade, não para esconder — nenhum painel pode ficar a mais de um clique.
-- O grupo "No mundo e no tempo" virou **"Brasil comparado"** (o dono disse que o nome não fazia sentido).
-- `site/src/pages/secao/[slug].astro` gera as 6 páginas de seção, com um cartão por painel e a frase de cada um — é a
-  porta de entrada para quem chega sem saber o que existe. **Painel novo = uma entrada em `menu.ts`** (além de `datasets.ts`).
+## Menu: duas tentativas recusadas (28/10/2026)
+- O dono disse que o menu tinha itens demais (30 numa linha). **Tentativa 1**: 6 grupos + segunda linha só com o grupo
+  da página → recusada ("todas as subpáginas inacessíveis": ir de Deputados a Impostos virou dois cliques).
+  **Tentativa 2**: todos os painéis visíveis em blocos com legenda → recusada ("ficou pior"). Olhei a página no
+  navegador e ela confirma: as legendas criam uma escada irregular e o cabeçalho cresce de 2 para 4 linhas.
+- **Revertido para o menu original** (fila única de 30 pílulas, `const nav` no `Base.astro`). `site/src/lib/menu.ts` e
+  as páginas `/secao/` foram removidos. **Não mexer no menu de novo sem antes mostrar uma imagem ao dono**: o layout é
+  dele, e as duas tentativas às cegas custaram dois deploys e a paciência dele.
 
 ## Estrutura do site (26/10/2026)
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).

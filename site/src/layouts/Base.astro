@@ -1,14 +1,15 @@
 ---
 import { porSlug } from "../lib/datasets";
-import { GRUPOS, SERVICO, grupoDe, itemAtivo } from "../lib/menu";
 const { title, description = "O dinheiro público do Brasil, explicado com dados oficiais.", accent = "var(--s1)" } = Astro.props;
 // Dataset (schema.org) é resolvido pela rota: cada painel listado em lib/datasets.ts ganha o JSON-LD.
 // Subpáginas (/deputados/uf/rs/, /municipios/sp/campinas/) herdam o do painel-pai.
 // dataset: { nome, descricao, arquivos: ["custo_deputado_2026.json", …], fontes: [{nome,url}], periodo?: "2026" }
 // Gera schema.org/Dataset (Google Dataset Search). A home gera WebSite.
+const nav = [
+  ["/", "Geral"], ["/deputados/", "Deputados"], ["/senadores/", "Senadores"], ["/presidencia/", "Presidência"], ["/judiciario/", "Judiciário"], ["/emendas/", "Emendas"], ["/poderes/", "Poderes"], ["/estados/", "Estados"], ["/municipios/", "Municípios"], ["/obras/", "Obras"], ["/impostos/", "Impostos"], ["/imposto-de-renda/", "Imposto de Renda"], ["/inflacao/", "Inflação"], ["/trabalho/", "Trabalho"], ["/inss/", "INSS"], ["/aposentadoria/", "Aposentadoria"], ["/renda/", "Renda"], ["/educacao/", "Educação"], ["/seguranca/", "Segurança"], ["/saude/", "Saúde"], ["/inadimplencia/", "Inadimplência"], ["/corrupcao/", "Corrupção"], ["/comparacao/", "Comparação"], ["/rankings/", "Rankings"], ["/historico/", "Histórico"],
+  ["/agora/", "Agora"], ["/sugestoes/", "Sugestões"], ["/dados/", "Dados"], ["/metodologia/", "Metodologia"], ["/sobre/", "Sobre"],
+];
 const path = Astro.url.pathname;
-const grupo = grupoDe(path);
-const servicoAtivo = SERVICO.find((i) => itemAtivo(path, i.href));
 const painelPai = "/" + (path.split("/")[1] ?? "") + "/";
 const dataset = Astro.props.dataset ?? porSlug(path) ?? (path !== painelPai ? porSlug(painelPai) : null) ?? null;
 const site = "https://nossodinheiro.org";
@@ -75,25 +76,7 @@ if (dataset) {
       .brand .logo svg { width: 22px; height: 22px; }
       .brand .cta { font-size: 13px; color: var(--ink-2); }
       @media (max-width: 720px) { .brand .cta { display: none; } .brand { padding: 12px 16px 6px; } }
-      /* Menu: todos os painéis visíveis (um clique para qualquer página), agrupados por legenda. */
-  nav.menu { max-width: 1040px; margin: 0 auto; padding: 0 16px 4px; display: flex; flex-wrap: wrap; gap: 2px 18px; align-items: flex-start; }
-  nav.menu .bloco { display: flex; flex-direction: column; gap: 1px; padding-bottom: 6px; }
-  nav.menu .rotulo { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--ink-2); text-decoration: none; padding: 0 6px 2px; white-space: nowrap; }
-  nav.menu .rotulo:hover { color: var(--accent); }
-  nav.menu .bloco[data-atual] .rotulo { color: var(--ink); }
-  nav.menu .itens { display: flex; flex-wrap: wrap; gap: 2px; }
-  nav.menu .itens a { white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink-2); text-decoration: none;
-    padding: 4px 7px; border-radius: 7px; }
-  nav.menu .itens a:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
-  nav.menu .itens a[aria-current] { background: var(--ink); color: var(--card); }
-  nav.servico { max-width: 1040px; margin: 0 auto; padding: 0 16px 10px; display: flex; flex-wrap: wrap; gap: 2px;
-    border-top: 1px solid var(--line); padding-top: 6px; }
-  nav.servico a { white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--ink-2); text-decoration: none;
-    padding: 3px 8px; border-radius: 999px; }
-  nav.servico a:hover { color: var(--accent); }
-  nav.servico a[aria-current] { background: var(--ink-2); color: var(--card); }
-  nav.panels { max-width: 1040px; margin: 0 auto; padding: 0 16px 10px; display: flex; flex-wrap: wrap; gap: 4px; }
+      nav.panels { max-width: 1040px; margin: 0 auto; padding: 0 16px 10px; display: flex; flex-wrap: wrap; gap: 4px; }
       nav.panels a { white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink-2); text-decoration: none; padding: 6px 10px; border-radius: 999px; }
       nav.panels a[aria-current] { background: var(--ink); color: var(--card); }
       .stripe { height: 4px; background: linear-gradient(90deg, var(--s1) 0 20%, var(--s2) 20% 40%, var(--s3) 40% 60%, var(--s4) 60% 80%, var(--s5) 80%); }
@@ -166,19 +149,8 @@ if (dataset) {
         </a>
         <span class="cta">Só o que os órgãos públicos publicam, com a fonte de cada número.</span>
       </div>
-      <nav class="menu" aria-label="Painéis">
-        {GRUPOS.map((g) => (
-          <div class="bloco" data-atual={grupo?.slug === g.slug ? "sim" : undefined}>
-            <a class="rotulo" href={`/secao/${g.slug}/`}>{g.nome}</a>
-            <div class="itens">
-              {g.itens.map((i) => (
-                <a href={i.href} aria-current={itemAtivo(path, i.href) ? "page" : undefined}>{i.label}</a>))}
-            </div>
-          </div>))}
-      </nav>
-      <nav class="servico" aria-label="Serviço">
-        {SERVICO.map((i) => (
-          <a href={i.href} aria-current={servicoAtivo?.href === i.href ? "page" : undefined}>{i.label}</a>))}
+      <nav class="panels">
+        {nav.map(([href, label]) => <a href={href} aria-current={path === href ? "page" : undefined}>{label}</a>)}
       </nav>
       <div class="stripe"></div>
     </header>
