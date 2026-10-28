@@ -1,0 +1,171 @@
+---
+// Comparação internacional: quanto cada país gasta nas mesmas coisas, em % do PIB.
+// Tudo vem de rankings.json (Banco Mundial) e impostos.json (Receita Federal); nada é digitado à mão.
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import rankings from "../../../public/data/rankings.json";
+import imp from "../../../public/data/impostos.json";
+import funcoes from "../../../public/data/poderes_funcao_2025.json";
+
+const n1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
+const n2 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(2).replace(".", ",");
+const compact = (v: number) =>
+  v >= 1e12 ? `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri` : v >= 1e9 ? `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi` : `R$ ${Math.round(v / 1e6)} mi`;
+
+const indices = rankings.indices as any[];
+const idx = (id: string) => indices.find((i) => i.id === id);
+
+// Países de referência: as maiores economias, os vizinhos e os países com que o Brasil é sempre comparado.
+// A escolha é nossa e está declarada na página; a tabela do Banco Mundial tem quase 200 países.
+const REF = ["BRA", "ARG", "CHL", "COL", "MEX", "URY", "USA", "CAN", "GBR", "FRA", "DEU", "ITA", "ESP", "PRT",
+             "SWE", "JPN", "KOR", "CHN", "IND", "ZAF", "AUS"];
+const AREAS = [
+  { id: "educacao_pct_pib", rotulo: "Educação", cor: "var(--s1)" },
+  { id: "saude_pct_pib", rotulo: "Saúde (gasto público)", cor: "var(--s3)" },
+  { id: "saude_total_pct_pib", rotulo: "Saúde (público + privado)", cor: "#9ec5e8" },
+  { id: "defesa_pct_pib", rotulo: "Defesa", cor: "var(--s2)" },
+  { id: "despesa_governo_pct_pib", rotulo: "Despesa do governo central", cor: "var(--s4)" },
+  { id: "beneficios_pct_despesa", rotulo: "Transferências e benefícios", cor: "var(--s5)" },
+].map((a) => ({ ...a, ind: idx(a.id) })).filter((a) => a.ind);
+
+const valorDe = (ind: any, iso: string) => (ind.paises as any[]).find((p) => p.iso3 === iso) ?? null;
+const linhasRef = REF.map((iso) => {
+  const base = AREAS.map((a) => valorDe(a.ind, iso)).find(Boolean);
+  return { iso, pais: base?.pais ?? iso, valores: Object.fromEntries(AREAS.map((a) => [a.id, valorDe(a.ind, iso)])) };
+}).filter((l) => Object.values(l.valores).some(Boolean));
+
+// gráfico de barras das áreas no Brasil, com a mediana dos países de referência ao lado
+const mediana = (xs: number[]) => {
+  const v = [...xs].sort((a, b) => a - b);
+  return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : 0;
+};
+const comparacao = AREAS.map((a) => {
+  const br = valorDe(a.ind, "BRA");
+  const outros = linhasRef.filter((l) => l.iso !== "BRA").map((l) => l.valores[a.id]?.valor).filter((v): v is number => v != null);
+  return { ...a, br, mediana: mediana(outros), n: outros.length };
+});
+const maxComp = Math.max(...comparacao.flatMap((c) => [c.br?.valor ?? 0, c.mediana]));
+const W = 920, rotuloW = 240, barraW = 500;
+
+// carga tributária: o Banco Mundial mede só o governo central; a Receita mede os três níveis
+const cargaWB = idx("carga_governo_central");
+const cargaBR = (imp as any).carga;
+const cargaTotal = (cargaBR?.serie?.[cargaBR.ano]?.carga ?? 0) * 100;
+const bases = cargaBR?.bases?.linhas ?? [];
+
+// o que o Brasil gasta de fato, pelo nosso próprio dado (SIOP), para o leitor conferir a ordem de grandeza
+const f = (cod: string) => (funcoes as any[]).find((x) => x.funcao === cod)?.pago ?? 0;
+const AREAS_BR = [
+  { nome: "Previdência Social", v: f("09") }, { nome: "Saúde", v: f("10") }, { nome: "Educação", v: f("12") },
+  { nome: "Assistência Social", v: f("08") }, { nome: "Defesa Nacional", v: f("05") },
+];
+const pibBR = (cargaBR?.serie?.[cargaBR.ano]?.pib ?? 0) * 1e9;
+---
+<Base title="Quanto cada país gasta nas mesmas coisas — Nosso Dinheiro" accent="var(--s5)"
+  description="Gasto público em educação, saúde, defesa e benefícios como percentual do PIB, no Brasil e em 20 países de referência, com os dados do Banco Mundial.">
+  <h1>Quanto cada país gasta nas mesmas coisas</h1>
+  <p class="lede">
+    Comparar reais com reais não diz nada entre países de tamanhos diferentes. O que se compara é a <b>fatia do
+    PIB</b> que cada governo gasta em cada área. Aqui estão educação, saúde, defesa, o total do governo central e as
+    transferências de benefícios, do Brasil e de 20 países de referência, pelos dados do Banco Mundial.
+  </p>
+  <p class="meta">fonte: Banco Mundial (dados abertos) e Receita Federal · <a href="/rankings/">rankings de resultado</a> · <a href="/metodologia/">metodologia</a></p>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Percentual do PIB não é nota de eficiência.</b> Gastar mais pode ser escolha de um país com população mais
+    velha, ou com mais gente para atender; gastar menos pode ser serviço pago direto pelas famílias, como na saúde. A
+    página não diz qual nível é o certo. E <b>cada indicador tem o ano que o país informou</b>: a tabela mostra o ano de
+    cada número, porque comparar 2023 com 2019 esconde diferença. "Despesa do governo central" e "transferências" <b>não
+    incluem</b> estados e municípios, que no Brasil gastam mais que a União em saúde e educação.</div>
+  </div>
+
+  <h2>Brasil e a mediana dos países de referência</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--s4)"></i>Brasil</span><span><i style="background:var(--neutro)"></i>mediana dos outros 20 países</span></div>
+    <svg viewBox={`0 0 ${W} ${comparacao.length * 46 + 12}`} width="100%" role="img" aria-label="Gasto por área no Brasil e a mediana dos países de referência">
+      {comparacao.map((c, i) => (<g transform={`translate(0 ${i * 46 + 8})`}>
+        <text x={rotuloW - 8} y="14" text-anchor="end" font-size="12.5" fill="var(--ink)">{c.rotulo}</text>
+        <text x={rotuloW - 8} y="28" text-anchor="end" font-size="10.5" fill="var(--ink-2)">{c.ind.unidade}</text>
+        <rect x={rotuloW} y="2" width={Math.max(2, ((c.br?.valor ?? 0) / maxComp) * barraW)} height="14" fill="var(--s4)" rx="2">
+          <title>Brasil: {n2(c.br?.valor)} {c.ind.unidade} ({c.br?.ano})</title></rect>
+        <rect x={rotuloW} y="18" width={Math.max(2, (c.mediana / maxComp) * barraW)} height="14" fill="var(--neutro)" rx="2">
+          <title>Mediana dos {c.n} países de referência: {n2(c.mediana)}</title></rect>
+        <text x={rotuloW + barraW + 10} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1(c.br?.valor)}</text>
+        <text x={rotuloW + barraW + 10} y="30" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n1(c.mediana)}</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      Cada par de barras é uma área: em cima o Brasil, embaixo a mediana dos outros 20 países da tabela abaixo. A mediana
+      é o país do meio, não a média, para um valor extremo não puxar a conta. O Brasil aparece em
+      {" "}{comparacao.filter((c) => (c.br?.valor ?? 0) > c.mediana).length} das {comparacao.length} áreas acima da mediana.
+      Fonte: Banco Mundial, indicadores {AREAS.map((a) => a.ind.url.split("/").pop()).join(", ")}.
+    </p>
+  </div>
+
+  <h2>País por país</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>País</th>{AREAS.map((a) => <th class="num">{a.rotulo}</th>)}</tr></thead>
+      <tbody>
+        {linhasRef.map((l) => (<tr class={l.iso === "BRA" ? "destaque" : ""}>
+          <td>{l.iso === "BRA" ? <b>{l.pais}</b> : l.pais}</td>
+          {AREAS.map((a) => (<td class="num">{l.valores[a.id]
+            ? <>{n1(l.valores[a.id].valor)} <span class="ano">{l.valores[a.id].ano}</span></> : "—"}</td>))}
+        </tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      O número pequeno é o ano do dado de cada país. Os 20 países de comparação foram escolhidos por nós: os vizinhos da
+      América do Sul, as maiores economias e os países com que o Brasil costuma ser comparado. A base do Banco Mundial tem
+      quase 200 países, e a posição do Brasil entre todos eles está em <a href="/rankings/">Rankings</a>:
+      {AREAS.map((a) => <> {a.rotulo.toLowerCase()} {a.ind.brasil?.posicao}º de {a.ind.brasil?.total};</>)}
+    </p>
+  </div>
+
+  <h2>Carga tributária: por que o número internacional é menor</h2>
+  <div class="card">
+    <div class="hero" style="margin:0 0 14px">
+      <div class="stat"><b>{n1(cargaTotal)}%</b><span>do PIB é o que <b class="inline">União, estados e municípios</b> arrecadam juntos, pela Receita Federal ({cargaBR?.ano})</span></div>
+      <div class="stat"><b>{n1(cargaWB?.brasil?.valor)}%</b><span>do PIB é o que o Banco Mundial registra para o Brasil, porque mede só o <b class="inline">governo central</b> ({cargaWB?.brasil?.ano})</span></div>
+    </div>
+    <table>
+      <thead><tr><th>Base de incidência</th><th class="num">% de tudo que se arrecada</th><th class="num">União</th><th class="num">Estados</th><th class="num">Municípios</th></tr></thead>
+      <tbody>{bases.filter((b: any) => b.pct >= 0.0005).sort((a: any, b: any) => b.pct - a.pct).map((b: any) => (
+        <tr><td>{b.base}</td><td class="num"><b>{n1(b.pct * 100)}%</b></td>
+          <td class="num">{b.federal ? compact(b.federal * 1e6) : "—"}</td>
+          <td class="num">{b.estadual ? compact(b.estadual * 1e6) : "—"}</td>
+          <td class="num">{b.municipal ? compact(b.municipal * 1e6) : "—"}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Comparar carga tributária entre países é a armadilha mais comum. O indicador do Banco Mundial cobre o
+      <b> governo central</b>, e no Brasil estados e municípios arrecadam quase um terço do total — ICMS, ISS, IPVA e
+      IPTU ficam fora da conta internacional. O número comparável com a OCDE é o da Receita Federal, de
+      {" "}{n1(cargaTotal)}% do PIB. Fontes: Banco Mundial (GC.TAX.TOTL.GD.ZS) e Receita Federal, Carga Tributária no
+      Brasil {cargaBR?.edicao}, tabela INC 01-A. Detalhe por tributo em <a href="/impostos/">Impostos</a>.
+    </p>
+  </div>
+
+  <h2>O que o Brasil gasta, em reais, nas mesmas áreas</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Função da União (2025)</th><th class="num">Pago</th><th class="num">% do PIB</th></tr></thead>
+      <tbody>{AREAS_BR.map((a) => (
+        <tr><td>{a.nome}</td><td class="num">{compact(a.v)}</td><td class="num">{pibBR ? n2((a.v / pibBR) * 100) + "%" : "—"}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      É só a <b>União</b>, pela função da Lei Orçamentária (SIOP), sobre o PIB de {cargaBR?.ano}. Não bate com as colunas
+      internacionais de propósito: saúde e educação no Brasil são pagas principalmente por estados e municípios, que
+      aparecem em <a href="/estados/">Estados</a> e <a href="/municipios/">Municípios</a>, e o indicador do Banco Mundial
+      para educação e saúde soma todos os níveis de governo, enquanto o de "despesa do governo central" não.
+    </p>
+  </div>
+
+  <Glossario termos={["carga_tributaria", "base_incidencia", "quem_paga", "per_capita", "despesa_paga"]} />
+</Base>
+<style>
+  tr.destaque td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  .ano { font-size: 10.5px; color: var(--ink-2); font-family: var(--mono); }
+</style>

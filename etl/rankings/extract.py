@@ -47,6 +47,13 @@ INDICADORES_WB = [
     ("expectativa_vida", "SP.DYN.LE00.IN", "Expectativa de vida", "Anos de vida esperados ao nascer", "anos", True),
     ("gini", "SI.POV.GINI", "Desigualdade (Gini)", "Índice de Gini da renda: 0 = todos iguais, 100 = um só tem tudo", "índice (menor é mais igual)", False),
     ("educacao_pct_pib", "SE.XPD.TOTL.GD.ZS", "Gasto público em educação", "Despesa pública em educação como % do PIB", "% do PIB", True),
+    # Gasto público por área, para a página de comparação internacional (pedido de 28/10/2026).
+    ("saude_pct_pib", "SH.XPD.GHED.GD.ZS", "Gasto público em saúde", "Despesa do governo em saúde como % do PIB (não inclui plano e desembolso das famílias)", "% do PIB", True),
+    ("saude_total_pct_pib", "SH.XPD.CHEX.GD.ZS", "Gasto total em saúde", "Despesa em saúde de todas as fontes, pública e privada, como % do PIB", "% do PIB", True),
+    ("defesa_pct_pib", "MS.MIL.XPND.GD.ZS", "Gasto militar", "Despesa militar como % do PIB", "% do PIB", False),
+    ("despesa_governo_pct_pib", "GC.XPN.TOTL.GD.ZS", "Despesa do governo central", "Tudo que o governo CENTRAL gasta como % do PIB — não inclui estados e municípios", "% do PIB", True),
+    ("beneficios_pct_despesa", "GC.XPN.TRFT.ZS", "Transferências e subsídios", "Benefícios, aposentadorias e subsídios como % da despesa do governo central", "% da despesa", True),
+    ("carga_governo_central", "GC.TAX.TOTL.GD.ZS", "Receita tributária do governo central", "Impostos arrecadados pelo governo CENTRAL como % do PIB — no Brasil, só a União", "% do PIB", True),
     ("homicidios", "VC.IHR.PSRC.P5", "Homicídios", "Homicídios intencionais por 100 mil habitantes (dado da UNODC, via Banco Mundial)", "por 100 mil hab. (menor é melhor)", False),
 ]
 HDR_CSV = "https://hdr.undp.org/sites/default/files/2025_HDR/HDR25_Composite_indices_complete_time_series.csv"

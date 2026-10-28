@@ -244,6 +244,21 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   paga — publicar isso como custo seria enganoso.
 - Completo: `docs/metodologia/painel-tribunais.md`.
 
+## Comparação internacional — quanto cada país gasta
+
+- **O que é:** gasto público em educação, saúde, defesa, o total do governo central e as transferências de benefícios,
+  como percentual do PIB, no Brasil e em 20 países de referência, mais a diferença entre a carga tributária que o Banco
+  Mundial registra e a que a Receita Federal publica.
+- **Fontes:** Banco Mundial (dados abertos, os mesmos indicadores do painel Rankings) e Receita Federal.
+- **Atenção:** percentual do PIB **não é nota de eficiência** — pode refletir população mais velha, mais gente para
+  atender ou serviço pago direto pelas famílias. Cada país informa num ano diferente e a tabela mostra o ano de cada
+  número. "Despesa do governo central" e "transferências" não incluem estados e municípios.
+- **A armadilha da carga tributária:** o indicador internacional cobre só o governo central (15,4% do PIB no Brasil);
+  o número comparável com a OCDE é o da Receita, de 32,2%, porque estados e municípios arrecadam quase um terço do total.
+- **Os 20 países são escolha nossa** (vizinhos, maiores economias e os de comparação habitual) e está dito na página; a
+  base tem quase 200 países e a posição do Brasil entre todos está em Rankings.
+- Pendente: gasto com o Judiciário em % do PIB (CNJ × CEPEJ) e o custo das monarquias, em levantamento.
+
 ## Inflação — o IPCA desde 1979
 
 - **O que é:** a alta de preços no mês, no ano e em 12 meses; a série mensal desde 1996; o resultado de cada ano comparado com a

@@ -307,6 +307,16 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   pelo IBGE. Posição calculada por nós nos do BM; oficial no IDH/CPI. Workflow `etl-rankings.yml` (dia 1, 06:37 BRT).
 - Pendentes sem arquivo aberto: Heritage (liberdade econômica), Freedom House (sem planilha gratuita), PISA (SDMX
   OCDE), Global Peace Index. Metodologia: `docs/metodologia/painel-rankings.md`.
+## Painel Comparação internacional (NO AR; feito 28/10/2026)
+- `/comparacao/` (menu antes de Rankings), sem ETL próprio: lê `rankings.json`, `impostos.json` e `poderes_funcao_2025`.
+  Seis indicadores de gasto entraram no `INDICADORES_WB` do `etl/rankings/extract.py`: saúde pública e total, defesa,
+  despesa do governo central, transferências/benefícios (% da despesa) e receita tributária do governo central.
+- Brasil × mediana de 20 países de referência (lista nossa, declarada). 2026: educação 5,6% do PIB (mediana 5,0),
+  saúde pública 4,3% (mediana 6,4), saúde total 9,7%, defesa 1,1%, despesa do governo central 32,4%, transferências
+  62,8% da despesa. **A armadilha da carga**: o Banco Mundial mede só o governo central (15,4% do PIB) e a Receita mede
+  os três níveis (32,2%) — a página explica, com a tabela INC 01-A ao lado.
+- Pendente na página: Judiciário em % do PIB (CNJ × CEPEJ) e custo das monarquias — levantamento em curso.
+
 - Visual: `accent` por página (prop do `Base.astro`): deputados s1, senadores s3, STF s5, emendas s4, poderes s2, rankings s5.
 
 ## Benefícios (site)

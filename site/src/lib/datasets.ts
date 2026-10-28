@@ -161,6 +161,14 @@ export const DATASETS: Dataset[] = [
     arquivos: ["corrupcao.json"], fontes: [{ nome: "Portal da Transparência — sanções (CEIS/CNEP)", url: "https://portaldatransparencia.gov.br/sancoes" }], atualizacao: "mensal",
   },
   {
+    slug: "/comparacao/", nome: "Comparação internacional de gasto público",
+    descricao: "Gasto público em educação, saúde, defesa, total do governo central e transferências de benefícios como percentual do PIB, no Brasil e em 20 países de referência, mais a diferença entre a carga tributária medida pelo Banco Mundial (governo central) e pela Receita Federal (três níveis).",
+    arquivos: ["rankings.json", "impostos.json", "poderes_funcao_2025.json"],
+    fontes: [{ nome: "Banco Mundial — dados abertos", url: "https://data.worldbank.org/" },
+             { nome: "Receita Federal — Carga Tributária no Brasil", url: "https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/estudos/carga-tributaria" }],
+    periodo: "2022/2025", atualizacao: "mensal",
+  },
+  {
     slug: "/rankings/", nome: "Brasil em rankings internacionais",
     descricao: "PIB, PIB per capita, expectativa de vida, Gini, educação, homicídios (Banco Mundial/UNODC), IDH (PNUD) e Índice de Percepção da Corrupção (TI).",
     arquivos: ["rankings.json"],
