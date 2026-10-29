@@ -58,10 +58,16 @@ const smLongo = (precos as any).salario_minimo ?? {};
 const multSM = smLongo[baseLongo] && smLongo[fimLongo] ? smLongo[fimLongo] / smLongo[baseLongo] : null;
 const linhasLongo = Object.entries(longo).filter(([k]) => k !== "0").map(([k, v]: [string, any]) => ({
   codigo: k, nome: v.nome, tipo: v.tipo, mult: v.indice[fimLongo] / 100,
-})).map((l) => ({ ...l, vsGeral: 100 * (l.mult / multGeral - 1),
+})).map((l) => ({ ...l, nome: l.nome.replace(" - ", " "), vsGeral: 100 * (l.mult / multGeral - 1),
                   emSM: multSM ? 100 * (multSM / l.mult - 1) : null }))
   .sort((a, b) => b.mult - a.mult);
 const itemMaior = linhasLongo[0], itemMenor = linhasLongo[linhasLongo.length - 1];
+const smIni = smLongo[baseLongo] ?? null, smFim = smLongo[fimLongo] ?? null;
+// quantas unidades de uma coisa que custava R$ 1,00 em 1999 um salário mínimo paga, antes e agora
+const quantas = (mult: number) => (smFim ? smFim / mult : 0);
+const quantasAntes = smIni ?? 0;
+const brl0 = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const inteiro = (v: number) => Math.round(v).toLocaleString("pt-BR");
 const pao = linhasLongo.find((l) => /Pão francês/.test(l.nome));
 const linhasPeso = Object.entries(pesosCestas).map(([k, v]: [string, any]) => ({
   codigo: k, nome: v.nome, ipca: v.ipca, inpc: v.inpc, dif: (v.inpc ?? 0) - (v.ipca ?? 0),
@@ -132,6 +138,43 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
     sobem; quem tem carro próprio ou escola particular tem outra cesta. O peso de cada grupo está na tabela abaixo.</div>
   </div>
 
+  <h2 id="poder-de-compra">Quanto o real perdeu de poder de compra</h2>
+  <div class="card">
+    <div class="hero" style="margin-top:0">
+      <div class="stat big"><b>{brl(poderHoje)}</b><span>é o que R$ 100 de julho de 1994, quando o real foi criado, compram hoje. O resto a inflação levou</span></div>
+      <div class="stat"><b>{pct(perdaReal, 1)}</b><span>do <Termo t="poder_de_compra">poder de compra</Termo> da moeda se perdeu em {(parseInt(ultimo.slice(0, 4)) - 1994)} anos — o mesmo dinheiro compra {(100 / poderHoje).toFixed(1).replace(".", ",")}× menos</span></div>
+      <div class="stat"><b>R$ {(100 * desde1980 / 1e12).toFixed(1).replace(".", ",")} tri</b><span>é o que seria preciso hoje para comprar o que R$ 100 compravam em dezembro de 1980, antes de cinco trocas de moeda — a conta da hiperinflação</span></div>
+    </div>
+    <svg viewBox={`0 0 ${PW} ${PH}`} width="100%" role="img" aria-label="Poder de compra de R$ 100 de julho de 1994 ao longo do tempo">
+      {[25, 50, 75, 100].map((v) => (<g><line x1={pPadL} x2={PW - 10} y1={py(v)} y2={py(v)} stroke="var(--line)" /><text x={pPadL - 6} y={py(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">R$ {v}</text></g>))}
+      <polygon points={`${px(0)},${(PH - pPadB).toFixed(1)} ${mesesReal.map((m, i) => `${px(i).toFixed(1)},${py(poder(m)).toFixed(1)}`).join(" ")} ${px(mesesReal.length - 1)},${(PH - pPadB).toFixed(1)}`} fill="var(--s4)" opacity=".10" />
+      <polyline points={mesesReal.map((m, i) => `${px(i).toFixed(1)},${py(poder(m)).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s4)" stroke-width="2.5" />
+      {anosMarca.map((a) => { const m = `${a}12`; const i = mesesReal.indexOf(m); return i > 0 && (<g>
+        <circle cx={px(i)} cy={py(poder(m))} r="3" fill="var(--s4)" />
+        <text x={px(i)} y={py(poder(m)) - 8} text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl(poder(m))}</text>
+      </g>); })}
+      {mesesReal.filter((m) => m.endsWith("12") && +m.slice(0, 4) % 5 === 0).map((m) => <text x={px(mesesReal.indexOf(m))} y={PH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{m.slice(0, 4)}</text>)}
+    </svg>
+    <p class="src">
+      A linha mostra, mês a mês, quanto valem em compras os mesmos R$ 100 de julho de 1994 — não é cotação de moeda nem comparação com
+      o dólar, é só o quanto o dinheiro compra. A queda é mais íngreme nos primeiros anos do real, quando a inflação ainda rodava perto
+      de 20% ao ano, e vai ficando lenta depois de 1999. Calculado com o número-índice do IPCA (IBGE, SIDRA 1737).
+      Esta conta compara dinheiro com dinheiro. Para comparar <b>preço com salário</b> — quantos minutos de trabalho
+      custa um litro de gasolina ou o botijão de gás, desde 2001 —, veja
+      {" "}<a href="/economia/poder-de-compra/">Poder de compra em tempo de trabalho</a>.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 6px">E o dinheiro parado, quanto perde?</h3>
+    <p class="explica">Se a inflação dos últimos 12 meses ({pct(ipca12)}) se repetisse, é isto que aconteceria com R$ 100 guardados em casa, sem render nada:</p>
+    <table>
+      <thead><tr><th>Depois de</th><th class="num">R$ 100 compram o equivalente a</th><th class="num">Perda acumulada</th></tr></thead>
+      <tbody>{[1, 2, 5, 10, 20].map((anos) => (<tr><td>{anos} {anos === 1 ? "ano" : "anos"}</td><td class="num">{brl(guardado(anos))}</td><td class="num">{pct(100 - guardado(anos), 1)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Projeção simples, não previsão: repete a inflação de 12 meses até {mesPorExtenso} para a frente. Serve para mostrar o efeito do juro composto ao contrário — a inflação futura pode ser maior ou menor, e dinheiro aplicado rende.</p>
+  </div>
+
   <h2>Inflação em 12 meses, mês a mês, desde 1996</h2>
   <div class="card">
     <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="IPCA acumulado em 12 meses desde 1996">
@@ -193,55 +236,41 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
   <h2 id="o-que-subiu-mais">Item por item: o que subiu mais desde 1999</h2>
   <div class="card">
     <p style="margin:0 0 10px">
-      O índice geral é uma média, e ninguém compra a média. Aqui está cada grupo de gasto e onze itens do dia a dia,
-      com o quanto o preço multiplicou desde {mesPtBr(baseLongo)} — a barra cinza é o índice geral (×{n2l(multGeral)}),
-      para comparar. Quem desconfia do índice tem aqui o detalhe que o índice esconde.
-    </p>
-    <svg viewBox={`0 0 ${ITL} ${ITH}`} width="100%" role="img" aria-label={`Quanto o preço de cada grupo e item multiplicou desde ${mesPtBr(baseLongo)}`}>
-      <line x1={itPadL + itw(multGeral)} x2={itPadL + itw(multGeral)} y1="4" y2={ITH - 6} stroke="var(--ink-2)" stroke-dasharray="3 3" />
-      <text x={itPadL + itw(multGeral) + 4} y="12" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">índice geral ×{n2l(multGeral)}</text>
-      {linhasLongo.map((l, i) => (<g>
-        <text x={itPadL - 8} y={22 + i * 22 + 11} text-anchor="end" font-size="11.5" fill="var(--ink)">{l.nome}</text>
-        <rect x={itPadL} y={22 + i * 22 + 2} width={itw(l.mult)} height="15" fill={l.tipo === "grupo" ? "var(--s2)" : "var(--s4)"} opacity={l.mult > multGeral ? 0.95 : 0.55}>
-          <title>{l.nome}: preço multiplicado por {n2l(l.mult)} desde {mesPtBr(baseLongo)}</title></rect>
-        <text x={itPadL + itw(l.mult) + 5} y={22 + i * 22 + 14} font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">×{n2l(l.mult)}</text>
-      </g>))}
-    </svg>
-    <div class="legend"><span><i style="background:var(--s2)"></i>Grupo de gasto</span><span><i style="background:var(--s4)"></i>Item isolado</span></div>
-    <p class="src">
-      Variação mensal do IPCA por grupo e por item, encadeada das tabelas 655, 2938, 1419 e 7060 do SIDRA, que se
-      sucedem sem se sobrepor. O que foi encadeado é a <b>variação</b> medida em cada período, não número-índice de
-      pesquisas diferentes. {itemMaior.nome} multiplicou por {n2l(itemMaior.mult)} e {itemMenor.nome.toLowerCase()},
-      por {n2l(itemMenor.mult)} — no mesmo país, nos mesmos 27 anos.
-      {pao && <span> O <b>pão francês</b> multiplicou por {n2l(pao.mult)}, {n1l(pao.vsGeral)}% acima do índice geral:
-      um pão de R$ 0,10 em {mesPtBr(baseLongo)} sairia hoje por R$ {n2l(0.10 * pao.mult)}, e não pelos
-      R$ {n2l(0.10 * multGeral)} que o índice geral sugeriria.</span>}
-    </p>
-  </div>
-
-  {multSM && <div class="card" style="margin-top:14px">
-    <h3 style="margin:0 0 8px">E o salário mínimo, acompanhou?</h3>
-    <p style="margin:0 0 10px">
-      No mesmo período o salário mínimo multiplicou por <b>{n2l(multSM)}</b>. A última coluna é a conta direta:
-      quanto a mais (ou a menos) de cada coisa um salário mínimo paga hoje, comparado com {mesPtBr(baseLongo)}.
-      Não há índice de inflação nenhum nessa coluna — é salário dividido por preço.
+      <b>Pense numa coisa que custava R$ 1,00 em {mesPtBr(baseLongo)}.</b> Se ela acompanhou a média dos preços,
+      hoje custa {brl0(multGeral)}. Mas quase nada acompanha a média: se era um pão, hoje custa
+      {" "}{pao ? brl0(pao.mult) : "—"}; se era um carro novo, {brl0((linhasLongo.find((l) => /Automóvel/.test(l.nome))?.mult) ?? 0)}.
+      É essa diferença, item por item, que a palavra "inflação" esconde — e é por isso que a conta do índice nunca
+      bate com a lembrança de ninguém.
     </p>
     <table>
-      <thead><tr><th>Item ou grupo</th><th class="num">Preço ×</th><th class="num">Contra o índice geral</th><th class="num">Um salário mínimo compra</th></tr></thead>
-      <tbody>{linhasLongo.map((l) => (<tr>
-        <td>{l.nome} {l.tipo === "grupo" && <span class="un">grupo</span>}</td>
-        <td class="num">{n2l(l.mult)}×</td>
-        <td class="num">{l.vsGeral >= 0 ? "+" : "−"}{n1l(Math.abs(l.vsGeral))}%</td>
-        <td class="num"><b>{(l.emSM ?? 0) >= 0 ? "+" : "−"}{n1l(Math.abs(l.emSM ?? 0))}%</b></td></tr>))}</tbody>
+      <thead><tr>
+        <th>O que custava R$ 1,00 em {mesPtBr(baseLongo).replace(" de ", "/")}…</th>
+        <th class="num">custa hoje</th>
+        <th class="num">Um salário mínimo pagava {inteiro(quantasAntes)} deles. Hoje paga</th>
+        <th class="num">Então dá para comprar</th>
+      </tr></thead>
+      <tbody>{linhasLongo.map((l) => { const q = quantas(l.mult); const dif = 100 * (q / quantasAntes - 1); return (<tr>
+        <td>{l.nome} {l.tipo === "grupo" && <span class="un">(o grupo inteiro)</span>}</td>
+        <td class="num"><b>{brl0(l.mult)}</b></td>
+        <td class="num">{inteiro(q)}</td>
+        <td class="num">{dif >= 0 ? "+" : "−"}{n1l(Math.abs(dif))}%</td></tr>); })}
+        <tr class="destaque">
+          <td><b>A média de tudo (o índice geral)</b></td>
+          <td class="num"><b>{brl0(multGeral)}</b></td>
+          <td class="num">{inteiro(quantas(multGeral))}</td>
+          <td class="num">+{n1l(100 * (quantas(multGeral) / quantasAntes - 1))}%</td></tr>
+      </tbody>
     </table>
     <p class="src">
-      <b>Nem um só item da lista ficou mais caro que o salário mínimo</b> nesses 27 anos — o pior é
-      {" "}{linhasLongo[0].nome.toLowerCase()}, e mesmo nele o mínimo compra {n1l(linhasLongo[0].emSM ?? 0)}% a mais.
-      Isso <b>não vale para quem não ganha o mínimo</b>: o rendimento médio de quem trabalha subiu bem menos que o
-      mínimo, e para quem está nessa faixa a conta é outra. O detalhe do tempo de trabalho está em
-      {" "}<a href="/economia/poder-de-compra/">Poder de compra</a>.
+      <b>Como ler.</b> A segunda coluna é o preço de hoje de uma coisa que custava R$ 1,00 em
+      {" "}{mesPtBr(baseLongo)}, calculado com o índice <b>daquele item</b> e não com a média. As duas últimas
+      respondem a pergunta que interessa: quantas daquelas coisas o salário mínimo paga hoje, contra
+      {" "}{inteiro(quantasAntes)} naquela época — o mínimo era de {brl0(smIni ?? 0)} e é de {brl0(smFim ?? 0)}.
+      <b> Nem o feijão, que foi o que mais subiu, subiu mais que o salário mínimo</b>; mas quem não ganha o mínimo não
+      teve esse aumento, e para essa pessoa as duas últimas colunas são piores.
+      Variação mensal do IPCA por item, encadeada das tabelas 655, 2938, 1419 e 7060 do SIDRA.
     </p>
-  </div>}
+  </div>
 
   <h2>Quem sente mais: as duas cestas oficiais</h2>
   <div class="card">
@@ -268,43 +297,6 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
       Por isso a sensação de que “a inflação do pobre é outra” não se confirma no índice geral — ela se confirma
       <b> item a item</b>, na tabela acima.
     </p>
-  </div>
-
-  <h2 id="poder-de-compra">Quanto o real perdeu de poder de compra</h2>
-  <div class="card">
-    <div class="hero" style="margin-top:0">
-      <div class="stat big"><b>{brl(poderHoje)}</b><span>é o que R$ 100 de julho de 1994, quando o real foi criado, compram hoje. O resto a inflação levou</span></div>
-      <div class="stat"><b>{pct(perdaReal, 1)}</b><span>do <Termo t="poder_de_compra">poder de compra</Termo> da moeda se perdeu em {(parseInt(ultimo.slice(0, 4)) - 1994)} anos — o mesmo dinheiro compra {(100 / poderHoje).toFixed(1).replace(".", ",")}× menos</span></div>
-      <div class="stat"><b>R$ {(100 * desde1980 / 1e12).toFixed(1).replace(".", ",")} tri</b><span>é o que seria preciso hoje para comprar o que R$ 100 compravam em dezembro de 1980, antes de cinco trocas de moeda — a conta da hiperinflação</span></div>
-    </div>
-    <svg viewBox={`0 0 ${PW} ${PH}`} width="100%" role="img" aria-label="Poder de compra de R$ 100 de julho de 1994 ao longo do tempo">
-      {[25, 50, 75, 100].map((v) => (<g><line x1={pPadL} x2={PW - 10} y1={py(v)} y2={py(v)} stroke="var(--line)" /><text x={pPadL - 6} y={py(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">R$ {v}</text></g>))}
-      <polygon points={`${px(0)},${(PH - pPadB).toFixed(1)} ${mesesReal.map((m, i) => `${px(i).toFixed(1)},${py(poder(m)).toFixed(1)}`).join(" ")} ${px(mesesReal.length - 1)},${(PH - pPadB).toFixed(1)}`} fill="var(--s4)" opacity=".10" />
-      <polyline points={mesesReal.map((m, i) => `${px(i).toFixed(1)},${py(poder(m)).toFixed(1)}`).join(" ")} fill="none" stroke="var(--s4)" stroke-width="2.5" />
-      {anosMarca.map((a) => { const m = `${a}12`; const i = mesesReal.indexOf(m); return i > 0 && (<g>
-        <circle cx={px(i)} cy={py(poder(m))} r="3" fill="var(--s4)" />
-        <text x={px(i)} y={py(poder(m)) - 8} text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{brl(poder(m))}</text>
-      </g>); })}
-      {mesesReal.filter((m) => m.endsWith("12") && +m.slice(0, 4) % 5 === 0).map((m) => <text x={px(mesesReal.indexOf(m))} y={PH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{m.slice(0, 4)}</text>)}
-    </svg>
-    <p class="src">
-      A linha mostra, mês a mês, quanto valem em compras os mesmos R$ 100 de julho de 1994 — não é cotação de moeda nem comparação com
-      o dólar, é só o quanto o dinheiro compra. A queda é mais íngreme nos primeiros anos do real, quando a inflação ainda rodava perto
-      de 20% ao ano, e vai ficando lenta depois de 1999. Calculado com o número-índice do IPCA (IBGE, SIDRA 1737).
-      Esta conta compara dinheiro com dinheiro. Para comparar <b>preço com salário</b> — quantos minutos de trabalho
-      custa um litro de gasolina ou o botijão de gás, desde 2001 —, veja
-      {" "}<a href="/economia/poder-de-compra/">Poder de compra em tempo de trabalho</a>.
-    </p>
-  </div>
-
-  <div class="card" style="margin-top:14px">
-    <h3 style="margin:0 0 6px">E o dinheiro parado, quanto perde?</h3>
-    <p class="explica">Se a inflação dos últimos 12 meses ({pct(ipca12)}) se repetisse, é isto que aconteceria com R$ 100 guardados em casa, sem render nada:</p>
-    <table>
-      <thead><tr><th>Depois de</th><th class="num">R$ 100 compram o equivalente a</th><th class="num">Perda acumulada</th></tr></thead>
-      <tbody>{[1, 2, 5, 10, 20].map((anos) => (<tr><td>{anos} {anos === 1 ? "ano" : "anos"}</td><td class="num">{brl(guardado(anos))}</td><td class="num">{pct(100 - guardado(anos), 1)}</td></tr>))}</tbody>
-    </table>
-    <p class="src">Projeção simples, não previsão: repete a inflação de 12 meses até {mesPorExtenso} para a frente. Serve para mostrar o efeito do juro composto ao contrário — a inflação futura pode ser maior ou menor, e dinheiro aplicado rende.</p>
   </div>
 
   <h2>O real frente ao dólar e às outras moedas</h2>
