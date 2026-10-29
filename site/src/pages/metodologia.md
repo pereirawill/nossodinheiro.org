@@ -410,6 +410,19 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **O que não dizemos:** que o imposto explica o preço. A página publica, lado a lado, em que categorias o preço relativo
   brasileiro está fora da linha e quanto da arrecadação incide sobre bens e serviços — e deixa a conclusão para o leitor.
 
+## Carga tributária de 2025 — número do Tesouro (29/10/2026)
+
+- **O que é:** o destaque "quantos dias o país trabalha para pagar imposto" passou a usar a **carga tributária bruta do Governo
+  Geral de 2025** (32,40% do PIB; União 21,60, estados 8,38, municípios 2,43), do boletim do Tesouro Nacional publicado em abril
+  de 2026, que sai antes do estudo da Receita Federal. O estudo da Receita (edição 2024) continua alimentando a série histórica, a
+  divisão por base de incidência e a comparação com a OCDE.
+- **Fonte:** constante em `site/src/lib/carga.ts`, com URL da divulgação oficial do Ministério da Fazenda e data de leitura — o
+  boletim do Tesouro não tem arquivo aberto nem API no Tesouro Transparente (a página é um aplicativo sem link direto).
+- **Atenção:** Receita e Tesouro medem a mesma coisa com pequena diferença de método (2024: 32,20% × 32,22%); a página diz
+  isso. **Não existe número oficial para 2026**: a carga só é calculada com o ano fechado. A reforma tributária é neutra em
+  arrecadação por lei, então o que muda a partir de 2027 é quem paga, não o total — e isso só será conferido quando a carga de
+  2027 sair, em 2028.
+
 ## IVA — bloco em Impostos (29/10/2026)
 
 - **O que é:** a alíquota de referência estimada para o IVA da reforma tributária (CBS + IBS), o ranking das maiores

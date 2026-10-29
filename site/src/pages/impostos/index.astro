@@ -5,6 +5,7 @@ import Glossario from "../../components/Glossario.astro";
 import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/impostos.json";
 import { ALIQUOTA, MAIORES_IVA, FONTE_OCDE, EXCECOES, CALENDARIO, FONTE_LEI } from "../../lib/iva";
+import { CARGA_TESOURO } from "../../lib/carga";
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
@@ -33,6 +34,7 @@ const ocdeBens = (d as any).carga?.ocde?.bases?.["Bens e Serviços"];
 const ocdeAno = ocdeBens ? Object.keys(ocdeBens).sort().pop() as string : null;
 const n1i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const n2i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const cargaTes = CARGA_TESOURO.total_pct_pib / 100;
 const atual = d.anual[d.anual.length - 1];
 const anterior = d.anual[d.anual.length - 2];
 const u = d.ultimo_mes;
@@ -156,15 +158,22 @@ const W = 920;
     <h2>Quantos meses do ano o país trabalha só para pagar imposto</h2>
     <div class="card">
       <div class="hero" style="margin-top:0">
-        <div class="stat big"><b>{mesesEDias(cargaTotal)}</b><span>é quanto a <Termo t="carga_tributaria">carga tributária</Termo> de {carga.ano} representa de um ano inteiro: {(100 * cargaTotal).toFixed(1).replace(".", ",")}% de tudo que o país produziu foi para tributos</span></div>
-        <div class="stat"><b>{dataLimite(cargaTotal)}</b><span>é o dia em que o país terminaria de pagar os tributos do ano se começasse a contar em 1º de janeiro</span></div>
-        <div class="stat"><b>{Math.round(emDias(cargaTotal))} dias</b><span>de trabalho do país inteiro equivalem ao que foi arrecadado em {carga.ano}: {compact((carga.por_ente.find((e: any) => e.ente === "Total")?.arrecadacao_milhoes ?? 0) * 1e6)}</span></div>
+        <div class="stat big"><b>{mesesEDias(cargaTes)}</b><span>é quanto a <Termo t="carga_tributaria">carga tributária</Termo> de {CARGA_TESOURO.ano} representa de um ano inteiro: {CARGA_TESOURO.total_pct_pib.toFixed(2).replace(".", ",")}% de tudo que o país produziu foi para tributos — o maior valor da série do Tesouro</span></div>
+        <div class="stat"><b>{dataLimite(cargaTes)}</b><span>é o dia em que o país terminaria de pagar os tributos de {CARGA_TESOURO.ano} se começasse a contar em 1º de janeiro</span></div>
+        <div class="stat"><b>{Math.round(emDias(cargaTes))} dias</b><span>de trabalho do país inteiro; em {CARGA_TESOURO.ano_anterior.ano} eram {Math.round(emDias(CARGA_TESOURO.ano_anterior.total_pct_pib / 100))} ({CARGA_TESOURO.ano_anterior.total_pct_pib.toFixed(2).replace(".", ",")}%). União {Math.round(emDias(CARGA_TESOURO.por_ente[0].pct_pib / 100))} dias, estados {Math.round(emDias(CARGA_TESOURO.por_ente[1].pct_pib / 100))}, municípios {Math.round(emDias(CARGA_TESOURO.por_ente[2].pct_pib / 100))}</span></div>
       </div>
+      <p class="src" style="margin-top:6px">
+        O número de {CARGA_TESOURO.ano} é do <a href={CARGA_TESOURO.url} rel="noopener">Tesouro Nacional</a> (boletim de abril de 2026, lido em {CARGA_TESOURO.lido}),
+        que publica a estimativa antes da Receita Federal. <b>Não existe número oficial para 2026</b>: a carga só é calculada com o
+        ano fechado, e a de 2026 sai em 2027. O detalhe por nível de governo e a série abaixo são do estudo da Receita, cuja edição
+        mais recente é a de {carga.ano} ({(100 * cargaTotal).toFixed(2).replace(".", ",")}%; o Tesouro mede o mesmo ano em
+        {" "}{CARGA_TESOURO.ano_anterior.total_pct_pib.toFixed(2).replace(".", ",")}% — pequena diferença de método entre as duas fontes).
+      </p>
       <div class="disclaimer" style="margin-top:4px"><span aria-hidden="true">ⓘ</span>
         <div><b>Isso não é o imposto que você paga.</b> É a soma de tudo que União, estados e municípios arrecadam dividida pelo
         tamanho da economia — um retrato do país, não da sua renda. Quem ganha pouco costuma entregar uma fatia maior do que ganha,
         porque a maior parte dos tributos está embutida em preços: veja a divisão por <Termo t="base_incidencia">base de incidência</Termo> no começo desta página.
-        O cálculo em dias é aritmética simples: {(100 * cargaTotal).toFixed(1).replace(".", ",")}% de 365 dias.</div>
+        O cálculo em dias é aritmética simples: {CARGA_TESOURO.total_pct_pib.toFixed(2).replace(".", ",")}% de 365 dias.</div>
       </div>
       <svg viewBox={`0 0 ${W} ${entes.length * 34 + 10}`} width="100%" role="img" aria-label="Dias de trabalho por nível de governo">
         {entes.map((e: any, i: number) => (<g transform={`translate(0 ${i * 34 + 5})`}>

@@ -393,6 +393,12 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   mesmo carro, não o carro mais barato à venda — que mudou (airbag/ABS obrigatórios em 2014, ESC em 2024). Nota na
   tabela. **Padrão a lembrar**: quando um item do IPCA contraria a memória, a primeira hipótese é "produto mudou".
 
+- 29/10 (o dono: "aquele cálculo é de 2024, põe 2025 ou 2026"): o destaque dos dias usa agora o **Tesouro, 32,40% em 2025**
+  (`site/src/lib/carga.ts`, constante com a URL da notícia oficial da Fazenda; o boletim não tem arquivo aberto — o CKAN do
+  Tesouro não o lista e a página de publicações é app sem link). Receita 2024 = 32,20% × Tesouro 2024 = 32,22%, dito na página.
+  **2026 não existe** em nenhuma fonte e a página diz isso. Quando a Receita publicar a edição 2025, o ETL pega sozinho
+  (`CTB.format(ano=2025)` — hoje dá 403); aí vale conferir os dois números lado a lado em `/conferir/`.
+
 ## Revisão da página de Inflação (29/10/2026) — a lição
 - O dono disse quatro vezes, de formas diferentes, que "os números não traduzem a realidade". Os números estavam certos.
   **O erro era editorial**: a cada objeção eu acrescentava um cartão defendendo a mesma tese (salário mínimo × preços),
