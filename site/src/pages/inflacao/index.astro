@@ -69,6 +69,12 @@ const quantasAntes = smIni ?? 0;
 const brl0 = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const inteiro = (v: number) => Math.round(v).toLocaleString("pt-BR");
 const pao = linhasLongo.find((l) => /Pão francês/.test(l.nome));
+// a conta feita devagar, com o pão: salário ÷ preço em cada ponta, sem deflator nenhum
+const PAO_1999 = 0.10;                      // preço de referência, declarado como suposição na página
+const paoMult = pao ? pao.mult : null;
+const paoHoje = paoMult ? PAO_1999 * paoMult : null;
+const paesAntes = smIni && paoMult ? smIni / PAO_1999 : null;
+const paesHoje = smFim && paoHoje ? smFim / paoHoje : null;
 const linhasPeso = Object.entries(pesosCestas).map(([k, v]: [string, any]) => ({
   codigo: k, nome: v.nome, ipca: v.ipca, inpc: v.inpc, dif: (v.inpc ?? 0) - (v.ipca ?? 0),
   mult: longo[k] ? longo[k].indice[fimLongo] / 100 : null,
@@ -272,6 +278,32 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
     </p>
   </div>
 
+
+  {paoMult && paesAntes && paesHoje && <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">A conta feita devagar: por que “o salário subiu 4 vezes” não se anula com “a moeda perdeu 3 vezes”</h3>
+    <p style="margin:0 0 10px">
+      As duas coisas são verdade ao mesmo tempo, e a tentação é subtrair uma da outra. Mas a desvalorização da moeda
+      <b> é</b> a multiplicação dos preços — ela já está do outro lado da conta. O que resolve é <b>dividir</b>:
+    </p>
+    <div class="conta">
+      <div><span>Em {mesPtBr(baseLongo)}</span><b>{brl0(smIni ?? 0)} ÷ {brl0(PAO_1999)}</b><i>= {inteiro(paesAntes)} pães</i></div>
+      <div class="seta" aria-hidden="true">→</div>
+      <div><span>Hoje</span><b>{brl0(smFim ?? 0)} ÷ {brl0(paoHoje ?? 0)}</b><i>= {inteiro(paesHoje)} pães</i></div>
+      <div class="seta" aria-hidden="true">=</div>
+      <div class="res"><span>Dá para comprar</span><b>+{n1l(100 * (paesHoje / paesAntes - 1))}%</b><i>de pão com um salário mínimo</i></div>
+    </div>
+    <p class="src">
+      <b>Não há índice de inflação nessa conta.</b> De um lado o salário mínimo, que é lei; do outro o preço do pão.
+      O R$ 0,10 é uma suposição, para a conta ficar legível — e <b>o resultado não depende dela</b>: se o pão custava
+      R$ 0,20 em 1999, hoje custaria R$ {n2l(0.20 * paoMult)}, e a diferença continuaria sendo os mesmos
+      {" "}{n1l(100 * (paesHoje / paesAntes - 1))}%, porque o que importa é a razão entre o salário e o preço, não o
+      valor de partida. O preço de hoje sai do índice <b>do próprio pão</b>, que subiu
+      {" "}{n1l(100 * (paoMult / multGeral - 1))}% mais que a média.
+      <b> A mesma conta com o salário médio dá outro número</b>, porque o rendimento médio de quem trabalha subiu
+      bem menos que o mínimo — e é aí que a sensação de ter perdido poder de compra encontra o dado.
+    </p>
+  </div>}
+
   <h2>Quem sente mais: as duas cestas oficiais</h2>
   <div class="card">
     <p style="margin:0 0 10px">
@@ -380,6 +412,14 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
   <Glossario termos={["ipca", "inpc", "meta_inflacao", "peso_ipca"]} />
 </Base>
 <style>
+  .conta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; }
+  .conta > div { flex: 1 1 180px; }
+  .conta span { display: block; font-size: 12px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
+  .conta b { display: block; font-family: IBM Plex Mono, monospace; font-size: 15px; margin: 2px 0; }
+  .conta i { display: block; font-style: normal; font-size: 13.5px; color: var(--ink-2); }
+  .conta .seta { flex: 0 0 auto; font-size: 22px; color: var(--ink-2); }
+  .conta .res b { font-family: var(--display); font-size: 30px; color: var(--accent); }
+  @media (max-width: 640px) { .conta .seta { display: none; } }
   .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
   td.tipo { color: var(--ink-2); font-size: 12.5px; }
   .explica { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; max-width: 78ch; }
