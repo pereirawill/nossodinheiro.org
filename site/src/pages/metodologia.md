@@ -147,6 +147,10 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Mundial (homicídios), PNUD (IDH, posição oficial) e Transparência Internacional (corrupção, posição oficial; é ONG e
   está marcada como tal). Nos índices do Banco Mundial a posição é calculada por nós ordenando os países.
 - **Atenção:** "Xº de N" é entre os países com dado, não entre todos; o ano pode variar por país e aparece na tabela.
+- **Média longa (29/10/2026):** cada barra da comparação traz também a **média dos últimos 25 anos** daquele país, porque um ano
+  é foto e o que forma uma população é o esforço sustentado. No caso da educação a conclusão não muda: o Brasil tem 5,5% do PIB
+  na média de 20 anos, contra 4,8% dos demais. **A cobertura é desigual** — há país com 20 anos de dado na janela e país com 7 —,
+  e o número de anos de cada um aparece na dica da barra.
 - **Gasto por aluno (29/10/2026):** "% do PIB em educação" esconde o tamanho do bolo e o número de alunos. A página passou a
   mostrar também o **gasto por aluno em dólares PPP**, conta nossa a partir de dois dados do Banco Mundial (despesa por aluno como
   % do PIB por habitante × PIB por habitante em PPP do mesmo ano e país): Brasil US$ 2.972, Coreia US$ 11.605. O ano é antigo

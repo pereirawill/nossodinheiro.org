@@ -48,16 +48,27 @@ const mediana = (xs: number[]) => {
 };
 // Um gráfico por área, com TODOS os países aparecendo (pedido do dono em 29/10/2026: a média não pode esconder
 // os 20 países dentro de uma barra só).
+// Média de longo prazo por país (25 anos), para a pergunta do dono: "um ano é foto; o que vale é o esforço
+// sustentado". A cobertura é desigual — há país com 20 anos de dado e país com 7 —, então o número de anos de
+// cada um vai junto e a página avisa.
+const medias = (rankings as any).medias_longas ?? { indicadores: {}, janela_anos: 0, de: 0, ate: 0 };
+const mediaDe = (id: string, iso: string) => (medias.indicadores?.[id] ?? {})[iso] ?? null;
+
 const porArea = AREAS.map((a) => {
   const linhas = [...REF].map((iso) => {
     const v = valorDe(a.ind, iso);
-    return v ? { iso, pais: v.pais, valor: v.valor, ano: v.ano } : null;
-  }).filter(Boolean) as { iso: string; pais: string; valor: number; ano: number }[];
+    const m = mediaDe(a.id, iso);
+    return v ? { iso, pais: v.pais, valor: v.valor, ano: v.ano, media: m?.media ?? null,
+                 anosMedia: m?.anos ?? null, mediaDe: m?.de ?? null, mediaAte: m?.ate ?? null } : null;
+  }).filter(Boolean) as any[];
   linhas.sort((x, y) => y.valor - x.valor);
   const outros = linhas.filter((l) => l.iso !== "BRA").map((l) => l.valor);
   const media = outros.length ? outros.reduce((t, v) => t + v, 0) / outros.length : 0;
   const br = linhas.find((l) => l.iso === "BRA");
-  return { ...a, linhas, media, mediana: mediana(outros), br,
+  const comMedia = linhas.filter((l: any) => l.media != null);
+  const mediaLonga = comMedia.length ? comMedia.filter((l: any) => l.iso !== "BRA")
+    .reduce((t: number, l: any) => t + l.media, 0) / Math.max(1, comMedia.filter((l: any) => l.iso !== "BRA").length) : null;
+  return { ...a, linhas, media, mediana: mediana(outros), br, mediaLonga,
            acimaDaMedia: (br?.valor ?? 0) > media, max: Math.max(...linhas.map((l) => l.valor), media) };
 });
 const W = 920, rotuloW = 240, barraW = 500;
@@ -194,7 +205,8 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
     <div class="card" style="margin-top:14px">
       <h3 style="margin:0 0 2px">{a.rotulo}</h3>
       <p class="sub" style="margin:0 0 10px">
-        {a.ind.unidade} · Brasil {n1(a.br?.valor ?? 0)} · média dos outros {n1(a.media)} (mediana {n1(a.mediana)}) ·
+        {a.ind.unidade} · Brasil {n1(a.br?.valor ?? 0)} no último ano{a.br?.media != null ? ` e ${n1(a.br.media)} na média de ${a.br.anosMedia} anos` : ""} ·
+        média dos outros países {n1(a.media)} (mediana {n1(a.mediana)}{a.mediaLonga != null ? `, média longa ${n1(a.mediaLonga)}` : ""}) ·
         o Brasil está <b>{a.acimaDaMedia ? "acima" : "abaixo"}</b> da média
       </p>
       <svg viewBox={`0 0 ${W} ${a.linhas.length * 19 + 10}`} width="100%" role="img" aria-label={`${a.rotulo}: ${a.ind.unidade}, país por país`}>
@@ -202,7 +214,10 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
           <text x={rotuloW - 8} y="11" text-anchor="end" font-size="11.5" fill={l.iso === "BRA" ? "var(--ink)" : "var(--ink-2)"} font-weight={l.iso === "BRA" ? "700" : "400"}>{l.pais}</text>
           <rect x={rotuloW} y="2" width={Math.max(2, (l.valor / a.max) * barraW)} height="12" rx="2"
             fill={l.iso === "BRA" ? "var(--s4)" : "var(--neutro)"} opacity={l.iso === "BRA" ? 1 : 0.55}>
-            <title>{l.pais}: {n2(l.valor)} {a.ind.unidade} ({l.ano})</title></rect>
+            <title>{l.pais}: {n2(l.valor)} {a.ind.unidade} em {l.ano}{l.media != null ? ` · média de ${l.anosMedia} anos (${l.mediaDe}–${l.mediaAte}): ${n2(l.media)}` : " · sem média longa"}</title></rect>
+          {l.media != null && <line x1={rotuloW + (l.media / a.max) * barraW} x2={rotuloW + (l.media / a.max) * barraW}
+            y1="0" y2="16" stroke="var(--ink)" stroke-width="1.5" opacity="0.7">
+            <title>{l.pais}: média de {l.anosMedia} anos ({l.mediaDe}–{l.mediaAte}) = {n2(l.media)}</title></line>}
           <text x={rotuloW + (l.valor / a.max) * barraW + 8} y="12" font-size="11" font-family="IBM Plex Mono, monospace"
             fill="var(--ink-2)">{n1(l.valor)}</text>
         </g>))}
@@ -211,7 +226,10 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
       </svg>
       <p class="src">
         Brasil em destaque; a linha tracejada é a média dos outros países com dado nesta área ({a.linhas.length - 1} países).
-        O ano varia de país para país e está na dica de cada barra. Fonte: Banco Mundial, indicador {a.ind.url.split("/").pop()}.
+        O <b>traço vertical escuro em cada barra</b> é a média daquele país nos últimos {medias.janela_anos} anos — um
+        ano é foto, e o que forma uma população é o esforço sustentado. <b>A cobertura é desigual</b>: há país com 20
+        anos de dado na janela e país com 7, e o número de anos de cada um está na dica da barra.
+        O ano do valor mais recente também varia e está na mesma dica. Fonte: Banco Mundial, indicador {a.ind.url.split("/").pop()}.
       </p>
     </div>
   ))}

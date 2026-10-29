@@ -364,6 +364,15 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   ganharam posição (mortalidade infantil +18 pts, médio completo +16, expectativa +11) e 5 perderam (investimento −26, internet
   −23, CPI −20, produtividade −11, PIB por pessoa −6).
 
+## Desenvolvimento por estado (29/10/2026)
+- Pedido: "mapa para ver quais estados se desenvolveram mais desde 1988". `etl/desenvolvimento/extract.py` →
+  `desenvolvimento.json`, mensal dia 11. **Três dimensões com série estadual comparável**: educação (Censos 142/1974/3547/10141
+  por UF, % de 25+ com médio completo ou mais, 1991→2022), saneamento (vem do `saneamento.json`) e homicídios (**ODS 16.1.1**,
+  tabela 6606, var **13532**, 2000→2024). Três mapas de **variação** (não de nível) + tabela.
+- **Fora, com motivo na página**: renda desde 1991 (Censo de 1991 em **cruzeiro**, cinco trocas de moeda — conversão seria
+  estimativa), emprego formal (quebras de RAIS/CAGED) e saúde por UF antes de 2000.
+- Destaques: todos os 27 estados avançaram em escolaridade (RR 13,8%→56,2%); SP caiu de 41,0 para 6,2 homicídios/100 mil.
+
 ## Painel Trânsito (NO AR, sem chave, mensal dia 9; feito 29/10/2026)
 - Pergunta do dono: "mortes no trânsito seria em segurança ou transporte?" → **painel próprio** `/transito/` (menu depois de
   Segurança), porque morte no trânsito **não é intencional** e somá-la ao MVI inflaria a violência; as duas aparecem lado a lado.
@@ -458,6 +467,10 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   NL deixa palácios fora (+€ 21,4 mi), DK conta só dinheiro a pessoas. Conversão pela PTAX do dia; `etl/cambio` passou a
   trazer as 10 moedas da PTAX (entraram DKK, NOK, SEK) e `rankings` ganhou `populacao` (SP.POP.TOTL) para o per capita.
 
+- 29/10 (o dono: "essa média não deveria ser ao longo de 30 ou 50 anos?"): `rankings.json` ganhou `medias_longas` — média de
+  **25 anos** por país dos 8 indicadores de gasto, com `anos`/`de`/`ate` por país (cobertura desigual: Brasil 20 anos, EUA 7).
+  Cada barra de `/comparacao/` mostra a média como traço vertical. Em educação a conclusão não muda: Brasil 5,5% na média de 20
+  anos × 4,8% dos outros.
 - 29/10 (o dono: "5,6% do PIB em educação **não traduz a realidade**" — não traduz mesmo): entrou **gasto por aluno em US$ PPP**,
   calculado no `etl/rankings` como `SE.XPD.PRIM.PC.ZS/100 × NY.GDP.PCAP.PP.CD` **do mesmo ano e país** (helper `_serie_por_ano`),
   mais `criancas_pct` (SP.POP.0014.TO.ZS). Brasil **US$ 2.972/aluno (2015)** × Coreia 11.605 × Alemanha 8.993, embora o Brasil

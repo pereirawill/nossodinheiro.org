@@ -297,6 +297,11 @@ def montar(id_: str, titulo: str, descricao: str, fonte: str, fonte_tipo: str, u
 
 def run() -> Path:
     PUB.mkdir(parents=True, exist_ok=True)
+    # média de longo prazo: um ano é foto, e o que forma uma população é o esforço sustentado por décadas
+    JANELA_MEDIA = 25
+    ate = datetime.now().year
+    de = ate - JANELA_MEDIA + 1
+    medias: dict[str, dict] = {}
     with httpx.Client(headers=HEADERS, timeout=120, follow_redirects=True) as c:
         nomes = nomes_pt(c); nomes_en = paises_wb(c)
         indices = []
@@ -306,6 +311,28 @@ def run() -> Path:
             indices.append(montar(id_, tit, desc, "Banco Mundial (dados abertos)" + (" / UNODC" if id_ == "homicidios" else ""), "organismo oficial",
                                   f"https://data.worldbank.org/indicator/{cod}", unid, maior, linhas, nomes, nomes_en, serie))
             log.info("%s: %d países; série %d anos", tit, len(linhas), len(serie))
+
+        # Média de longo prazo por país. Um ano é foto: o que forma uma população é o esforço sustentado por
+        # décadas. (Pergunta do dono em 29/10/2026: "essa média não deveria ser ao longo de 30 ou 50 anos?".)
+        # Guardamos quantos anos cada país realmente tem na janela, porque cobertura desigual engana.
+        for id_, cod, *_ in INDICADORES_WB:
+            if id_ not in ("educacao_pct_pib", "saude_pct_pib", "saude_total_pct_pib", "defesa_pct_pib",
+                           "despesa_governo_pct_pib", "beneficios_pct_despesa", "carga_governo_central",
+                           "investimento_pct_pib"):
+                continue
+            por_ano = _serie_por_ano(c, cod, nomes_en)
+            acum: dict[str, list[float]] = {}
+            anos_pais: dict[str, list[int]] = {}
+            for ano, vals in por_ano.items():
+                if not (de <= ano <= ate):
+                    continue
+                for iso, v in vals.items():
+                    acum.setdefault(iso, []).append(v)
+                    anos_pais.setdefault(iso, []).append(ano)
+            medias[id_] = {iso: {"media": round(sum(vs) / len(vs), 4), "anos": len(vs),
+                                 "de": min(anos_pais[iso]), "ate": max(anos_pais[iso])}
+                           for iso, vs in acum.items() if len(vs) >= 5}
+            log.info("média de %d anos de %s: %d países", JANELA_MEDIA, id_, len(medias[id_]))
 
         # Gasto por aluno em dólares, que é o que "% do PIB em educação" esconde: o mesmo percentual rende muito
         # menos onde o PIB por habitante é menor e há proporcionalmente mais crianças. O Banco Mundial publica a
@@ -344,7 +371,10 @@ def run() -> Path:
         if not i["brasil"]:
             raise SystemExit(f"Brasil ausente em {i['id']} — fonte mudou?")
     out = PUB / "rankings.json"
-    out.write_text(json.dumps({"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "indices": indices}, ensure_ascii=False), encoding="utf-8")
+    out.write_text(json.dumps({"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"),
+                               "indices": indices,
+                               "medias_longas": {"janela_anos": JANELA_MEDIA, "de": de, "ate": ate,
+                                                 "indicadores": medias}}, ensure_ascii=False), encoding="utf-8")
     for i in indices:
         b = i["brasil"]; log.info("%-32s Brasil %3dº de %3d (%s, %s)", i["titulo"], b["posicao"], b["total"], b["valor"], b["ano"])
     return out
