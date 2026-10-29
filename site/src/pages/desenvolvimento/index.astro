@@ -183,8 +183,10 @@ const pimPico = pimAnos.length ? pimAnos.reduce((m, a) => (pimTransf.anual[a] > 
 const CORES_AGG: Record<string, string> = { "Mundo": "var(--ink-2)", "Países de renda alta": "var(--s2)", "América Latina e Caribe": "var(--s5)" };
 const IW = 920, IH = 250, iPadL = 44, iPadB = 26;
 const anosG = transf ? transf.util : [];
+// só os anos desenhados entram na escala: os agregados têm série anterior a 1995, com valores bem maiores
 const todosV = transf ? [...anosG.map((a: string) => transf.brasil[a]),
-  ...Object.entries(transf.agregados).flatMap(([n, s]: [string, any]) => (n in CORES_AGG ? Object.values(s) as number[] : []))] : [1];
+  ...Object.entries(transf.agregados).flatMap(([n, s]: [string, any]) =>
+    (n in CORES_AGG ? Object.entries(s).filter(([a]) => a >= anosG[0]).map(([, v]) => v as number) : []))] : [1];
 const maxI = Math.max(...todosV as number[]) * 1.1;
 const ix = (a: string) => iPadL + ((+a - +anosG[0]) / Math.max(1, +anosG[anosG.length - 1] - +anosG[0])) * (IW - iPadL - 12);
 const iy = (v: number) => 10 + (IH - iPadB - 10) * (1 - v / maxI);
