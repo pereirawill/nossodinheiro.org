@@ -48,7 +48,7 @@ apareceria em vez de passar em silêncio.
 
 A série usa `TipoInstituicao=2` porque é o único recorte que alcança 2000. O conglomerado **prudencial**, que reúne
 também as empresas não financeiras do grupo, só existe a partir de 2014 e é usado para conferir o último ano fechado:
-em 2025, R$ 209,0 bi contra os R$ 209,7 bi desta página (0,3%).
+em 2025, R$ 209,0 bi contra os R$ 209,9 bi desta página (0,4%).
 
 ### 3.3 Grupo, e o grupo **do ano**
 

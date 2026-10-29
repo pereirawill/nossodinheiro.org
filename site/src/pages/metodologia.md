@@ -285,7 +285,7 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 ## Bancos — quanto lucraram, ano a ano
 
 - **O que é:** o lucro líquido de cada conglomerado financeiro que opera no Brasil, somado por ano desde 2000, com o total do
-  segmento bancário (R$ 209,7 bi em 2025), o retorno sobre o patrimônio, o ranking dos quinze maiores pelo lucro somado em
+  segmento bancário (R$ 209,9 bi em 2025), o retorno sobre o patrimônio, o ranking dos quinze maiores pelo lucro somado em
   reais de 2025 (Itaú R$ 696,7 bi, BB R$ 523,9 bi, Bradesco R$ 522,3 bi) e a fatia dos cinco maiores no lucro do setor.
 - **Fonte:** Banco Central, **IF.data** (API Olinda), relatório 1 — Resumo, recorte *conglomerado financeiro e instituições
   independentes*; IPCA (SIDRA 1737) para corrigir a série; CVM (DFP) e o recorte *conglomerado prudencial* para conferir.
