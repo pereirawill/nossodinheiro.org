@@ -41,7 +41,7 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/` = painel Geral (panorama: União por função via `poderes_funcao_<ano>.json`, três níveis via SICONFI, cartões dos painéis).
   Deputados mudou para `/deputados/`. `/judiciario/` = índice dos tribunais (SIOP) com link para `/stf/`; demais tribunais
   pendentes (mesmo molde do STF). Menu: Geral, Deputados, Senadores, Presidência, Judiciário, Emendas, Poderes, Estados,
-  Municípios, Obras, Estatais, Impostos, Imposto de Renda, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
+  Municípios, Obras, Estatais, Economia, Impostos, Imposto de Renda, Inflação, Trabalho, INSS, Aposentadoria, Renda, Educação, Segurança, Saúde, Inadimplência, Corrupção, Rankings, Histórico, Metodologia, Sobre. Pedidos na fila: painel "Presença e votações" (Câmara/Senado),
   painel "Trabalho" (PNAD/Mapa de Empresas/INSS BEPS tabela 14/Bolsa Família via API por município).
 
 ## Painel 1 — Custo por deputado (NO AR, dados reais)
@@ -376,7 +376,9 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   dias em que a meta mudou (162 desde 1999; pico 45% em 05/03/1999, hoje 13,75%).
 - 2023: PIB R$ 10,94 tri, R$ 51.694 por habitante; a economia encolheu em 4 dos 28 anos. 2025: primário −R$ 58,7 bi,
   nominal −R$ 950,6 bi. A página é também porta de entrada (cartões) para Impostos, IR, Inflação, Dívida, Trabalho, Renda,
-  Inadimplência, Estatais e Desenvolvimento. **Menu ainda não mexido** — proposta com imagem antes, conforme a regra.
+  Inadimplência, Estatais e Desenvolvimento. 29/10, o dono: "não estou vendo a aba economia" → **Economia entrou no menu**, depois de Estatais (só o
+  item, sem mexer em mais nada; o menu foi a 36 itens em 4 linhas). A proposta de consolidação 35 → 29, já enviada
+  por imagem, continua esperando o sim dele.
 
 ## Poder de compra — subpágina de Economia (NO AR, sem chave, mensal dia 18; feito 29/10/2026)
 - Pedido antigo do dono ("quantas horas de trabalho para comprar TV, geladeira, carro; e o motivo seria o imposto?").
