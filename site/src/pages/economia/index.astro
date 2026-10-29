@@ -1,0 +1,190 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/economia.json";
+import inflacao from "../../../public/data/inflacao.json";
+import divida from "../../../public/data/divida.json";
+import impostos from "../../../public/data/impostos.json";
+import trabalho from "../../../public/data/trabalho.json";
+import credito from "../../../public/data/credito.json";
+import estatais from "../../../public/data/estatais.json";
+import renda from "../../../public/data/renda.json";
+
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const n2 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const n0 = (v: number) => Math.round(v).toLocaleString("pt-BR");
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const tri = (v: number) => `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri`;
+const bi = (v: number) => `R$ ${n1(v / 1e9)} bi`;
+const grande = (v: number) => (Math.abs(v) >= 1e12 ? tri(v) : bi(v));
+const sinal = (v: number) => `${v > 0 ? "+" : "−"}${n1(Math.abs(v))}`;
+
+const anual = d.pib_anual as any[];
+const ultAnual = anual[anual.length - 1];
+const trimestral = d.pib_trimestral as any[];
+const ultTrim = trimestral[trimestral.length - 1];
+const trimRotulo = (p: string) => `${Number(p.slice(4))}º trimestre de ${p.slice(0, 4)}`;
+const selic = d.selic as any[];
+const ultSelic = selic[selic.length - 1];
+const maiorSelic = selic.reduce((m, x) => (x.valor > m.valor ? x : m), selic[0]);
+const contas = d.resultado_governo as Record<string, any>;
+const anosContas = Object.keys(contas).sort();
+const ultContas = contas[anosContas[anosContas.length - 1]];
+
+// quantos anos o PIB encolheu
+const quedas = anual.filter((a) => (a.volume ?? 0) < 0);
+
+const W = 920, L = 52, R = 16, H = 230, T = 14, B = 28;
+const maxVol = Math.max(...anual.map((a) => Math.abs(a.volume ?? 0)), 1);
+const passo = (W - L - R) / anual.length, largura = passo - 3;
+const yv = (v: number) => T + (1 - (v + maxVol) / (2 * maxVol)) * (H - T - B);
+
+const anoDe = (s: string) => Number(s.slice(-4));
+const selicPts = selic.map((p) => ({ ano: anoDe(p.data) + (Number(p.data.slice(3, 5)) - 1) / 12, valor: p.valor }));
+const sMin = selicPts[0].ano, sMax = selicPts[selicPts.length - 1].ano;
+const maxSelic = Math.max(...selicPts.map((p) => p.valor));
+const sx = (a: number) => L + ((a - sMin) / (sMax - sMin)) * (W - L - R);
+const sy = (v: number) => T + (1 - v / maxSelic) * (H - T - B);
+
+const maxConta = Math.max(...anosContas.map((a) => Math.abs(contas[a].nominal ?? 0)), 1);
+const cPasso = (W - L - R) / anosContas.length, cLarg = cPasso - 3;
+const cy = (v: number) => T + (1 - (v + maxConta) / (2 * maxConta)) * (H - T - B);
+
+// cartões dos painéis econômicos que já existem
+const arrec = (impostos as any).anual[(impostos as any).anual.length - 1];
+const ipca12 = (inflacao as any).doze_meses[(inflacao as any).ultimo_mes];
+const jurosDivida = (divida as any).juros_nominais[(divida as any).anos_juros[(divida as any).anos_juros.length - 1]];
+const estoque = (divida as any).estoque.meses[(divida as any).estoque.meses.length - 1].total;
+const desocupacao = (trabalho as any).pnad?.desocupacao ?? null;
+const inadimplencia = (credito as any).brasil?.PF?.pct ?? null;
+const lucroEstatais = (estatais as any).sest.agregado[(estatais as any).sest.anos[(estatais as any).sest.anos.length - 1]];
+const rendaMedia = (renda as any).por_uf ? null : null;
+---
+<Base title="Economia: PIB, juros e contas públicas — Nosso Dinheiro" accent="var(--s2)"
+  description="O tamanho da economia brasileira e o quanto ela cresce desde 1996, a taxa Selic desde 1999 e o resultado das contas do governo desde 1997 — com a porta de entrada para os painéis de impostos, inflação, dívida, trabalho e renda.">
+  <h1>Economia</h1>
+  <p class="lede">
+    O tamanho da economia, o quanto ela cresce, quanto custa o dinheiro e como fecham as contas do governo. Em{" "}
+    {ultAnual.ano} o PIB brasileiro foi de <strong>{tri(ultAnual.correntes)}</strong>, ou {brl0(ultAnual.per_capita ?? 0)} por
+    habitante. No {trimRotulo(ultTrim.periodo)} a economia cresceu <strong>{sinal(ultTrim.trimestral)}%</strong> em relação
+    ao mesmo trimestre do ano anterior. A Selic está em <strong>{n2(ultSelic.valor)}%</strong> desde {ultSelic.data}.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fontes: IBGE (Contas Nacionais), Banco Central e Tesouro Nacional · <a href="/metodologia/">metodologia</a> · <a href="/conferir/">como conferir</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{tri(ultAnual.correntes)}</b><span>o PIB de {ultAnual.ano}, o último ano fechado pelas Contas Nacionais — {brl0(ultAnual.per_capita ?? 0)} por habitante</span></div>
+    <div class="stat"><b>{sinal(ultTrim.quatro_trimestres)}%</b><span>o crescimento acumulado em quatro trimestres até o {trimRotulo(ultTrim.periodo)}</span></div>
+    <div class="stat"><b>{n2(ultSelic.valor)}%</b><span>a <Termo t="selic">meta da Selic</Termo> hoje; o pico da série foi {n1(maiorSelic.valor)}% em {maiorSelic.data}</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Nada aqui é previsão.</b> Este site publica o que já aconteceu e está registrado pelas fontes oficiais —
+    não projeta crescimento, juro nem resultado futuro, e não comenta o que o governo ou o Banco Central deveriam
+    fazer. <b>O PIB anual sai com atraso</b>: as Contas Nacionais fecham o ano cerca de dois anos depois, e por isso o
+    último ano completo aqui é {ultAnual.ano}, enquanto o crescimento trimestral já alcança o {trimRotulo(ultTrim.periodo)}.</div>
+  </div>
+
+  <h2>Quanto a economia cresceu, ano a ano</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Variação anual do PIB em volume, desde 1996">
+      {[maxVol, maxVol / 2, 0, -maxVol / 2, -maxVol].map((t) => <g>
+        <line x1={L} x2={W - R} y1={yv(t)} y2={yv(t)} stroke={t === 0 ? "var(--ink-2)" : "var(--line)"} />
+        <text x={L - 6} y={yv(t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{sinal(t)}%</text></g>)}
+      {anual.map((a, i) => (<g>
+        <rect x={L + i * passo + 1} y={Math.min(yv(0), yv(a.volume ?? 0))} width={largura}
+          height={Math.max(1, Math.abs(yv(a.volume ?? 0) - yv(0)))} fill={(a.volume ?? 0) < 0 ? "#a3302a" : "var(--s2)"}>
+          <title>{a.ano}: {sinal(a.volume ?? 0)}% · PIB {tri(a.correntes)} · {brl0(a.per_capita ?? 0)} por habitante</title></rect>
+        {a.ano % 4 === 0 && <text x={L + i * passo + largura / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a.ano}</text>}
+      </g>))}
+    </svg>
+    <p class="src">
+      Variação em volume, que desconta a inflação — é o número que se chama de "o PIB cresceu x%".
+      A economia encolheu em {quedas.length} dos {anual.length} anos desta série: {quedas.map((q) => `${q.ano} (${sinal(q.volume)}%)`).join(", ")}.
+      Fonte: {(d as any).fontes.pib}.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Os últimos trimestres</h3>
+    <table>
+      <thead><tr><th>Trimestre</th><th class="num">Contra o mesmo trimestre do ano anterior</th><th class="num">Acumulado em quatro trimestres</th><th class="num">Acumulado no ano</th></tr></thead>
+      <tbody>{trimestral.slice(-8).reverse().map((t) => (<tr>
+        <td>{trimRotulo(t.periodo)}</td>
+        <td class={`num${(t.trimestral ?? 0) < 0 ? " neg" : ""}`}>{sinal(t.trimestral ?? 0)}%</td>
+        <td class={`num${(t.quatro_trimestres ?? 0) < 0 ? " neg" : ""}`}>{sinal(t.quatro_trimestres ?? 0)}%</td>
+        <td class={`num${(t.no_ano ?? 0) < 0 ? " neg" : ""}`}>{sinal(t.no_ano ?? 0)}%</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">PIB a preços de mercado, Contas Nacionais Trimestrais do IBGE. A série começa em {trimRotulo(trimestral[0].periodo)}.</p>
+  </div>
+
+  <h2>O preço do dinheiro: a Selic desde {anoDe(selic[0].data)}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Meta da taxa Selic ao longo do tempo">
+      {[0.25, 0.5, 0.75, 1].map((t) => <g>
+        <line x1={L} x2={W - R} y1={sy(maxSelic * t)} y2={sy(maxSelic * t)} stroke="var(--line)" />
+        <text x={L - 6} y={sy(maxSelic * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n0(maxSelic * t)}%</text></g>)}
+      <polyline points={selicPts.map((p) => `${sx(p.ano).toFixed(1)},${sy(p.valor).toFixed(1)}`).join(" ")}
+        fill="none" stroke="var(--s2)" stroke-width="2" />
+      {selic.filter((_, i) => i % 12 === 0).map((p) => <circle cx={sx(anoDe(p.data) + (Number(p.data.slice(3, 5)) - 1) / 12)} cy={sy(p.valor)} r="2.5" fill="var(--s2)"><title>{p.data}: {n2(p.valor)}%</title></circle>)}
+      {[sMin, (sMin + sMax) / 2, sMax].map((a) => <text x={sx(a)} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{Math.round(a)}</text>)}
+    </svg>
+    <p class="src">
+      Cada ponto é uma mudança da meta decidida pelo Copom — {selic.length} desde {anoDe(selic[0].data)}.
+      {" "}{(d as any).fontes.selic}. O juro que importa para o bolso não é este: o custo do crédito à pessoa física
+      está em <a href="/inadimplencia/">Inadimplência</a>, e o efeito da Selic sobre a dívida pública, em
+      {" "}<a href="/divida/">Dívida</a> — {n1(100 * ((divida as any).estoque.por_indexador["Selic (pós-fixado)"] ?? 0) / estoque)}% do
+      estoque da dívida federal acompanha a Selic.
+    </p>
+  </div>
+
+  <h2>As contas do governo</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--s1)"></i>Resultado primário</span><span><i style="background:#a3302a"></i>Resultado nominal (com juros)</span></div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Resultado primário e nominal do Governo Central, por ano">
+      {[maxConta, 0, -maxConta].map((t) => <g>
+        <line x1={L} x2={W - R} y1={cy(t)} y2={cy(t)} stroke={t === 0 ? "var(--ink-2)" : "var(--line)"} />
+        <text x={L - 6} y={cy(t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{grande(t)}</text></g>)}
+      {anosContas.map((a, i) => { const p = contas[a].primario ?? 0, n = contas[a].nominal ?? 0; const x0 = L + i * cPasso + 1; return (<g>
+        <rect x={x0} y={Math.min(cy(0), cy(n))} width={cLarg} height={Math.max(1, Math.abs(cy(n) - cy(0)))} fill="#a3302a" opacity="0.65">
+          <title>{a}: resultado nominal {grande(n)}</title></rect>
+        <rect x={x0 + cLarg * 0.25} y={Math.min(cy(0), cy(p))} width={cLarg * 0.5} height={Math.max(1, Math.abs(cy(p) - cy(0)))} fill="var(--s1)">
+          <title>{a}: resultado primário {grande(p)}</title></rect>
+        {Number(a) % 4 === 0 && <text x={x0 + cLarg / 2} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text>}
+      </g>); })}
+    </svg>
+    <p class="src">
+      <b>Primário</b> é o que o governo arrecada menos o que gasta, <b>sem contar os juros</b> da dívida.
+      <b>Nominal</b> é o mesmo resultado já com os juros dentro — a diferença entre as duas barras é, basicamente, o
+      custo da dívida. Em {anosContas[anosContas.length - 1]}: primário de {grande(ultContas.primario ?? 0)} e nominal de
+      {" "}{grande(ultContas.nominal ?? 0)}. Governo Central (Tesouro, Previdência e Banco Central), valores correntes.
+      Fonte: {(d as any).fontes.contas}. O detalhe da dívida está em <a href="/divida/">Dívida</a>.
+    </p>
+  </div>
+
+  <h2>O resto da economia, painel por painel</h2>
+  <div class="tiles">
+    <a class="card tile" href="/impostos/"><b>{grande(arrec.total)}</b><span>a arrecadação federal em {arrec.meses} meses de {arrec.ano}, por tributo e por estado</span></a>
+    <a class="card tile" href="/imposto-de-renda/"><b>{(impostos as any).carga ? n1((impostos as any).carga.bases.linhas.find((l: any) => l.base === "Renda")?.pct * 100) + "%" : "—"}</b><span>da arrecadação total vem de imposto sobre a renda — quem declara, quanto paga e quanto é isento</span></a>
+    <a class="card tile" href="/inflacao/"><b>{String(ipca12).replace(".", ",")}%</b><span>de alta de preços em 12 meses (IPCA), por grupo de gasto, com o câmbio e o poder de compra</span></a>
+    <a class="card tile" href="/divida/"><b>{grande(jurosDivida)}</b><span>os juros da dívida federal no último ano fechado; estoque de {tri(estoque)}</span></a>
+    <a class="card tile" href="/trabalho/"><b>{desocupacao ? `${String(desocupacao).replace(".", ",")}%` : "Trabalho"}</b><span>quem trabalha, com e sem carteira, as empresas do país e quem contribui para a previdência</span></a>
+    <a class="card tile" href="/renda/"><b>Renda</b><span>quanto ganha quem trabalha, por tipo de vínculo e por estado, e como a renda é dividida</span></a>
+    <a class="card tile" href="/inadimplencia/"><b>{inadimplencia ? `${String(inadimplencia).replace(".", ",")}%` : "Inadimplência"}</b><span>do crédito a pessoas físicas está em atraso há mais de 90 dias</span></a>
+    <a class="card tile" href="/estatais/"><b>{grande(lucroEstatais)}</b><span>o lucro das estatais federais no último ano — e quanto o Orçamento põe de volta nelas</span></a>
+    <a class="card tile" href="/desenvolvimento/"><b>Desenvolvimento</b><span>a trajetória de longo prazo: renda, produtividade, investimento e a posição do Brasil no mundo</span></a>
+  </div>
+
+  <Glossario termos={["pib", "selic", "resultado_primario", "resultado_nominal", "juros_nominais"]} />
+</Base>
+<style>
+  td.num, th.num { white-space: nowrap; }
+  td.neg { color: #a3302a; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .tile { display: block; text-decoration: none; }
+  .tile b { display: block; font-family: var(--display); font-size: 26px; line-height: 1.1; color: var(--accent); }
+  .tile span { display: block; margin-top: 6px; font-size: 13px; color: var(--ink-2); }
+</style>

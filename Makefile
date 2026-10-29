@@ -29,6 +29,11 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+economia: ## economia: PIB (IBGE), Selic (BCB) e resultado do governo (Tesouro)
+	python -m etl.economia.extract
+	cp data/public/economia.json site/public/data/
+.PHONY: economia
+
 desenvolvimento: ## desenvolvimento por estado: Censos (educação) e ODS 16.1.1 (homicídios)
 	python -m etl.desenvolvimento.extract
 	cp data/public/desenvolvimento.json site/public/data/

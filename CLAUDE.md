@@ -364,6 +364,20 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   ganharam posição (mortalidade infantil +18 pts, médio completo +16, expectativa +11) e 5 perderam (investimento −26, internet
   −23, CPI −20, produtividade −11, PIB por pessoa −6).
 
+## Painel Economia (NO AR, sem chave, mensal dia 4; feito 29/10/2026)
+- Pedido do dono: criar a aba e **consolidar** painéis para reduzir o menu. `etl/economia/extract.py` → `economia.json`,
+  `/economia/`. Preenche o buraco que faltava: **PIB e crescimento**.
+- Fontes: **SIDRA 6784** (Contas Nacionais Anuais: PIB corrente, per capita, população, variação em volume, 1996→2023),
+  **SIDRA 5932** (trimestral, PIB a preços de mercado, categoria **90707**, 1996Q1→2026Q2), **BCB SGS 432** (meta Selic) e
+  **RTN aba 2.1** (resultado primário **linha 8, "abaixo da linha"** — a 5 é acima da linha e a 7 é discrepância
+  estatística; o nominal é a linha 10).
+- **Armadilhas do SGS**: recusa janela > 10 anos em série diária (HTTP 406) → coleta em fatias de 9 anos; e devolve 502 ou
+  **HTML com status 200** de forma intermitente → `_sgs_janela` com 4 tentativas e checagem de content-type. Guardamos só os
+  dias em que a meta mudou (162 desde 1999; pico 45% em 05/03/1999, hoje 13,75%).
+- 2023: PIB R$ 10,94 tri, R$ 51.694 por habitante; a economia encolheu em 4 dos 28 anos. 2025: primário −R$ 58,7 bi,
+  nominal −R$ 950,6 bi. A página é também porta de entrada (cartões) para Impostos, IR, Inflação, Dívida, Trabalho, Renda,
+  Inadimplência, Estatais e Desenvolvimento. **Menu ainda não mexido** — proposta com imagem antes, conforme a regra.
+
 ## Comparação com o mundo em Desenvolvimento (29/10/2026)
 - Pedido do dono: "o que melhorou deveria ser comparado com o que melhorou no mundo". `rankings.json` ganhou
   `agregados` — séries dos grupos que o **próprio Banco Mundial** publica: WLD (Mundo), HIC (renda alta), LMY (renda

@@ -317,6 +317,20 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   e obras entram só como limite declarado, porque o dado do lado do resultado é do próprio órgão interessado.
 - Completo: nesta página; os números por país estão em `/rankings/`.
 
+## Economia — PIB, juros e contas públicas
+
+- **O que é:** o tamanho da economia e o quanto ela cresce (desde 1996), a meta da Selic (desde 1999) e o resultado primário e
+  nominal do Governo Central (desde 1997). É também a porta de entrada para os painéis de impostos, inflação, dívida, trabalho,
+  renda, inadimplência e estatais.
+- **Fonte:** IBGE, Contas Nacionais Anuais (SIDRA 6784) e Trimestrais (SIDRA 5932, PIB a preços de mercado); Banco Central, série
+  432 do SGS (meta da Selic definida pelo Copom — a taxa efetiva fica um pouco abaixo); Tesouro Nacional, RTN tabela 2.1
+  (resultado primário "abaixo da linha" e nominal).
+- **Atenção:** **nada aqui é previsão** — o site publica o que já aconteceu. O PIB anual sai com cerca de dois anos de atraso,
+  então o último ano fechado é mais antigo que o último trimestre publicado. O SGS recusa janelas maiores que dez anos em série
+  diária e falha de forma intermitente (502, ou HTML com status 200), então a coleta vai em fatias e com repetição.
+- **Sugestões:** a caixa de sugestões (`/sugestoes/`) grava texto, contato opcional e página de origem; **nunca** IP, cookie ou
+  navegador. O site mostra só a contagem de 24 horas — publicar texto de terceiro exigiria moderação, e isso está dito na página.
+
 ## Imposto de Renda — o que os brasileiros declaram ganhar
 
 - **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem

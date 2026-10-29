@@ -153,6 +153,10 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   investimento: { rotulo: "Investimento (formação bruta de capital)", texto: "A parte do que o país produz que vira máquina, obra, equipamento e construção em vez de consumo. É o que determina quanto se poderá produzir no futuro." },
   produtividade_trabalho: { rotulo: "Produtividade do trabalho", texto: "Quanto cada pessoa ocupada produz por ano, em dólares ajustados pelo poder de compra. Cresce quando há mais máquina, mais escolaridade ou melhor organização — e é o limite de quanto o salário pode subir sem inflação." },
   idh_indice: { rotulo: "IDH", texto: "Índice de Desenvolvimento Humano, do PNUD: junta renda, expectativa de vida e escolaridade num número de 0 a 1. Por juntar três coisas, esconde qual delas mudou." },
+  pib: { rotulo: "PIB", texto: "Produto Interno Bruto: o valor de tudo que o país produz em um ano. Quando se diz que \"o PIB cresceu x%\", fala-se da variação em volume, que desconta a inflação." },
+  selic: { rotulo: "Selic", texto: "A taxa básica de juros da economia, cuja meta é definida pelo Copom, no Banco Central. É o piso a partir do qual se formam os juros de todo o resto — crédito, financiamento e a própria dívida pública." },
+  resultado_primario: { rotulo: "Resultado primário", texto: "O que o governo arrecada menos o que gasta, sem contar os juros da dívida. Mede o esforço do ano, separado do custo do que se deve de antes." },
+  resultado_nominal: { rotulo: "Resultado nominal", texto: "O resultado do governo já com os juros da dívida dentro. A diferença entre ele e o primário é, basicamente, o custo da dívida no ano." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

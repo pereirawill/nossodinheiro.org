@@ -227,6 +227,15 @@ export const DATASETS: Dataset[] = [
              { nome: "Transparência Internacional — Índice de Percepção da Corrupção", url: "https://www.transparency.org/en/cpi" }],
     periodo: "1985/2025", atualizacao: "mensal",
   },
+  {
+    slug: "/economia/", nome: "Economia: PIB, Selic e contas públicas",
+    descricao: "PIB anual e trimestral desde 1996, meta da Selic desde 1999 e resultado primário e nominal do Governo Central desde 1997.",
+    arquivos: ["economia.json"],
+    fontes: [{ nome: "IBGE — Contas Nacionais Anuais (SIDRA 6784) e Trimestrais (SIDRA 5932)", url: "https://sidra.ibge.gov.br/tabela/5932" },
+             { nome: "Banco Central — SGS, série 432 (meta Selic)", url: "https://www3.bcb.gov.br/sgspub/" },
+             { nome: "Tesouro Nacional — Resultado do Tesouro Nacional, série histórica", url: "https://www.tesourotransparente.gov.br/ckan/dataset/resultado-do-tesouro-nacional" }],
+    periodo: "1996/2026", atualizacao: "mensal",
+  },
 ];
 
 export const porSlug = (slug: string) => DATASETS.find((d) => d.slug === slug);
