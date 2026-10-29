@@ -1,0 +1,132 @@
+---
+import Base from "../../layouts/Base.astro";
+import { CHECAGENS, REGRAS, LIMITES, CORRECOES, type Status } from "../../lib/conferencias";
+import saneamento from "../../../public/data/saneamento.json";
+import estatais from "../../../public/data/estatais.json";
+import impostos from "../../../public/data/impostos.json";
+import poderes from "../../../public/data/poderes_2026.json";
+import { DATASETS } from "../../lib/datasets";
+
+const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const tri = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tri`;
+
+// Os números do nosso lado saem dos mesmos arquivos que as páginas leem — não são digitados aqui.
+const san = (saneamento as any).comparacao_2022.esgoto;
+const sest = (estatais as any).sest;
+const mar26 = ((impostos as any).mensal as any[]).find((m) => m.ano === 2026 && m.mes === 3);
+const dotacao26 = (poderes as any[]).reduce((t, l) => t + l.dotacao, 0);
+const pago26 = (poderes as any[]).reduce((t, l) => t + l.pago, 0);
+
+const vivos: Record<string, { nosso: string; outro?: string; diferenca: string }> = {
+  Saneamento: { nosso: `${n1(san.censo)}% pelo Censo`, outro: `${n1(san.pnadc)}% pela PNAD`,
+                diferenca: `${n1(Math.abs(san.diferenca_pp))} ponto${Math.abs(san.diferenca_pp) >= 2 ? "s" : ""}` },
+  Estatais: { nosso: `R$ ${n1(sest.agregado["2025"] / 1e9)} bi`, outro: `R$ ${n1(sest.oficial["2025"] / 1e9)} bi`,
+              diferenca: `${n1(100 * Math.abs(sest.agregado["2025"] / sest.oficial["2025"] - 1))}%` },
+  Impostos: { nosso: mar26 ? `R$ ${n1(mar26.total / 1e9)} bi` : "—", diferenca: "2,0%" },
+  Poderes: { nosso: `${tri(dotacao26 / 1e12)} de orçamento e ${tri(pago26 / 1e12)} pagos`, diferenca: "1,6% e 3,8%" },
+};
+const ROTULO: Record<Status, string> = {
+  bate: "confere", explicada: "diferença explicada", nao_explicada: "diferença sem explicação", em_aberto: "em aberto",
+};
+const linhas = CHECAGENS.map((c) => ({ ...c, vivo: vivos[c.painel] }));
+const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
+---
+<Base title="Como conferir os números deste site — Nosso Dinheiro" accent="var(--s4)"
+  description="O site não pede confiança: mostra a fonte de cada número, cruza fontes independentes quando elas existem, publica o arquivo de dados e registra as correções que já fez.">
+  <h1>E como saber se esse dado não é maquiado?</h1>
+  <p class="lede">
+    É a pergunta certa, e a resposta não pode ser "confie". Este site publica só o que órgão público publica — o que
+    não resolve nada sozinho, porque quem publica pode errar, medir de um jeito conveniente ou declarar sobre si
+    mesmo. O que dá para fazer é <strong>conferir</strong>: usar a fonte primária e não a notícia sobre ela, cruzar com
+    uma segunda fonte sempre que existir, publicar o arquivo inteiro e escrever o que não fecha. Esta página reúne o
+    que já conferimos, as regras que seguimos, o que está fora do nosso alcance e os erros que já corrigimos.
+  </p>
+  <p class="meta">atualizado quando um painel muda · <a href="/metodologia/">metodologia por painel</a> · <a href="/dados/">todos os arquivos</a></p>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Cruzar fontes não prova que o dado de origem é verdadeiro.</b> Prova que duas medições independentes
+    chegam perto — ou mostra onde elas se afastam, que é informação igualmente útil. Onde só existe uma fonte, a
+    página diz que só existe uma. De {linhas.length} conferências listadas aqui, {semExplicacao} terminaram com uma
+    diferença que <b>não sabemos explicar</b>, e elas continuam publicadas assim.</div>
+  </div>
+
+  <h2>As conferências que já fizemos</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Painel</th><th>O que foi comparado</th><th>Resultado</th><th>Situação</th></tr></thead>
+      <tbody>{linhas.map((l) => (<tr>
+        <td><a href={l.slug}>{l.painel}</a></td>
+        <td class="desc">{l.oQue}</td>
+        <td class="desc">
+          {l.vivo ? <><b>{l.vivo.nosso}</b>{l.vivo.outro ? <> contra <b>{l.vivo.outro}</b></> : null} — diferença de {l.vivo.diferenca}</>
+                  : <><b>{l.nosso}</b>{l.outro ? <> contra <b>{l.outro}</b></> : null}</>}
+        </td>
+        <td><span class={`selo ${l.status}`}>{ROTULO[l.status]}</span></td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Os números do nosso lado são lidos dos mesmos arquivos que as páginas usam — não foram digitados aqui. Os da
+      outra fonte estão em <code>site/src/lib/conferencias.ts</code> com a URL e a data em que foram lidos.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Por que cada diferença, em uma linha</h3>
+    <dl class="expl">{linhas.map((l) => (<>
+      <dt>{l.painel} <span class={`selo ${l.status}`}>{ROTULO[l.status]}</span></dt>
+      <dd>{l.explicacao} <span class="sub">Fonte do outro lado: {l.url ? <a href={l.url}>{l.fonte}</a> : l.fonte}{l.lido ? `, lido em ${l.lido}` : ""}.</span></dd>
+    </>))}</dl>
+  </div>
+
+  <h2>As regras que valem para todas as páginas</h2>
+  <div class="card">
+    <dl class="expl">{REGRAS.map((r) => (<><dt>{r.titulo}</dt><dd>{r.texto}</dd></>))}</dl>
+  </div>
+
+  <h2>Como você confere, sem depender de nós</h2>
+  <div class="card">
+    <ol class="passos">
+      <li><b>Pegue o arquivo.</b> Todo painel publica o JSON que a página lê. A lista está em <a href="/dados/">/dados/</a> — hoje são {DATASETS.length} conjuntos, cada um com as fontes primárias ao lado.</li>
+      <li><b>Vá à fonte citada.</b> Cada número traz a tabela, o endpoint ou o arquivo de origem. No painel de Saneamento, por exemplo, está o código da tabela do SIDRA usada em cada ano, e a categoria exata somada.</li>
+      <li><b>Refaça a conta com outro critério.</b> Em Saneamento, somar a "fossa ligada à rede" eleva o esgoto de {n1(san.censo)}% para 64,7% em 2022. Nenhum dos dois é errado — o que seria errado é não dizer qual foi usado.</li>
+      <li><b>Compare com a fonte que nós não usamos.</b> É assim que a diferença aparece: foi o que fizemos com o número do Ministério da Gestão, com o painel do Portal da Transparência e com o relatório da Receita.</li>
+      <li><b>Avise quando algo não fechar.</b> A caixa de <a href="/sugestoes/">sugestões</a> existe para isso, e correção entra na lista abaixo, com data.</li>
+    </ol>
+  </div>
+
+  <h2>O que nenhuma conferência nossa alcança</h2>
+  <div class="card">
+    <ul class="limites">{LIMITES.map((l) => <li>{l}</li>)}</ul>
+    <p class="src">Dizer isso é parte do método: um site que afirmasse conferir tudo estaria fazendo exatamente o que esta página desaconselha.</p>
+  </div>
+
+  <h2>Correções que já fizemos</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Quando</th><th>Painel</th><th>O que mudou</th><th>Como apareceu</th></tr></thead>
+      <tbody>{CORRECOES.map((c) => (<tr>
+        <td class="num">{c.data}</td><td>{c.painel}</td><td class="desc">{c.oQue}</td><td class="desc">{c.como}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Três destas correções vieram de alguém perguntando se o número fazia sentido, e não de uma conferência
+      automática. É o argumento mais honesto a favor de publicar o arquivo inteiro.
+    </p>
+  </div>
+</Base>
+<style>
+  td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 360px; }
+  td.num { white-space: nowrap; font-family: var(--mono); }
+  .selo { font-size: 11.5px; font-family: var(--mono); padding: 2px 7px; border-radius: 10px; white-space: nowrap;
+    border: 1px solid var(--line); color: var(--ink-2); }
+  .selo.bate { border-color: color-mix(in srgb, var(--s2) 55%, var(--line)); color: var(--s2); }
+  .selo.explicada { border-color: color-mix(in srgb, var(--s5) 55%, var(--line)); color: var(--s5); }
+  .selo.nao_explicada { border-color: #a3302a; color: #a3302a; }
+  .expl dt { font-weight: 700; margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .expl dt:first-child { margin-top: 0; }
+  .expl dd { margin: 4px 0 0; color: var(--ink-2); font-size: 14px; }
+  .expl .sub { display: block; font-size: 12.5px; margin-top: 2px; }
+  .passos { margin: 0; padding-left: 20px; } .passos li { margin: 8px 0; }
+  .limites { margin: 0; padding-left: 20px; } .limites li { margin: 6px 0; color: var(--ink-2); }
+  code { font-family: var(--mono); font-size: 12.5px; }
+</style>

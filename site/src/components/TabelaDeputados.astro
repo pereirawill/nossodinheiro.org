@@ -5,14 +5,22 @@
  * Props: rows (já filtradas), todos (todas as linhas, p/ montar os links), proj (sufixo " (projeção)"),
  *        ufAtiva?, partidoAtivo?, base? ("/deputados" | "/senadores"), raiz? ("/" | "/senadores/"),
  *        rotuloNome? ("Deputado(a)" | "Senador(a)"), cotaKey? ("ceap" | "ceaps"), rotuloCota?.
- * A foto aparece quando a linha traz `url_foto` — é a URL que a própria Câmara e o próprio Senado publicam na API,
- * carregada do site deles (lazy), não copiada para cá.
+ * A foto aparece quando o id está no manifesto `fotos.json` — os arquivos ficam em site/public/fotos, baixados por
+ * `python -m etl.fotos.baixar` (reduzidas a 96 px) das fotos oficiais da Câmara e do Senado.
  */
 import { slug } from "../lib/slug";
+import fotos from "../../public/data/fotos.json";
 const { rows, todos, proj = "", ufAtiva, partidoAtivo, base = "/deputados", raiz = "/deputados/",
         rotuloNome = "Deputado(a)", cotaKey = "ceap", rotuloCota = "Cota parlamentar" } = Astro.props;
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-const temFoto = rows.some((r: any) => r.url_foto);
+// As fotos são servidas por este site (site/public/fotos), e não pelo servidor da Câmara ou do Senado: a Câmara
+// devolve 503 quando o navegador pede as 513 de uma vez, e a URL do Senado é http, bloqueada dentro de página https.
+// O manifesto diz quais ids já foram baixados — sem ele, sairia uma imagem quebrada para quem faltasse.
+const casa = base.includes("senador") ? "senado" : "camara";
+const comFoto = new Set<number>(((fotos as any)[casa] ?? []) as number[]);
+const idDe = (r: any) => r.id_deputado ?? r.id_senador;
+const fotoDe = (r: any) => (comFoto.has(idDe(r)) ? `/fotos/${casa}/${idDe(r)}.jpg` : null);
+const temFoto = rows.some((r: any) => fotoDe(r));
 const ufs = [...new Set<string>(todos.map((r: any) => r.uf))].sort();
 const partidos = [...new Set<string>(todos.map((r: any) => r.partido))].sort();
 ---
@@ -30,7 +38,7 @@ const partidos = [...new Set<string>(todos.map((r: any) => r.partido))].sort();
   <tbody>
     {rows.map((r: any, i: number) => (
       <tr><td class="rank">{i + 1}</td>
-          {temFoto ? <td class="cel-foto">{r.url_foto ? <img src={r.url_foto} alt="" width="36" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer" /> : null}</td> : null}
+          {temFoto ? <td class="cel-foto">{fotoDe(r) ? <img src={fotoDe(r)} alt="" width="36" height="48" loading="lazy" decoding="async" /> : null}</td> : null}
           <td>{r.nome}</td>
           <td><a href={`${base}/partido/${slug(r.partido)}/`}>{r.partido}</a> · <a href={`${base}/uf/${slug(r.uf)}/`}>{r.uf}</a></td>
           <td class="num">{brl0(r[cotaKey])}</td><td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>

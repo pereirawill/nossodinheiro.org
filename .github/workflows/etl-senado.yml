@@ -41,10 +41,14 @@ jobs:
           python -m etl.senado.transform --ano "$ANO"
           mkdir -p site/public/data && cp data/public/custo_senador_*.json data/public/meta_senado_*.json site/public/data/
 
+      - name: "Fotos oficiais que faltam (servidas pelo próprio site)"
+        run: python -m etl.fotos.baixar
+        continue-on-error: true
+
       - name: Commitar dados agregados
         run: |
           git config user.name "etl-bot"; git config user.email "etl-bot@users.noreply.github.com"
-          git add data/public site/public/data
+          git add data/public site/public/data site/public/fotos
           git diff --cached --quiet && echo "sem mudanças" && exit 0
           git commit -m "data: senado custo-senador $ANO ($(date -u +%F))"
           git pull --rebase origin main && git push

@@ -135,6 +135,14 @@ const maxParl = Math.max(...parlamentos.map((p2) => p2.reais ?? 0));
 
   <h2>Brasil e a média dos países de referência</h2>
   <div class="card">
+    <p style="margin:0 0 10px">
+      <b>Quais são os países de referência.</b> A lista é nossa, e está aqui inteira:
+      {" "}{linhasRef.filter((l) => l.iso !== "BRA").map((l) => l.pais).join(", ")}.
+      São os <b>vizinhos</b> ({["ARG", "CHL", "COL", "MEX", "URY"].map((i) => linhasRef.find((l) => l.iso === i)?.pais).filter(Boolean).join(", ")}),
+      as <b>maiores economias</b> e os países com que o Brasil costuma ser comparado. A tabela do Banco Mundial tem
+      quase 200 países: escolher 20 é uma decisão editorial, não um dado — por isso ela está declarada, e a tabela
+      "país por país", mais abaixo, mostra o número de cada um para quem quiser refazer a média com outra lista.
+    </p>
     <div class="legend"><span><i style="background:var(--s4)"></i>Brasil</span><span><i style="background:var(--neutro)"></i>média dos outros 20 países</span></div>
     <svg viewBox={`0 0 ${W} ${comparacao.length * 46 + 12}`} width="100%" role="img" aria-label="Gasto por área no Brasil e a média dos países de referência">
       {comparacao.map((c, i) => (<g transform={`translate(0 ${i * 46 + 8})`}>
@@ -149,7 +157,9 @@ const maxParl = Math.max(...parlamentos.map((p2) => p2.reais ?? 0));
       </g>))}
     </svg>
     <p class="src">
-      Cada par de barras é uma área: em cima o Brasil, embaixo a média dos outros 20 países da tabela abaixo. O Brasil
+      Cada par de barras é uma área: em cima o Brasil, embaixo a média dos outros países listados acima — o número
+      deles muda de área para área ({comparacao.map((c) => `${c.rotulo.toLowerCase()}: ${c.n}`).join(", ")}), porque o
+      Banco Mundial não publica todos os indicadores para todos os países no mesmo ano. O Brasil
       aparece em {comparacao.filter((c) => (c.br?.valor ?? 0) > c.media).length} das {comparacao.length} áreas acima da
       média. Conferimos também pela <b>mediana</b>, o país do meio, que não se deixa puxar por um valor extremo: ela dá
       {" "}{comparacao.map((c) => `${c.rotulo.toLowerCase()} ${n1(c.mediana)}`).join(", ")} — a menos de um ponto da média

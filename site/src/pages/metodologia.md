@@ -11,6 +11,11 @@ lugar do gasto real, o rótulo diz isso. Abaixo, o essencial de cada painel. A v
 fórmulas, limitações e pendências, está no repositório do projeto (código MIT, dados e textos CC BY 4.0):
 `github.com/pereirawill/nossodinheiro.org`, pasta `docs/metodologia/`.
 
+
+> **"E como saber se esse dado não é maquiado?"** Essa pergunta tem página própria: **[Como conferir estes números](/conferir/)** —
+> as conferências que já fizemos contra outras fontes (inclusive as diferenças que não sabemos explicar), as regras que valem para
+> todos os painéis, o que está fora do nosso alcance e as correções que já fizemos, com data.
+
 ## Geral — para onde vai o nosso dinheiro
 
 - **O que é:** a primeira aba junta os totais pagos por União (SIOP), estados e municípios (SICONFI) no último ano fechado,

@@ -1,0 +1,220 @@
+/**
+ * O que já conferimos, e contra o quê. Cada linha é uma comparação entre um número que esta página calcula e um
+ * número publicado por outra fonte (ou pela mesma fonte, medido de outro jeito). Quando o valor existe no JSON do
+ * painel, a página de /conferir/ o lê dali; os que estão escritos aqui vêm com a fonte, a URL e a data em que foram
+ * lidos, como em `beneficios.ts` e `comparacao.ts`.
+ *
+ * Regra da casa: diferença conferida e explicada fica escrita; diferença que não sabemos explicar fica escrita
+ * também, com as duas pontas, em vez de escolhermos a que nos agrada.
+ */
+export type Status = "bate" | "explicada" | "nao_explicada" | "em_aberto";
+
+export type Checagem = {
+  painel: string;
+  slug: string;
+  oQue: string;                 // o que foi comparado
+  nosso?: string;               // preenchido pela página quando vem do JSON
+  outro?: string;
+  diferenca?: string;
+  status: Status;
+  explicacao: string;
+  fonte: string;
+  url?: string;
+  lido?: string;                // data em que a outra ponta foi lida
+};
+
+export const CHECAGENS: Checagem[] = [
+  {
+    painel: "Saneamento", slug: "/saneamento/",
+    oQue: "Domicílios com esgoto ligado à rede em 2022, medidos pelo Censo (recenseia todos) e pela PNAD Contínua (amostra)",
+    status: "explicada",
+    explicacao: "A diferença (2,3 pontos) é maior que a margem de erro da amostra, que o próprio IBGE publica (0,2%). " +
+      "Ou seja: não é acaso de sorteio, é definição e método — e o total de domicílios das duas pesquisas bate em 0,3%.",
+    fonte: "IBGE — Censo Demográfico 2022 e PNAD Contínua 2022 (SIDRA)",
+    url: "https://sidra.ibge.gov.br/",
+  },
+  {
+    painel: "Estatais", slug: "/estatais/",
+    oQue: "Lucro somado das estatais federais de controle direto em 2025, pela nossa soma do microdado e pelo número que o Ministério da Gestão divulgou",
+    status: "nao_explicada",
+    explicacao: "Parte da diferença são duas empresas sem demonstração de 2025 no arquivo (CDRJ e Ceasaminas). O resto " +
+      "não está explicado: em 2024 as 44 empresas estão no arquivo e ainda sobram R$ 2,0 bi. Publicamos os dois números.",
+    fonte: "Ministério da Gestão — nota de 02/07/2026",
+    url: "https://www.gov.br/gestao/pt-br/assuntos/noticias/2026/julho/estatais-federais-lucram-r-169-4-bilhoes-em-2025-aumento-de-45-sobre-2024",
+    lido: "28/10/2026",
+  },
+  {
+    painel: "Poderes", slug: "/poderes/",
+    oQue: "Orçamento e pagamento da União em 2026, pelo SIOP (que usamos) e pelo painel do Portal da Transparência",
+    outro: "R$ 6,43 tri de orçamento atualizado e R$ 4,76 tri pagos",
+    status: "nao_explicada",
+    explicacao: "Diferença de 1,6% no orçamento e 3,8% no pago. São sistemas diferentes (SIOP e Siafi) e não achamos a " +
+      "conciliação: não é a reserva de contingência, que são R$ 13,1 bi. Fica declarado aqui e na metodologia.",
+    fonte: "Portal da Transparência — Despesas Públicas do Governo Federal",
+    url: "https://portaldatransparencia.gov.br/despesas",
+    lido: "27/10/2026",
+  },
+  {
+    painel: "Impostos", slug: "/impostos/",
+    oQue: "Arrecadação federal de março de 2026, somada por nós a partir do CSV por estado e tributo, contra o total que a Receita divulga no relatório do mês",
+    outro: "R$ 229,25 bi",
+    status: "explicada",
+    explicacao: "Diferença de 2,0%: o CSV por estado não inclui algumas receitas que o relatório traz no consolidado. " +
+      "Usamos o CSV porque é o único que abre por estado e por tributo, e dizemos qual é o total oficial.",
+    fonte: "Receita Federal — Análise da Arrecadação, março de 2026",
+    url: "https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/relatorios/arrecadacao",
+    lido: "26/10/2026",
+  },
+  {
+    painel: "Deputados", slug: "/deputados/",
+    oQue: "Cota parlamentar (CEAP) gasta em 2026, somada do CSV anual da Câmara, contra o total que a própria Câmara mostra na página de transparência",
+    nosso: "R$ 141,3 mi (todas as linhas com identificação de deputado)",
+    outro: "R$ 179,09 mi",
+    status: "explicada",
+    explicacao: "Os R$ 37,8 mi de diferença (−21%) são gastos de lideranças partidárias, que não têm deputado " +
+      "identificado na linha, e de ex-deputados. Como o painel é 'custo por deputado em exercício', essas linhas ficam fora.",
+    fonte: "Câmara dos Deputados — Transparência: gastos parlamentares",
+    url: "https://www.camara.leg.br/transparencia/gastos-parlamentares",
+    lido: "26/10/2026",
+  },
+  {
+    painel: "Tribunais superiores", slug: "/judiciario/",
+    oQue: "Remuneração de ministro do STJ pela coluna 'Total de Créditos' da folha e pela coluna comparável ao STF (bruto após o teto, sem indenizações)",
+    nosso: "R$ 909 mil/mês por ministro com o gabinete",
+    outro: "R$ 1,1 mi/mês se usássemos o Total de Créditos",
+    status: "explicada",
+    explicacao: "O 'Total de Créditos' do STJ inclui indenizações (auxílios e ajudas de custo) e a coluna do STF não. " +
+      "Sem essa correção a comparação entre tribunais inflava cerca de 30%. O STM não detalha as verbas, e isso está dito na página.",
+    fonte: "Folhas de pagamento do STJ, TST, STM e do STF",
+    lido: "28/10/2026",
+  },
+  {
+    painel: "Trabalho", slug: "/trabalho/",
+    oQue: "População ocupada pela tabela do trimestre móvel e pela do trimestre fechado da PNAD Contínua",
+    nosso: "103,5 milhões",
+    outro: "103,1 milhões",
+    status: "explicada",
+    explicacao: "0,4% de diferença entre duas tabelas do mesmo IBGE, porque o período de referência não é o mesmo. " +
+      "A página usa uma delas e diz qual, em vez de escolher a maior.",
+    fonte: "IBGE — PNAD Contínua, tabelas 6318 e 4097",
+    url: "https://sidra.ibge.gov.br/",
+  },
+  {
+    painel: "Segurança", slug: "/seguranca/",
+    oQue: "Se feminicídio deve somar ao total de mortes violentas intencionais",
+    nosso: "Não soma",
+    outro: "1.578 feminicídios contra 2.084 vítimas mulheres de homicídio doloso",
+    status: "bate",
+    explicacao: "Feminicídio é qualificadora do homicídio: somar os dois contaria a mesma morte duas vezes. " +
+      "Conferimos pelos próprios números do Sinesp e deixamos o feminicídio fora do total, dizendo por quê.",
+    fonte: "MJSP — Sinesp VDE, 2025",
+  },
+  {
+    painel: "Saúde", slug: "/saude/",
+    oQue: "Pessoas com plano de saúde, pela contagem da ANS",
+    nosso: "53,1 milhões de vínculos — tratado como piso",
+    status: "explicada",
+    explicacao: "A ANS conta vínculos, não pessoas: quem tem dois planos aparece duas vezes. Por isso a página diz " +
+      "'no mínimo' e nunca apresenta o número como quantidade de pessoas.",
+    fonte: "ANS — PDA 047, taxa de cobertura",
+  },
+  {
+    painel: "Educação", slug: "/educacao/",
+    oQue: "Analfabetismo de 1991 a 2025, medido por três pesquisas diferentes",
+    status: "explicada",
+    explicacao: "Censo (1991 e 2000), PNAD antiga (2001–2015) e PNAD Contínua (2016–2025) não são a mesma medida. " +
+      "O gráfico usa uma cor por pesquisa e não emenda as três numa linha só — emendar esconderia a troca de método.",
+    fonte: "IBGE — SIDRA, tabelas 204, 271 e 7113",
+  },
+];
+
+/** As regras que valem para todas as páginas, e que é possível checar olhando o site. */
+export const REGRAS: { titulo: string; texto: string }[] = [
+  {
+    titulo: "Série de pesquisas diferentes nunca vira uma linha só",
+    texto: "Quando a fonte muda de método (Censo e PNAD, plano de contas antigo e novo, IPCA antes e depois de uma " +
+      "troca de moeda), cada pedaço aparece separado, com a sua cor e o seu rótulo. Emendar daria um gráfico mais " +
+      "bonito e esconderia exatamente o que importa.",
+  },
+  {
+    titulo: "Todo número diz até onde a fonte vai",
+    texto: "Cada painel tem a linha 'até onde esta fonte volta no tempo' e o motivo. É por isso que respondemos " +
+      "'não dá' quando pedem uma série desde 1988: nenhuma base aberta chega lá, e inventar o começo seria o pior caminho.",
+  },
+  {
+    titulo: "Declarado é diferente de medido",
+    texto: "Situação de obra, emprego gerado, cota glosada, índice de atendimento de saneamento: há muito dado que o " +
+      "próprio órgão declara sobre si mesmo. Quando é esse o caso, a página escreve quem declarou.",
+  },
+  {
+    titulo: "Teto, projeção e gasto real não se misturam",
+    texto: "Quando um componente não é publicado (o gasto real de gabinete de deputado, por exemplo), entra o teto " +
+      "legal com rótulo de teto — e o total diz que parte dele é projeção.",
+  },
+  {
+    titulo: "O arquivo fica público",
+    texto: "Todo painel publica o JSON que a página lê, com a tabela ou o endpoint de origem de cada número. A lista " +
+      "está em /dados/. Refazer a conta não depende de nós.",
+  },
+  {
+    titulo: "Erro achado é erro escrito",
+    texto: "Quando encontramos um erro nosso, a correção vai para a página e para o registro de mudanças, com a data. " +
+      "A lista está mais abaixo.",
+  },
+];
+
+/** O que nenhuma conferência nossa alcança — dito nas páginas, repetido aqui. */
+export const LIMITES: string[] = [
+  "Se o morador respondeu certo ao recenseador, ou se o prestador declarou certo ao sistema do governo.",
+  "Se a obra registrada como 'em execução' existe no mundo: a situação é declarada pelo próprio órgão.",
+  "Se a nota fiscal de uma cota parlamentar corresponde ao serviço prestado. O link da nota está publicado; a conferência é caso a caso.",
+  "Se o esgoto que entra na rede é tratado antes de voltar ao rio. O IBGE não pergunta isso.",
+  "O que o governo não publica em formato aberto: gasto real de gabinete, salário de vereador, remuneração de governador, custo do TRF1.",
+  "Fraude dentro do dado de origem. O que fazemos é cruzar fontes independentes; onde só existe uma, dizemos que só existe uma.",
+];
+
+/** Correções que já fizemos no próprio site, com a data e como apareceram. */
+export const CORRECOES: { data: string; painel: string; oQue: string; como: string }[] = [
+  {
+    data: "28/10/2026", painel: "Estatais",
+    oQue: "O lucro das estatais federais incluía R$ 30,9 bi de subvenção do Tesouro, que entra como receita na " +
+      "demonstração. A página passou a mostrar o lucro com e sem, e a tabela das dependentes ganhou as duas colunas.",
+    como: "O dono do site perguntou se a página não estava otimista demais. Estava.",
+  },
+  {
+    data: "28/10/2026", painel: "Estatais",
+    oQue: "A lista de empresas tinha 14 e deixava de fora estatais com ações em bolsa (Banco do Nordeste, Banco da " +
+      "Amazônia, Celesc, Casan, Saneago, Cagece, Cedae, Metrô de São Paulo, entre outras). Passou a 33.",
+    como: "Varredura do próprio arquivo da CVM em busca de acionista que é ente público, em vez de lista escolhida a dedo.",
+  },
+  {
+    data: "28/10/2026", painel: "Tribunais superiores",
+    oQue: "A remuneração dos ministros do STJ estava sendo lida pela coluna que inclui indenizações, enquanto a do " +
+      "STF não as inclui. A comparação entre tribunais inflava cerca de 30%.",
+    como: "Conferência linha a linha de um mês de folha, procurando por que um tribunal destoava tanto.",
+  },
+  {
+    data: "28/10/2026", painel: "Estatais e Saneamento",
+    oQue: "Ano recém-aberto, com poucas empresas ou poucos respondentes, podia virar 'o último ano' da página inteira, " +
+      "com tabela quase vazia. Agora só entra o ano com pelo menos metade dos registros do ano mais cheio.",
+    como: "Revisão do que aconteceria na virada do ano, antes de acontecer.",
+  },
+  {
+    data: "27/10/2026", painel: "Inflação",
+    oQue: "A tabela 'quanto os preços subiram desde…' tinha rótulos ambíguos, que davam a entender dinheiro guardado " +
+      "em casa. Os rótulos foram trocados.",
+    como: "O dono do site apontou a ambiguidade.",
+  },
+  {
+    data: "26/10/2026", painel: "Deputados",
+    oQue: "O subsídio estava com a data do reajuste errada (fevereiro de 2026 em vez de fevereiro de 2025), o que " +
+      "mudava o custo calculado de todos os deputados.",
+    como: "Conferência das constantes contra o decreto legislativo que as fixa.",
+  },
+  {
+    data: "26/10/2026", painel: "Poderes",
+    oQue: "A despesa do Legislativo, do Judiciário e do Ministério Público nunca aparecia. A fonte foi trocada do " +
+      "Portal da Transparência para o SIOP, que cobre todos os Poderes.",
+    como: "O número não fechava com o Orçamento, e a documentação do próprio Portal dizia que a API só cobre o Executivo.",
+  },
+];

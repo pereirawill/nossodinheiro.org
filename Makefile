@@ -29,6 +29,10 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+fotos: ## baixa as fotos oficiais que faltam (Câmara e Senado) para site/public/fotos
+	python -m etl.fotos.baixar
+.PHONY: fotos
+
 saneamento: ## saneamento: Censo (1991-2022) e PNAD Contínua, pelo SIDRA
 	python -m etl.saneamento.extract
 	cp data/public/saneamento.json site/public/data/
