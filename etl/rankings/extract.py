@@ -128,6 +128,30 @@ def indicador_wb(c: httpx.Client, codigo: str, paises: dict[str, str]) -> list[d
     return [{"iso3": iso, "valor": v, "ano": ano} for iso, (ano, v) in melhor.items()]
 
 
+# Grupos de países que o Banco Mundial publica como se fossem um país só. Servem para responder "o Brasil melhorou,
+# mas o mundo melhorou quanto?" — sem isso, uma melhora de 40 anos parece conquista quando pode ser a maré geral.
+AGREGADOS = {"WLD": "Mundo", "HIC": "Países de renda alta", "LMY": "Países de renda média e baixa",
+             "LCN": "América Latina e Caribe"}
+
+
+def serie_agregados(c: httpx.Client, codigo: str) -> dict[str, list[dict]]:
+    """Série de cada grupo de países para um indicador: {grupo: [{ano, valor}]}."""
+    alvo = ";".join(AGREGADOS)
+    d = _get(c, f"{WB}/country/{alvo}/indicator/{codigo}",
+             params={"format": "json", "per_page": 20000, "date": f"{ANO_INICIO}:{datetime.now().year}"}).json()
+    # o "renda alta" volta com countryiso3code VAZIO (id interno XD), então o casamento é pelo id de dois caracteres
+    por_id = {"1W": "WLD", "XD": "HIC", "XO": "LMY", "ZJ": "LCN"}
+    saida: dict[str, list[dict]] = {}
+    for x in d[1] or []:
+        iso = x.get("countryiso3code") or por_id.get((x.get("country") or {}).get("id"), "")
+        v = x.get("value")
+        if iso in AGREGADOS and v is not None:
+            saida.setdefault(iso, []).append({"ano": int(x["date"]), "valor": round(float(v), 4)})
+    for iso in saida:
+        saida[iso].sort(key=lambda p: p["ano"])
+    return saida
+
+
 def _serie_por_ano(c: httpx.Client, codigo: str, paises: dict[str, str]) -> dict[int, dict[str, float]]:
     """{ano: {iso3: valor}} de um indicador — usado para casar um dado antigo com o PIB daquele mesmo ano."""
     d = _get(c, f"{WB}/country/all/indicator/{codigo}", params={"format": "json", "per_page": 20000,
@@ -143,6 +167,11 @@ def _serie_por_ano(c: httpx.Client, codigo: str, paises: dict[str, str]) -> dict
 # O Banco Mundial tem série desde 1960 em vários indicadores (PIB, expectativa de vida, mortalidade infantil).
 # Começar em 1960 responde ao "e antes de 1988?" — os anos em que poucos países informaram caem sozinhos pelo
 # MIN_PAISES_SERIE, então nenhuma série passa a existir onde não havia dado. (Pedido do dono em 29/10/2026.)
+# indicadores em que a comparação com o mundo faz sentido (os de gasto do governo não têm agregado confiável)
+COMPARAR_COM_O_MUNDO = ("mortalidade_infantil", "expectativa_vida", "medio_completo_pct", "internet_pct",
+                        "eletricidade_pct", "gini", "pib_per_capita_ppp", "produtividade",
+                        "investimento_pct_pib", "comercio_pct_pib", "homicidios")
+
 ANO_INICIO = 1960
 
 
@@ -302,6 +331,8 @@ def run() -> Path:
     ate = datetime.now().year
     de = ate - JANELA_MEDIA + 1
     medias: dict[str, dict] = {}
+    # séries dos grupos de países, para comparar a melhora do Brasil com a do mundo (pedido do dono em 29/10/2026)
+    agregados: dict[str, dict] = {}
     with httpx.Client(headers=HEADERS, timeout=120, follow_redirects=True) as c:
         nomes = nomes_pt(c); nomes_en = paises_wb(c)
         indices = []
@@ -311,6 +342,8 @@ def run() -> Path:
             indices.append(montar(id_, tit, desc, "Banco Mundial (dados abertos)" + (" / UNODC" if id_ == "homicidios" else ""), "organismo oficial",
                                   f"https://data.worldbank.org/indicator/{cod}", unid, maior, linhas, nomes, nomes_en, serie))
             log.info("%s: %d países; série %d anos", tit, len(linhas), len(serie))
+            if id_ in COMPARAR_COM_O_MUNDO:
+                agregados[id_] = serie_agregados(c, cod)
 
         # Média de longo prazo por país. Um ano é foto: o que forma uma população é o esforço sustentado por
         # décadas. (Pergunta do dono em 29/10/2026: "essa média não deveria ser ao longo de 30 ou 50 anos?".)
@@ -374,7 +407,9 @@ def run() -> Path:
     out.write_text(json.dumps({"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"),
                                "indices": indices,
                                "medias_longas": {"janela_anos": JANELA_MEDIA, "de": de, "ate": ate,
-                                                 "indicadores": medias}}, ensure_ascii=False), encoding="utf-8")
+                                                 "indicadores": medias},
+                               "agregados": {"grupos": AGREGADOS, "indicadores": agregados}},
+                              ensure_ascii=False), encoding="utf-8")
     for i in indices:
         b = i["brasil"]; log.info("%-32s Brasil %3dº de %3d (%s, %s)", i["titulo"], b["posicao"], b["total"], b["valor"], b["ano"])
     return out

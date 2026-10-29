@@ -364,6 +364,16 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   ganharam posição (mortalidade infantil +18 pts, médio completo +16, expectativa +11) e 5 perderam (investimento −26, internet
   −23, CPI −20, produtividade −11, PIB por pessoa −6).
 
+## Comparação com o mundo em Desenvolvimento (29/10/2026)
+- Pedido do dono: "o que melhorou deveria ser comparado com o que melhorou no mundo". `rankings.json` ganhou
+  `agregados` — séries dos grupos que o **próprio Banco Mundial** publica: WLD (Mundo), HIC (renda alta), LMY (renda
+  média e baixa) e LCN (América Latina), para 11 indicadores (`COMPARAR_COM_O_MUNDO`).
+- **Armadilha**: o grupo "renda alta" volta com `countryiso3code` **vazio**; é preciso casar pelo `country.id` (XD).
+  Sem isso o HIC some em silêncio.
+- As tabelas "o que melhorou/piorou" ganharam três colunas com a mesma variação no mesmo período. O que aparece:
+  mortalidade infantil **−90,3% no Brasil × −56,7% no mundo** (remada), mas renda por pessoa **+250% × +358% no
+  mundo** (maré que o Brasil não pegou). Quando o grupo não tem o ano inicial, usa-se o mais próximo e a dica mostra.
+
 ## Eficiência — seção de Desenvolvimento (29/10/2026)
 - O dono perguntou se devia virar aba própria; escolheu **seção em `/desenvolvimento/`** ("Quanto custa e o que entrega").
   Três pares com dado dos dois lados: educação (gasto por aluno × % com médio completo, internacional), saúde (gasto público

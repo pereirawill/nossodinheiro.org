@@ -28,6 +28,21 @@ const ESCOLHIDOS = [
   "mortalidade_infantil", "expectativa_vida", "medio_completo_pct", "internet_pct", "eletricidade_pct",
   "gini", "pib_per_capita_ppp", "produtividade", "investimento_pct_pib", "comercio_pct_pib", "idh", "corrupcao",
 ];
+// Quanto o mundo melhorou no mesmo período: sem isso, uma melhora de 40 anos parece conquista quando pode ser a
+// maré geral. Os grupos são os que o próprio Banco Mundial publica. (Pedido do dono em 29/10/2026.)
+const agr = (rankings as any).agregados ?? { grupos: {}, indicadores: {} };
+const GRUPOS_MOSTRA = ["WLD", "LCN", "HIC"];
+const noAno = (serie: any[], ano: number) => {
+  if (!serie?.length) return null;
+  return serie.reduce((m, p) => (Math.abs(p.ano - ano) < Math.abs(m.ano - ano) ? p : m), serie[0]);
+};
+const variacaoGrupo = (id: string, grupo: string, de: number, ate: number) => {
+  const serie = (agr.indicadores?.[id] ?? {})[grupo];
+  const a = noAno(serie, de), b = noAno(serie, ate);
+  if (!a || !b || !a.valor || a.ano === b.ano) return null;
+  return { pct: ((b.valor - a.valor) / Math.abs(a.valor)) * 100, de: a.ano, ate: b.ano, vDe: a.valor, vAte: b.valor };
+};
+
 const linhas = ESCOLHIDOS.map((id) => {
   const i = idx(id);
   if (!i || !(i.serie || []).length) return null;
@@ -43,8 +58,9 @@ const linhas = ESCOLHIDOS.map((id) => {
   // "melhorou" é o dado que decide, não nós: depende de o indicador ser melhor quando sobe ou quando desce
   const melhorou = i.maior_melhor ? variacao > 0 : variacao < 0;
   const melhorou10 = i.maior_melhor ? var10 > 0 : var10 < 0;
+  const mundo = Object.fromEntries(GRUPOS_MOSTRA.map((g) => [g, variacaoGrupo(id, g, a.ano, b.ano)]));
   return { ...i, a, b, variacao, var10, melhorou, melhorou10, pctlDe: pctl(a), pctlPara: pctl(b),
-           soltoDe: pctlSolto(a), soltoPara: pctlSolto(b), serie: s };
+           soltoDe: pctlSolto(a), soltoPara: pctlSolto(b), serie: s, mundo };
 }).filter(Boolean) as any[];
 
 const melhoraram = linhas.filter((l) => l.melhorou).sort((a, b) => Math.abs(b.variacao) - Math.abs(a.variacao));
@@ -176,19 +192,23 @@ const y = (p: number) => T + (p / 100) * (H - T - B);
   <h2>O que melhorou</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Indicador</th><th class="num">Começo</th><th class="num">Hoje</th><th class="num">Variação</th><th class="num">Últimos 10 anos</th><th>Fonte</th></tr></thead>
+      <thead><tr><th>Indicador</th><th class="num">Começo</th><th class="num">Hoje</th><th class="num">Brasil</th>
+        {GRUPOS_MOSTRA.map((g) => <th class="num">{agr.grupos[g]}</th>)}</tr></thead>
       <tbody>{melhoraram.map((l) => (<tr>
         <td>{l.titulo}<br /><span class="sub">{l.unidade}</span></td>
         <td class="num">{n1(l.a.valor)}<br /><span class="sub">{l.a.ano}</span></td>
         <td class="num">{n1(l.b.valor)}<br /><span class="sub">{l.b.ano}</span></td>
-        <td class="num">{sinal(l.variacao)}%</td>
-        <td class={`num${l.melhorou10 ? "" : " neg"}`}>{sinal(l.var10)}%</td>
-        <td class="desc">{l.fonte}</td></tr>))}
+        <td class="num"><b>{sinal(l.variacao)}%</b><br /><span class="sub" title={`últimos 10 anos: ${sinal(l.var10)}%`}>10 anos: {sinal(l.var10)}%</span></td>
+        {GRUPOS_MOSTRA.map((g) => (<td class="num">{l.mundo[g]
+          ? <span title={`${agr.grupos[g]}: de ${n1(l.mundo[g].vDe)} (${l.mundo[g].de}) para ${n1(l.mundo[g].vAte)} (${l.mundo[g].ate})`}>{sinal(l.mundo[g].pct)}%</span>
+          : "—"}</td>))}</tr>))}
       </tbody>
     </table>
     <p class="src">
-      A coluna "últimos 10 anos" existe porque uma melhora de 40 anos pode esconder uma década parada: quando ela
-      aparece em vermelho, o indicador andou para trás no período recente mesmo tendo melhorado no total.
+      <b>As três últimas colunas são a mesma conta feita para o mundo</b>, no mesmo período de cada linha: se o
+      Brasil melhorou 50% e o mundo melhorou 60%, o avanço era a maré e não a remada. Os grupos são os que o Banco
+      Mundial publica; passe o mouse para ver os valores e os anos de cada um. Abaixo do número do Brasil está a
+      variação dos últimos 10 anos, porque uma melhora de 40 anos pode esconder uma década parada.
       Dois números nossos, que não vêm do Banco Mundial e contam a mesma história: os adultos sem o ensino fundamental
       caíram de {n1(semFund91)}% em 1991 para {n1(semFundHoje)}% hoje (<a href="/educacao/">Educação</a>) e os
       domicílios com esgoto ligado à rede subiram de {n1(esgoto91)}% para {n1(esgoto22)}% (<a href="/saneamento/">Saneamento</a>).
@@ -198,20 +218,23 @@ const y = (p: number) => T + (p / 100) * (H - T - B);
   <h2>O que parou ou piorou</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Indicador</th><th class="num">Começo</th><th class="num">Hoje</th><th class="num">Variação</th><th class="num">Últimos 10 anos</th><th>Fonte</th></tr></thead>
+      <thead><tr><th>Indicador</th><th class="num">Começo</th><th class="num">Hoje</th><th class="num">Brasil</th>
+        {GRUPOS_MOSTRA.map((g) => <th class="num">{agr.grupos[g]}</th>)}</tr></thead>
       <tbody>{pioraram.map((l) => (<tr>
         <td>{l.titulo}<br /><span class="sub">{l.unidade}</span></td>
         <td class="num">{n1(l.a.valor)}<br /><span class="sub">{l.a.ano}</span></td>
         <td class="num">{n1(l.b.valor)}<br /><span class="sub">{l.b.ano}</span></td>
-        <td class="num neg">{sinal(l.variacao)}%</td>
-        <td class={`num${l.melhorou10 ? "" : " neg"}`}>{sinal(l.var10)}%</td>
-        <td class="desc">{l.fonte}</td></tr>))}
+        <td class="num neg"><b>{sinal(l.variacao)}%</b><br /><span class="sub">10 anos: {sinal(l.var10)}%</span></td>
+        {GRUPOS_MOSTRA.map((g) => (<td class="num">{l.mundo[g]
+          ? <span title={`${agr.grupos[g]}: de ${n1(l.mundo[g].vDe)} (${l.mundo[g].de}) para ${n1(l.mundo[g].vAte)} (${l.mundo[g].ate})`}>{sinal(l.mundo[g].pct)}%</span>
+          : "—"}</td>))}</tr>))}
       </tbody>
     </table>
     <p class="src">
       "Piorou" aqui é o próprio dado que decide: cada indicador traz, na fonte, se é melhor quando sobe (investimento,
       abertura) ou quando desce (mortalidade, desigualdade). Nenhuma dessas linhas é opinião nossa sobre o que o país
-      deveria fazer.
+      deveria fazer. As colunas do mundo usam o mesmo período de cada linha; onde o grupo não tem dado no ano inicial,
+      a conta usa o ano mais próximo e o mostra na dica. Fontes de cada indicador na tabela do fim da página.
     </p>
   </div>
 

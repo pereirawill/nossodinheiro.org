@@ -306,6 +306,10 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   e mesmo ele tem limite (no acesso a energia elétrica a lista vai de 98 países em 1990 a 215 em 2024). "Melhorou" e "piorou" são
   decididos pelo próprio indicador, que traz se é melhor quando sobe ou quando desce. O ano de referência muda de indicador para
   indicador e está sempre na tabela.
+- **Comparação com o mundo (29/10/2026):** as tabelas "o que melhorou" e "o que parou" trazem, ao lado da variação do Brasil, a
+  mesma variação no mesmo período para o Mundo, a América Latina e os países de renda alta — grupos publicados pelo próprio
+  Banco Mundial. Serve para separar remada de maré: a mortalidade infantil caiu 90,3% no Brasil contra 56,7% no mundo, enquanto a
+  renda por pessoa subiu 250% aqui contra 358% no mundo.
 - **Eficiência (29/10/2026):** a seção "Quanto custa e o que entrega" põe gasto e resultado lado a lado — gasto por aluno ×
   adultos com médio completo, gasto público em saúde × expectativa de vida e mortalidade infantil, gasto estadual em segurança
   por habitante × homicídios por estado. **Não é nota de eficiência e não há linha de tendência**: o resultado de hoje vem de
