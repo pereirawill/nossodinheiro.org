@@ -102,6 +102,19 @@ const mesesComp = Object.keys(comprometimento).sort();
 const compBase = comprometimento[`${anoBaseRenda}-12`] ?? null, compHoje = comprometimento[mesesComp[mesesComp.length - 1]] ?? null;
 const mesCompHoje = mesesComp[mesesComp.length - 1];
 
+// Salário mínimo real por período: valor de dezembro de cada marco, deflacionado pelo IPCA para o último mês.
+// Os marcos são anos de troca de governo; o dado é o que é, sem atribuir causa.
+const smRealEm = (m: string) => (smLongo[m] && ipcaIdx[m] && ipcaIdx[fimLongo] ? smLongo[m] * ipcaIdx[fimLongo] / ipcaIdx[m] : null);
+const MARCOS_SM = ["1994-12", "1998-12", "2002-12", "2006-12", "2010-12", "2014-12", "2018-12", "2022-12", fimLongo];
+const periodosSM = MARCOS_SM.map((m) => ({ mes: m, real: smRealEm(m), nominal: smLongo[m] })).filter((x) => x.real)
+  .map((x, i, arr) => ({ ...x, var: i ? 100 * ((x.real as number) / (arr[i - 1].real as number) - 1) : null,
+                         de: i ? arr[i - 1].mes.slice(0, 4) : null }));
+const rotuloMarco = (m: string) => (m === fimLongo ? mesPtBr(m) : `dezembro de ${m.slice(0, 4)}`);
+// as contas da casa, isoladas da lista de 20 itens
+const CASA = ["2101001", "2202003", "2"];
+const contasCasa = linhasLongo.filter((l) => CASA.includes(l.codigo)).sort((a, b) => a.mult - b.mult);
+const comida = linhasLongo.find((l) => l.codigo === "1");
+
 // Poder de compra do real: quanto R$ 100 de julho de 1994 (quando a moeda nasceu) compram em cada mês desde então
 const REAL = "199407";
 const mesesReal = Object.keys(indice).filter((m) => m >= REAL).sort();
@@ -228,6 +241,50 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
       mede (série 29034). Ou seja: a renda cresceu pouco, e uma fatia maior dela já sai comprometida antes de chegar ao
       mercado. Esse custo <b>não entra no IPCA</b>, e é parte do que o índice não captura. Detalhe em{" "}
       <a href="/inadimplencia/">Inadimplência</a>.</span>}
+    </p>
+    <h3 style="margin:16px 0 8px">Quando o salário mínimo subiu de verdade</h3>
+    <table>
+      <thead><tr><th>Em</th><th class="num">Valor da época</th><th class="num">A preços de hoje</th><th class="num">Ganho real no período</th></tr></thead>
+      <tbody>{periodosSM.map((x) => (<tr class={x.var != null && x.var === Math.max(...periodosSM.map((y) => y.var ?? -1)) ? "destaque" : ""}>
+        <td>{rotuloMarco(x.mes)}</td>
+        <td class="num">{brl(x.nominal)}</td>
+        <td class="num">{brl(x.real as number)}</td>
+        <td class="num">{x.var == null ? "—" : <b>{x.var >= 0 ? "+" : "−"}{n1l(Math.abs(x.var))}%</b>}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Salário mínimo de dezembro de cada ano (Banco Central, SGS 1619), convertido a preços de {mesPtBr(fimLongo)} pelo
+      IPCA. Os marcos são os anos de troca de governo, para dar a referência que as pessoas usam de memória.
+      <b>Metade do ganho real desde o Plano Real aconteceu entre 2002 e 2010</b>; de 2014 a 2022 o mínimo ficou
+      praticamente parado em termos reais, oito anos. A política de valorização que vincula o reajuste ao PIB é lei
+      desde 2007 e o período coincide com o ciclo de alta das commodities — esta página não separa o peso de cada
+      coisa, porque isso é pesquisa, não dado publicado.
+    </p>
+  </div>
+
+  <h2 id="contas-da-casa">Aluguel e contas da casa</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      A pergunta mais comum é se foi a casa que ficou cara. Desde {mesPtBr(baseLongo)}, uma coisa que custava R$ 1,00
+      custa hoje {brl0(multGeral)} na média de tudo. As contas da casa, isoladas:
+    </p>
+    <table>
+      <thead><tr><th>O que custava R$ 1,00 em {mesPtBr(baseLongo).replace(" de ", "/")}…</th><th class="num">…custa hoje</th><th class="num">Contra a média</th></tr></thead>
+      <tbody>
+        {contasCasa.map((l) => (<tr><td>{l.nome}{l.tipo === "grupo" && <span class="un"> (aluguel, condomínio, água, luz, gás, reparos)</span>}</td>
+          <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(l.mult)}</b></td>
+          <td class="num">{l.vsGeral >= 0 ? "+" : "−"}{n1l(Math.abs(l.vsGeral))}%</td></tr>))}
+        {comida && <tr><td>{comida.nome} <span class="un">(para comparar)</span></td>
+          <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(comida.mult)}</b></td>
+          <td class="num">{comida.vsGeral >= 0 ? "+" : "−"}{n1l(Math.abs(comida.vsGeral))}%</td></tr>}
+        <tr class="destaque"><td><b>A média de tudo</b></td><td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(multGeral)}</b></td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      <b>O aluguel foi um dos itens que menos subiram</b> no índice: {n1l(Math.abs(contasCasa[0]?.vsGeral ?? 0))}% abaixo
+      da média. A conta da casa que correu acima foi a <b>luz</b>. Duas coisas que o número não cobre: o IPCA mede o aluguel
+      médio das 16 áreas pesquisadas, não o de um bairro; e <b>o preço de comprar um imóvel fica fora do índice</b> por
+      desenho — só o aluguel entra. Quem sente a casa pesando mais do que a tabela diz pode estar sentindo justamente o
+      que o índice não mede.
     </p>
   </div>
 
