@@ -380,6 +380,19 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   item, sem mexer em mais nada; o menu foi a 36 itens em 4 linhas). A proposta de consolidação 35 → 29, já enviada
   por imagem, continua esperando o sim dele.
 
+## IVA em /impostos/ e a nota do carro em /inflacao/ (29/10/2026)
+- Pergunta do dono: "o que é IVA e por que o Brasil é o maior do mundo?". Bloco em `/impostos/` (antes do mapa por UF),
+  constantes em `site/src/lib/iva.ts` com fonte, URL e data: alíquota de referência **27,91%** (18,70 IBS + 9,21 CBS,
+  Comitê Gestor do IBS; a Fazenda estimava 26,5% em 2024; trava de 26,5% na LC 214), ranking OCDE (Hungria 27, Finlândia
+  25,5, DK/SE/NO/HR 25…), exceções (zero / −60% / −30% / regimes próprios / Simples e ZFM) e calendário 2026→2033.
+  **A alíquota não existe ainda** — a página diz isso e usa a tabela 07 da Receita (13,0% × 10,5% do PIB) como a razão
+  factual, sem opinião. Atualizar `iva.ts` quando o Senado fixar o número.
+- O dono contestou "Automóvel novo ×2,03" ("carro popular está muito mais caro"). Está certo e o índice também: o IBGE
+  coleta modelos especificados e só compara o mesmo produto consigo mesmo (Métodos de Cálculo, 6ª ed., p. "A
+  especificação"; `data/raw/ibge_metodos_calculo_6ed.pdf`); a troca de modelo não conta como inflação. A linha mede o
+  mesmo carro, não o carro mais barato à venda — que mudou (airbag/ABS obrigatórios em 2014, ESC em 2024). Nota na
+  tabela. **Padrão a lembrar**: quando um item do IPCA contraria a memória, a primeira hipótese é "produto mudou".
+
 ## Revisão da página de Inflação (29/10/2026) — a lição
 - O dono disse quatro vezes, de formas diferentes, que "os números não traduzem a realidade". Os números estavam certos.
   **O erro era editorial**: a cada objeção eu acrescentava um cartão defendendo a mesma tese (salário mínimo × preços),

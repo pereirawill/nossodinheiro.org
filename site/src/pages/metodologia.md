@@ -410,6 +410,19 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **O que não dizemos:** que o imposto explica o preço. A página publica, lado a lado, em que categorias o preço relativo
   brasileiro está fora da linha e quanto da arrecadação incide sobre bens e serviços — e deixa a conclusão para o leitor.
 
+## IVA — bloco em Impostos (29/10/2026)
+
+- **O que é:** a alíquota de referência estimada para o IVA da reforma tributária (CBS + IBS), o ranking das maiores
+  alíquotas-padrão do mundo, as exceções da lei e o calendário de transição até 2033.
+- **Fonte:** constantes declaradas em `site/src/lib/iva.ts`, com URL e data de leitura — não há API. Alíquota: estimativa do
+  Comitê Gestor do IBS (27,91%); trava de 26,5% e exceções: LC 214/2025; ranking: OCDE, Consumption Tax Trends 2024, com as
+  mudanças de 2025. Ao lado, o dado já publicado nesta página (Receita Federal, tabela 07: bens e serviços 13,0% do PIB contra
+  10,5% na OCDE) explica por que a alíquota sai alta sem precisar de opinião.
+- **Atenção:** a alíquota brasileira **não existe ainda** — será fixada por resolução do Senado. A página diz isso e será
+  atualizada quando sair o número. "Maior do mundo" compara alíquotas-padrão; o que cada país tira do consumo em % do PIB é
+  outra medida, e está na tabela da OCDE acima.
+- **O que não dizemos:** se a reforma é boa ou ruim.
+
 ## Imposto de Renda — o que os brasileiros declaram ganhar
 
 - **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem

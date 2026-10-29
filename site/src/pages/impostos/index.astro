@@ -4,6 +4,7 @@ import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
 import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/impostos.json";
+import { ALIQUOTA, MAIORES_IVA, FONTE_OCDE, EXCECOES, CALENDARIO, FONTE_LEI } from "../../lib/iva";
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
@@ -24,6 +25,14 @@ const DICA: Record<string, string> = {
   simples_outros: "Simples Nacional (micro e pequenas empresas), receitas de outros órgãos (royalties etc.), multas e programas de parcelamento.",
   patrimonio: "ITR, o único imposto federal sobre patrimônio (a maior parte dos impostos sobre patrimônio é estadual e municipal).",
 };
+// IVA: ranking das maiores alíquotas-padrão do mundo com a estimativa brasileira no meio
+const ivaLinhas = [...MAIORES_IVA.map((x) => ({ ...x, brasil: false })), { pais: "Brasil (estimativa)", iso3: "BRA", aliquota: ALIQUOTA.referencia, brasil: true }]
+  .sort((a, b) => b.aliquota - a.aliquota);
+const ivaMax = Math.max(...ivaLinhas.map((x) => x.aliquota));
+const ocdeBens = (d as any).carga?.ocde?.bases?.["Bens e Serviços"];
+const ocdeAno = ocdeBens ? Object.keys(ocdeBens).sort().pop() as string : null;
+const n1i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const n2i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const atual = d.anual[d.anual.length - 1];
 const anterior = d.anual[d.anual.length - 2];
 const u = d.ultimo_mes;
@@ -192,6 +201,64 @@ const W = 920;
     </div>
   </>}
 
+
+  <h2 id="iva">O IVA que vem aí — e por que a alíquota seria a maior do mundo</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      A reforma tributária troca cinco impostos sobre consumo (PIS, Cofins, IPI, ICMS e ISS) por um <Termo t="iva">IVA</Termo>
+      em duas partes: a <b>CBS</b>, federal, e o <b>IBS</b>, de estados e municípios. A alíquota ainda <b>não existe</b> —
+      será fixada pelo Senado —, mas o Comitê Gestor do IBS estimou a alíquota de referência em
+      <b> {n2i(ALIQUOTA.referencia)}%</b> ({n2i(ALIQUOTA.ibs)} de IBS + {n2i(ALIQUOTA.cbs)} de CBS). Se confirmada, passa a
+      Hungria e vira a maior alíquota-padrão de IVA do mundo.
+    </p>
+    <svg viewBox={`0 0 920 ${ivaLinhas.length * 24 + 8}`} width="100%" role="img" aria-label="Maiores alíquotas-padrão de IVA do mundo e a estimativa brasileira">
+      {ivaLinhas.map((x, i) => (<g transform={`translate(0 ${i * 24 + 4})`}>
+        <text x="190" y="15" text-anchor="end" font-size="12.5" font-weight={x.brasil ? 700 : 400} fill="var(--ink)">{x.pais}</text>
+        <rect x="200" y="3" width={(x.aliquota / ivaMax) * 620} height="16" fill={x.brasil ? "#a3302a" : "var(--s4)"} opacity={x.brasil ? 1 : 0.7} rx="2" />
+        <text x={206 + (x.aliquota / ivaMax) * 620} y="15" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1i(x.aliquota)}%</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      Alíquota-padrão: a que vale para o que não tem exceção. Fonte: {FONTE_OCDE.nome} (lido em {FONTE_OCDE.lido});
+      Brasil: {ALIQUOTA.fonte} (lido em {ALIQUOTA.lido}). {ALIQUOTA.nota}
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Por que tão alta: três razões que estão nos dados desta página</h3>
+    <ul class="iva-lista">
+      <li><b>O Brasil já cobra muito sobre consumo.</b> {ocdeBens && ocdeAno && <span>Em {ocdeAno}, {n1i(ocdeBens[ocdeAno].brasil)}% do PIB
+        em tributos sobre bens e serviços, contra {n1i(ocdeBens[ocdeAno].ocde)}% na média da OCDE (tabela acima).</span>} A reforma
+        foi desenhada para <b>não mudar a arrecadação</b>: dois impostos no lugar de cinco, cobrando o mesmo. A alíquota nova tem
+        de reproduzir o que os cinco já tiram.</li>
+      <li><b>Cada exceção empurra a alíquota de quem não tem exceção.</b> Cesta básica a zero, saúde e educação com 60% de desconto,
+        profissionais liberais com 30%, Simples e Zona Franca fora — tudo isso sai da base, e a conta fecha subindo a alíquota
+        padrão. Foi assim que a estimativa foi de {n1i(ALIQUOTA.trava)}% para {n2i(ALIQUOTA.referencia)}%.</li>
+      <li><b>A alíquota de hoje já é alta, só que fatiada e escondida.</b> O ICMS "de 18%" é cobrado por dentro (18% sobre o preço
+        com o imposto, cerca de 22% sobre o preço sem ele); PIS e Cofins vêm embutidos; o IPI vai por cima. Ninguém vê 28% numa nota
+        hoje porque o número está dividido em cinco. O IVA junta e mostra.</li>
+    </ul>
+    <table style="margin-top:10px">
+      <thead><tr><th>Regime</th><th>Quem fica nele</th></tr></thead>
+      <tbody>{EXCECOES.map((e) => (<tr><td><b>{e.regime}</b></td><td>{e.quem}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Exceções conforme a {FONTE_LEI.nome} (lido em {FONTE_LEI.lido}). A lei tem uma trava: se em 2031 a soma das
+      alíquotas de referência passar de {n1i(ALIQUOTA.trava)}%, o Executivo deve propor corte de benefícios para trazê-la de volta.</p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Quando passa a valer</h3>
+    <table>
+      <thead><tr><th>Ano</th><th>O que acontece</th></tr></thead>
+      <tbody>{CALENDARIO.map((c) => (<tr><td><b>{c.ano}</b></td><td>{c.oQue}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      <b>Em 2026 nada muda no preço</b>: só roda a alíquota-teste, que é compensada. O sistema completo vale a partir de 2033.
+      Este site não diz se a reforma é boa ou ruim; publica a alíquota estimada, o ranking e o calendário, e atualiza quando o
+      Senado fixar o número definitivo.
+    </p>
+  </div>
+
   <h2>Por estado onde o tributo foi recolhido ({u.ano})</h2>
   <div class="card">
     <MapaBrasil valores={Object.fromEntries(ufs.map((x) => [x.uf, x.total]))} formato={(v) => compact(v)}
@@ -210,9 +277,10 @@ const W = 920;
     <p class="src">É onde a empresa ou pessoa recolheu, não onde o imposto "nasceu": sedes de empresas e o DF (órgãos federais, royalties) concentram.</p>
   </div>
 
-  <Glossario termos={["arrecadacao", "base_incidencia", "quem_paga", "per_capita"]} />
+  <Glossario termos={["arrecadacao", "base_incidencia", "quem_paga", "iva", "per_capita"]} />
 </Base>
 <style>
+  .iva-lista { margin: 0; padding-left: 18px; } .iva-lista li { margin: 6px 0; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
   td.desc { color: var(--ink-2); font-size: 12.5px; max-width: 34ch; white-space: normal; }
 </style>

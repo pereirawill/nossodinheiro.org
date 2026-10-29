@@ -306,7 +306,7 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
         <th class="num">Subiu quanto a mais (ou a menos) que a média</th>
       </tr></thead>
       <tbody>{linhasLongo.map((l) => (<tr>
-        <td>{l.nome} {l.tipo === "grupo" && <span class="un">(o grupo inteiro)</span>}</td>
+        <td>{l.nome} {l.tipo === "grupo" && <span class="un">(o grupo inteiro)</span>}{/Automóvel/.test(l.nome) && <span class="un"> — o mesmo modelo, não o carro mais barato à venda*</span>}</td>
         <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(l.mult)}</b></td>
         <td class="num">{l.vsGeral >= 0 ? "+" : "−"}{n1l(Math.abs(l.vsGeral))}%</td></tr>))}
         <tr class="destaque">
@@ -320,6 +320,13 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
       média; aluguel, roupa, eletrodoméstico, telefone e carro subiram bem abaixo. Quem gasta a maior parte da renda
       nos itens do topo viveu uma inflação maior que a oficial — e isso não é erro do índice, é a média fazendo o que
       médias fazem.
+      <b>* Automóvel novo, o número que mais contraria a memória.</b> O IBGE coleta o preço de modelos especificados,
+      na concessionária, e só compara "o mesmo produto" consigo mesmo — é a regra de todo o índice. Quando um modelo sai
+      de linha e entra outro melhor, a troca não conta como inflação. Por isso a linha mede o quanto <b>o mesmo carro</b>
+      encareceu, e não o quanto custa hoje <b>o carro mais barato que existe</b>: o "popular" 1.0 sem ar, sem airbag e
+      sem ABS de 1999 não é mais vendido (airbag e ABS são obrigatórios desde 2014, controle de estabilidade desde 2024).
+      A sensação de que o carro de entrada ficou fora de alcance é sobre um produto que mudou; o índice é sobre um que
+      não mudou. Os dois estão certos e medem coisas diferentes.
       <b>Por que parte de R$ 1,00 e não do preço real:</b> o IBGE publica a <b>variação</b> do preço de cada item,
       nunca o preço em reais. Sabemos quanto o pão subiu; não sabemos quanto custava. Partir de R$ 1,00 usa só o que
       é medido. Variação mensal do IPCA por item, encadeada das tabelas 655, 2938, 1419 e 7060 do SIDRA.
