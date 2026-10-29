@@ -103,8 +103,12 @@ cooperativas; N1 a N4 são não bancárias. A classificação do grupo é a do s
 - **Invariante da soma.** Os quatro segmentos (bancos, cooperativas, não bancárias e sem classificação) têm de
   somar o total em reais e em número de grupos, e o que ficou sem classificação não pode passar de 1% do total —
   se passar, é tipo novo no cadastro do BC e o ETL falha em vez de publicar uma soma que não fecha.
-- **Olinda instável.** Como o SGS, devolve 502/504 e HTML com status 200; há quatro tentativas e checagem de
-  content-type. O retorno bruto é guardado em `data/raw/ifdata/` (não versionado) para que uma reexecução não repita
+- **Olinda instável, e mais do que parecia.** Medido em 29/10/2026: devolve **500 para a mesma URL em cerca de
+  uma tentativa a cada três**, e já devolveu 500 para *todos* os cadastros por vários minutos seguidos. A primeira
+  execução no GitHub falhou por isso, com quatro tentativas em 50 segundos. Hoje são seis tentativas com espera
+  crescente até 60 s; quando a rede falha e existe cópia em disco, vale a cópia com aviso; e três endereços
+  seguidos sem resposta encerram a execução na hora, porque insistir nos outros 130 levaria uma hora para falhar
+  do mesmo jeito. O 1º e o 3º trimestres, que só alimentam o invariante, não derrubam o ETL se faltarem. O retorno bruto é guardado em `data/raw/ifdata/` (não versionado) para que uma reexecução não repita
   as ~140 requisições — mas resposta **vazia** não vira arquivo (senão o período nunca mais seria buscado) e o **ano
   em curso** não é cacheado, porque o IF.data reapresenta os trimestres recentes.
 

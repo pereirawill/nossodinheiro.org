@@ -81,33 +81,60 @@ COLUNAS = {"Lucro Líquido": "lucro", "Patrimônio Líquido": "pl", "Ativo Total
 TOP = 15
 
 
-def _get(c: httpx.Client, url: str, tentativas: int = 4) -> list[dict]:
-    """O Olinda devolve 502/504 e HTML com status 200 de vez em quando — mesma armadilha do SGS."""
-    for i in range(tentativas):
+# Espera entre tentativas. Medido em 29/10/2026: o Olinda devolve 500 para a MESMA url em cerca de uma
+# tentativa a cada três, e responde 200 na seguinte — é instabilidade do servidor, não período inexistente.
+# Com ~140 requisições por execução, desistir em 50 segundos derruba o ETL inteiro (foi o que aconteceu).
+ESPERA = (5, 10, 20, 40, 60, 60)
+_seguidas = 0        # endereços seguidos que esgotaram as tentativas
+
+
+def _get(c: httpx.Client, url: str) -> list[dict]:
+    """O Olinda devolve 500/502/504 e HTML com status 200 de vez em quando — mesma armadilha do SGS."""
+    global _seguidas
+    for espera in ESPERA:
         try:
             r = c.get(url, timeout=300.0)
             if r.status_code == 200 and "json" in r.headers.get("content-type", ""):
+                _seguidas = 0
                 return r.json()["value"]
             log.warning("IF.data devolveu %s (%s)", r.status_code, r.headers.get("content-type"))
         except httpx.HTTPError as e:
             log.warning("IF.data falhou: %s", e)
-        time.sleep(5 * (i + 1))
+        time.sleep(espera)
+    _seguidas += 1
+    if _seguidas >= 3:
+        # Serviço fora do ar, não url ruim: insistir em mais 130 endereços levaria uma hora para falhar igual.
+        raise SystemExit("IF.data fora do ar: três endereços seguidos sem resposta. Rodar de novo mais tarde.")
     raise RuntimeError(f"IF.data não respondeu: {url}")
+
+
+def _ler(arq: Path) -> list[dict]:
+    with gzip.open(arq, "rt", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def _cache(c: httpx.Client, nome: str, url: str, ano: int | None = None) -> list[dict]:
     """
-    Guarda o retorno bruto para que reexecutar não repita ~110 requisições. Dois cuidados: resposta **vazia**
-    (período ainda não publicado) não vira arquivo, senão o período nunca mais seria buscado; e o **ano em
-    curso** não é cacheado, porque o IF.data reapresenta os trimestres recentes.
+    Guarda o retorno bruto para que reexecutar não repita ~140 requisições. Três cuidados:
+
+    - resposta **vazia** (período ainda não publicado) não vira arquivo, senão o período nunca mais seria buscado;
+    - o **ano em curso** é sempre buscado na rede, porque o IF.data reapresenta os trimestres recentes;
+    - se a rede falhar e houver cópia em disco, vale a cópia com aviso. O serviço do BC fica fora do ar por
+      períodos longos (em 29/10/2026 devolveu 500 para todos os cadastros durante minutos) e uma execução local
+      não pode morrer por causa disso.
     """
     arq = RAW / "ifdata" / f"{nome}.json.gz"
-    cachear = ano is None or ano < datetime.now(timezone.utc).year
-    if cachear and arq.exists():
-        with gzip.open(arq, "rt", encoding="utf-8") as f:
-            return json.load(f)
-    v = _get(c, url)
-    if v and cachear:
+    atual = ano is not None and ano >= datetime.now(timezone.utc).year
+    if arq.exists() and not atual:
+        return _ler(arq)
+    try:
+        v = _get(c, url)
+    except RuntimeError:
+        if arq.exists():
+            log.warning("IF.data fora do ar; usando a cópia em disco de %s", nome)
+            return _ler(arq)
+        raise
+    if v:
         arq.parent.mkdir(parents=True, exist_ok=True)
         with gzip.open(arq, "wt", encoding="utf-8") as f:
             json.dump(v, f)
@@ -199,7 +226,12 @@ def ler_anos(c: httpx.Client) -> list[dict]:
             periodos = [ano * 100 + 3]
         else:
             periodos = [ano * 100 + 6] + ([ano * 100 + 12] if s2 else [])
-        _conferir_semestre(resumo(c, ano * 100 + 3), s1, resumo(c, ano * 100 + 9), s2, ano)
+        try:
+            t1, t3 = resumo(c, ano * 100 + 3), resumo(c, ano * 100 + 9)
+        except RuntimeError:                       # o 1º e o 3º trimestre só servem ao invariante
+            log.warning("%d: sem o 1º/3º trimestre, invariante da acumulação não conferido neste ano", ano)
+        else:
+            _conferir_semestre(t1, s1, t3, s2, ano)
         inst = {}
         for cod in set(s1) | set(s2):
             fim = s2.get(cod) or s1.get(cod) or {}
