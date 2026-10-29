@@ -200,12 +200,14 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
     <h3 style="margin:0 0 8px">“Mas com R$ 100 hoje eu não compro quase nada, e antes comprava muito mais”</h3>
     <p style="margin:0 0 10px">
       Verdade — e a razão não é só que os preços subiram. É que <b>R$ 100 deixou de ser muito dinheiro</b>.
-      Compare com o salário mínimo, que é a régua mais concreta que existe:
+      "R$ 100" não quer dizer a mesma coisa em 1994 e hoje, mas "um mês de trabalho" quer. Então a conta abaixo
+      troca de unidade antes de comparar: divide os cem reais pelo <b>salário mínimo mensal</b> de cada época, para
+      saber quantos meses de trabalho eles valiam.
     </p>
     {smBaseQtd && smHojeQtd && <div class="conta">
-      <div><span>Julho de 1994</span><b>R$ 100 ÷ {brl(smBase ?? 0)}</b><i>= {n2l(smBaseQtd)} salários mínimos, ou {Math.round(diasDe(smBaseQtd) ?? 0)} dias de trabalho</i></div>
+      <div><span>Julho de 1994</span><b>R$ 100 ÷ {brl(smBase ?? 0)}</b><i>o salário mínimo da época era de {brl(smBase ?? 0)} por mês<br/><b class="dentro">= {n2l(smBaseQtd)} salários mínimos</b>, ou {Math.round(diasDe(smBaseQtd) ?? 0)} dias de trabalho</i></div>
       <div class="seta" aria-hidden="true">→</div>
-      <div><span>Hoje</span><b>R$ 100 ÷ {brl(smHoje ?? 0)}</b><i>= {n2l(smHojeQtd)} do salário mínimo, ou {n1l(diasDe(smHojeQtd) ?? 0)} dias de trabalho</i></div>
+      <div><span>Hoje</span><b>R$ 100 ÷ {brl(smHoje ?? 0)}</b><i>o salário mínimo hoje é de {brl(smHoje ?? 0)} por mês<br/><b class="dentro">= {n2l(smHojeQtd)} do salário mínimo</b>, ou {n1l(diasDe(smHojeQtd) ?? 0)} dias de trabalho</i></div>
     </div>}
     <p class="src">
       Em 1994, R$ 100 eram <b>mais de um mês e meio de trabalho</b> de quem ganhava o mínimo. Hoje são
@@ -458,6 +460,7 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
   <Glossario termos={["ipca", "inpc", "meta_inflacao", "peso_ipca"]} />
 </Base>
 <style>
+  .conta .dentro { display: inline; font-size: 13.5px; font-family: inherit; color: var(--ink); }
   .de { font-size: 11px; color: var(--ink-2); font-family: IBM Plex Mono, monospace; }
   .conta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; }
   .conta > div { flex: 1 1 180px; }
