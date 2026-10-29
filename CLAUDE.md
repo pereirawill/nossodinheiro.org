@@ -364,6 +364,17 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   ganharam posição (mortalidade infantil +18 pts, médio completo +16, expectativa +11) e 5 perderam (investimento −26, internet
   −23, CPI −20, produtividade −11, PIB por pessoa −6).
 
+## Eficiência — seção de Desenvolvimento (29/10/2026)
+- O dono perguntou se devia virar aba própria; escolheu **seção em `/desenvolvimento/`** ("Quanto custa e o que entrega").
+  Três pares com dado dos dois lados: educação (gasto por aluno × % com médio completo, internacional), saúde (gasto público
+  %PIB × expectativa de vida e mortalidade infantil) e **segurança por estado** (SICONFI função 06 por habitante × homicídios
+  ODS 16.1.1) — este último é um **scatter dos 27 estados**, sem linha de tendência **de propósito**.
+- Regra escrita na página: **não é nota de eficiência**. Não dividimos gasto por resultado (resultado vem de décadas, preço
+  unitário muda por lugar, ponto de partida importa). Judiciário e obras entram só como limite declarado, porque o resultado é
+  declarado pelo próprio órgão interessado.
+- Armadilha de código: `import estados` colidiu com `const estados` já existente na página e o bloco sumiu em silêncio (o
+  Astro não acusou). Renomeado para `despesaEstados`.
+
 ## Desenvolvimento por estado (29/10/2026)
 - Pedido: "mapa para ver quais estados se desenvolveram mais desde 1988". `etl/desenvolvimento/extract.py` →
   `desenvolvimento.json`, mensal dia 11. **Três dimensões com série estadual comparável**: educação (Censos 142/1974/3547/10141
@@ -476,6 +487,9 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   mais `criancas_pct` (SP.POP.0014.TO.ZS). Brasil **US$ 2.972/aluno (2015)** × Coreia 11.605 × Alemanha 8.993, embora o Brasil
   gaste mais % do PIB. Explicação: PIB por habitante menor + 19,4% da população com até 14 anos (Coreia 10,2%). Ano antigo e
   variável por país (a série da UNESCO parou) — declarado na barra de cada país.
+- 29/10: o **Brasil entrou na tabela das monarquias** (Presidência da República, R$ 1,87 bi, R$ 8,80/hab) — sem a linha dele
+  não dava para comparar de olho. Com a ressalva na própria nota: a Presidência é órgão de governo com milhares de servidores,
+  a dotação das coroas cobre sobretudo a casa real; está lá porque é o cargo correspondente (chefe de Estado).
 - 29/10 (pedido do dono): seção **"Violência: o Brasil, os outros países e as guerras"** em `/comparacao/`. Homicídios do
   Brasil (19,3/100 mil, UNODC 2023, 18º maior de 149) numa lista só com os 5 piores do mundo e os de referência. Conflitos em
   `CONFLITOS` (comparacao.ts), **só com fonte de órgão da ONU** e com o que cada número NÃO conta: Gaza 72.045 (OCHA citando o

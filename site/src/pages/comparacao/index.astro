@@ -121,6 +121,16 @@ const presidenciaTudo = presidenciaOrgao.reduce((t, o) => t + o.pago, 0);
 const congresso = orgao("01000").concat(orgao("02000")).reduce((t, o) => t + o.pago, 0);
 const habDe = (iso: string) => pop.find((p) => p.iso3 === iso)?.valor ?? null;
 const habBR = habDe("BRA");
+// O Brasil entra na própria tabela (pedido do dono em 29/10/2026): sem a linha dele não dá para comparar de olho.
+// A ressalva de escopo, que já estava no texto, passa a aparecer na linha.
+const monarquiasComBR = [
+  { pais: "Brasil (Presidência da República)", iso3: "BRA", moeda: "BRL", valor: presidenciaSo,
+    reais: presidenciaSo, reais_ajustado: null, ano: "2025, pago",
+    inclui: "a unidade orçamentária Presidência da República: pessoal, custeio e a estrutura que assessora o chefe de Estado e de governo",
+    fora: `o resto do órgão superior — ABIN e EBC, entre outros —, que levaria o total a ${compact(presidenciaTudo)}`,
+    br: true },
+  ...monarquias.map((m) => ({ ...m, br: false })),
+].sort((a: any, b: any) => (b.reais ?? 0) - (a.reais ?? 0));
 
 // Parlamentos: só as duas casas, cada um convertido pela PTAX do dia, com a base declarada
 const parlamentos = [
@@ -304,8 +314,8 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
     </p>
     <table>
       <thead><tr><th>País</th><th class="num">Valor no orçamento</th><th class="num">Em reais</th><th class="num">Por habitante</th><th>Ano</th></tr></thead>
-      <tbody>{monarquias.map((m) => (<tr>
-        <td>{m.pais}</td>
+      <tbody>{monarquiasComBR.map((m: any) => (<tr class={m.br ? "destaque" : undefined}>
+        <td>{m.br ? <b>{m.pais}</b> : m.pais}</td>
         <td class="num">{m.moeda} {Math.round(m.valor).toLocaleString("pt-BR")}</td>
         <td class="num">{m.reais ? compact(m.reais) : "—"}</td>
         <td class="num">{m.reais && habDe(m.iso3) ? `R$ ${(m.reais / habDe(m.iso3)!).toFixed(2).replace(".", ",")}` : "—"}</td>
@@ -315,7 +325,10 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
     <p class="src">
       Convertido pela PTAX de fechamento do Banco Central na data do painel de <a href="/inflacao/">Câmbio</a>; a cotação
       muda todo dia e o valor em reais serve só para dar ordem de grandeza. "Por habitante" usa a população do Banco
-      Mundial. A Presidência da República tem painel próprio em <a href="/presidencia/">Presidência</a> e os
+      Mundial. <b>A linha do Brasil não é uma monarquia equivalente</b>: a Presidência é um órgão de governo, com
+      milhares de servidores e a estrutura que assessora o chefe de Estado <i>e</i> de governo, enquanto a dotação das
+      coroas cobre sobretudo a casa real. Ela está na tabela porque é o cargo correspondente — chefe de Estado —, e
+      a coluna "o que inclui", logo abaixo, mostra o que entra de cada lado. A Presidência da República tem painel próprio em <a href="/presidencia/">Presidência</a> e os
       ex-presidentes aparecem em <a href="/beneficios/">Benefícios</a>. <b>A ressalva vale nos dois lados:</b> a
       Presidência brasileira inclui a estrutura de governo (Casa Civil, Gabinete de Segurança Institucional, Secretaria de
       Comunicação), que numa monarquia parlamentarista fica com o primeiro-ministro, não com o rei. Então a linha da
@@ -327,8 +340,8 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
     </p>
     <table>
       <thead><tr><th>País</th><th>O que está dentro</th><th>O que está fora</th></tr></thead>
-      <tbody>{monarquias.map((m) => (<tr>
-        <td>{m.pais}</td><td>{m.inclui}</td><td>{m.fora}</td></tr>))}
+      <tbody>{monarquiasComBR.map((m: any) => (<tr class={m.br ? "destaque" : undefined}>
+        <td>{m.br ? <b>{m.pais}</b> : m.pais}</td><td>{m.inclui}</td><td>{m.fora}</td></tr>))}
       </tbody>
     </table>
     <p class="src">

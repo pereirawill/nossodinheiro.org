@@ -6,9 +6,14 @@ import rankings from "../../../public/data/rankings.json";
 import educacao from "../../../public/data/educacao.json";
 import saneamento from "../../../public/data/saneamento.json";
 import uf from "../../../public/data/desenvolvimento.json";
+import despesaEstados from "../../../public/data/estados_2025.json";
+import obras from "../../../public/data/obras.json";
+import { JUDICIARIO_BR } from "../../lib/comparacao";
 import MapaBrasil from "../../components/MapaBrasil.astro";
 
 const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const compact = (v: number) => Math.abs(v) >= 1e9 ? `R$ ${n1(v / 1e9)} bi` : `R$ ${Math.round(v / 1e6)} mi`;
 const n0 = (v: number) => Math.round(v).toLocaleString("pt-BR");
 const pct = (v: number) => `${n1(v)}%`;
 const sinal = (v: number) => `${v > 0 ? "+" : "−"}${n1(Math.abs(v))}`;
@@ -91,6 +96,35 @@ const nomeUf = Object.fromEntries((sanUf[sanPara] ?? []).map((x: any) => [x.uf, 
 const topEdu = [...porEstado].sort((a, b) => b.eduVar - a.eduVar);
 const topHom = porEstado.filter((e) => e.homVar != null).sort((a, b) => (a.homVar as number) - (b.homVar as number));
 const topSan = porEstado.filter((e) => e.sanVar != null).sort((a, b) => (b.sanVar as number) - (a.sanVar as number));
+
+// ── Quanto custa e o que entrega ─────────────────────────────────────────────────────────────────────────────────
+// Não é nota de eficiência: é o gasto e o resultado lado a lado, cada um com a sua fonte e o seu ano. A razão entre
+// os dois depende de preço, de ponto de partida e de coisas que não estão no dado — e a página diz isso.
+const REF_EF = ["BRA", "KOR", "USA", "DEU", "FRA", "ESP", "PRT", "CHL", "MEX", "ARG", "COL", "ZAF", "JPN"];
+const porAlunoInd = idx("gasto_aluno_fundamental"), medioInd = idx("medio_completo_pct");
+const saudeInd = idx("saude_pct_pib"), vidaInd = idx("expectativa_vida"), mortInfInd = idx("mortalidade_infantil");
+const valorPais = (ind: any, iso: string) => (ind?.paises as any[])?.find((p) => p.iso3 === iso) ?? null;
+const paresEducacao = REF_EF.map((iso) => {
+  const g = valorPais(porAlunoInd, iso), r = valorPais(medioInd, iso);
+  return g && r ? { iso, pais: g.pais, gasto: g.valor, anoGasto: g.ano, resultado: r.valor, anoRes: r.ano } : null;
+}).filter(Boolean).sort((a: any, b: any) => b.gasto - a.gasto) as any[];
+const paresSaude = REF_EF.map((iso) => {
+  const g = valorPais(saudeInd, iso), v = valorPais(vidaInd, iso), m = valorPais(mortInfInd, iso);
+  return g && v ? { iso, pais: g.pais, gasto: g.valor, anoGasto: g.ano, vida: v.valor, mort: m?.valor ?? null } : null;
+}).filter(Boolean).sort((a: any, b: any) => b.gasto - a.gasto) as any[];
+
+// Segurança por estado: gasto por habitante (SICONFI, função 06) × taxa de homicídios (ODS 16.1.1)
+const homUltimo = hom.anos?.[hom.anos.length - 1];
+const segUf = (despesaEstados as any[]).map((e) => {
+  const taxa = hom.por_uf?.[homUltimo]?.[e.uf];
+  const porHab = e.populacao ? (e.pago_seguranca ?? 0) / e.populacao : null;
+  return porHab && taxa != null ? { uf: e.uf, nome: e.nome, porHab, taxa } : null;
+}).filter(Boolean) as any[];
+const maxGastoSeg = Math.max(...segUf.map((e) => e.porHab), 1);
+const maxTaxaSeg = Math.max(...segUf.map((e) => e.taxa), 1);
+const SW = 920, SHt = 420, SPAD = 54;
+const sx = (v: number) => SPAD + (v / maxGastoSeg) * (SW - SPAD * 2);
+const sy = (v: number) => SHt - SPAD - (v / maxTaxaSeg) * (SHt - SPAD * 2);
 
 // gráfico do percentil ao longo do tempo (quanto menor, melhor colocado)
 const W = 920, L = 44, R = 170, H = 300, T = 16, B = 30;
@@ -258,6 +292,93 @@ const y = (p: number) => T + (p / 100) * (H - T - B);
     </p>
   </div>
 
+
+
+  <h2>Quanto custa e o que entrega</h2>
+  <div class="card">
+    <p style="margin:0">
+      <b>Isto não é uma nota de eficiência.</b> É o gasto e o resultado lado a lado, cada um com a sua fonte e o seu
+      ano. Dividir um pelo outro daria um número fácil e enganoso: o resultado de hoje vem de décadas de gasto, o preço
+      de um professor ou de um hospital é diferente em cada país, e o ponto de partida importa — sair de 60 para 70
+      anos de expectativa de vida custa menos que sair de 80 para 81. O que dá para fazer honestamente é mostrar os
+      dois números e deixar a comparação à vista.
+    </p>
+  </div>
+
+  {paresEducacao.length > 0 && <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 2px">Educação: o que se gasta por aluno e quantos adultos terminaram o médio</h3>
+    <p class="sub" style="margin:0 0 10px">gasto por aluno em dólares PPP por ano · adultos de 25+ com ensino médio completo</p>
+    <table>
+      <thead><tr><th>País</th><th class="num">Gasto por aluno</th><th class="num">Ano</th><th class="num">Adultos com médio completo</th><th class="num">Ano</th></tr></thead>
+      <tbody>{paresEducacao.map((p) => (<tr class={p.iso === "BRA" ? "destaque" : undefined}>
+        <td>{p.iso === "BRA" ? <b>{p.pais}</b> : p.pais}</td>
+        <td class="num">US$ {n0(p.gasto)}</td><td class="num">{p.anoGasto}</td>
+        <td class="num">{n1(p.resultado)}%</td><td class="num">{p.anoRes}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      O Brasil gasta US$ {n0(paresEducacao.find((p) => p.iso === "BRA")?.gasto ?? 0)} por aluno e tem
+      {" "}{n1(paresEducacao.find((p) => p.iso === "BRA")?.resultado ?? 0)}% dos adultos com o médio completo. Portugal,
+      que gasta {n1((valorPais(porAlunoInd, "PRT")?.valor ?? 0) / (valorPais(porAlunoInd, "BRA")?.valor ?? 1))} vezes
+      mais por aluno, tem {n1(valorPais(medioInd, "PRT")?.valor ?? 0)}%. <b>Os anos são diferentes</b> e estão na
+      tabela — a série de gasto por aluno parou de ser alimentada por muitos países. A qualidade do que se aprende
+      (IDEB, PISA) é outra conta: o IDEB por estado está em <a href="/educacao/">Educação</a>.
+    </p>
+  </div>}
+
+  {paresSaude.length > 0 && <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 2px">Saúde: o que o governo gasta e quanto se vive</h3>
+    <p class="sub" style="margin:0 0 10px">gasto público em saúde como % do PIB · expectativa de vida e mortalidade infantil</p>
+    <table>
+      <thead><tr><th>País</th><th class="num">Gasto público (% do PIB)</th><th class="num">Expectativa de vida</th><th class="num">Mortalidade infantil</th></tr></thead>
+      <tbody>{paresSaude.map((p) => (<tr class={p.iso === "BRA" ? "destaque" : undefined}>
+        <td>{p.iso === "BRA" ? <b>{p.pais}</b> : p.pais}</td>
+        <td class="num">{n1(p.gasto)}%</td><td class="num">{n1(p.vida)} anos</td>
+        <td class="num">{p.mort != null ? `${n1(p.mort)} por mil` : "—"}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      O gasto <b>público</b> do Brasil em saúde ({n1(valorPais(saudeInd, "BRA")?.valor ?? 0)}% do PIB) é menor que o da
+      maioria desta lista, enquanto o gasto <b>total</b>, somando planos e desembolso das famílias, chega a
+      {" "}{n1(valorPais(idx("saude_total_pct_pib"), "BRA")?.valor ?? 0)}% — ou seja, boa parte do dinheiro da saúde
+      brasileira não passa pelo governo. A comparação completa está em <a href="/comparacao/">Comparação</a> e o
+      detalhe do SUS em <a href="/saude/">Saúde</a>.
+    </p>
+  </div>}
+
+  {segUf.length > 0 && <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 2px">Segurança: o que cada estado gasta e quantos homicídios tem</h3>
+    <p class="sub" style="margin:0 0 10px">despesa estadual na função Segurança Pública por habitante (2025) · homicídios por 100 mil ({homUltimo})</p>
+    <svg viewBox={`0 0 ${SW} ${SHt}`} width="100%" role="img" aria-label="Gasto estadual em segurança por habitante e taxa de homicídios, por estado">
+      {[0, 0.25, 0.5, 0.75, 1].map((t) => (<g>
+        <line x1={SPAD} x2={SW - SPAD} y1={sy(maxTaxaSeg * t)} y2={sy(maxTaxaSeg * t)} stroke="var(--line)" />
+        <text x={SPAD - 8} y={sy(maxTaxaSeg * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n0(maxTaxaSeg * t)}</text>
+        <text x={sx(maxGastoSeg * t)} y={SHt - SPAD + 16} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{brl0(maxGastoSeg * t)}</text>
+      </g>))}
+      <text x={SW / 2} y={SHt - 8} text-anchor="middle" font-size="11" fill="var(--ink-2)">gasto estadual em segurança por habitante, por ano →</text>
+      <text x="14" y={SHt / 2} text-anchor="middle" font-size="11" fill="var(--ink-2)" transform={`rotate(-90 14 ${SHt / 2})`}>↑ homicídios por 100 mil</text>
+      {segUf.map((e) => (<g>
+        <circle cx={sx(e.porHab)} cy={sy(e.taxa)} r="5" fill="var(--s1)" opacity="0.75">
+          <title>{e.nome}: {brl0(e.porHab)} por habitante em segurança e {n1(e.taxa)} homicídios por 100 mil</title></circle>
+        <text x={sx(e.porHab) + 8} y={sy(e.taxa) + 4} font-size="10" fill="var(--ink-2)">{e.uf}</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      Cada ponto é um estado. <b>Não há linha de tendência aqui de propósito</b>: gastar mais não garante menos
+      homicídio, e gastar menos não causa mais — a violência depende de muita coisa que não está neste gráfico, e os
+      estados partem de pontos muito diferentes. O que o gráfico mostra é que estados com gasto parecido têm taxas
+      muito diferentes, e vice-versa. Fontes: SICONFI (função 06, despesa paga em 2025) e {hom.fonte}.
+    </p>
+  </div>}
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Judiciário e obras: onde o dado é mais fraco</h3>
+    <ul class="limites">
+      <li><b>Judiciário:</b> o Brasil gasta {n1(JUDICIARIO_BR.pct_pib)}% do PIB com tribunais, contra uma mediana europeia de 0,19% — mas o que se compara do outro lado (tempo de tramitação, casos resolvidos por magistrado) vem do próprio Judiciário, que é parte interessada. A comparação de gasto está em <a href="/comparacao/">Comparação</a>.</li>
+      <li><b>Obras:</b> há {obras.paradas.n.toLocaleString("pt-BR")} obras paralisadas ou inacabadas no cadastro federal, com {compact(obras.paradas.previsto)} previstos nelas — mas "previsto" não é gasto, e a situação de cada obra é declarada pelo próprio órgão. É o par gasto × resultado mais frágil do site, e está em <a href="/obras/">Obras</a>.</li>
+      <li><b>O que falta para fechar qualquer conta de eficiência:</b> preço unitário do que o Estado compra. Sem saber quanto custa uma vaga de creche ou um quilômetro de asfalto em cada lugar, comparar gasto com resultado mede também a diferença de preço — e não só a de gestão.</li>
+    </ul>
+  </div>
 
   <h2>Por estado: quem mudou mais</h2>
   <div class="card">

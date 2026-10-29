@@ -306,6 +306,11 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   e mesmo ele tem limite (no acesso a energia elétrica a lista vai de 98 países em 1990 a 215 em 2024). "Melhorou" e "piorou" são
   decididos pelo próprio indicador, que traz se é melhor quando sobe ou quando desce. O ano de referência muda de indicador para
   indicador e está sempre na tabela.
+- **Eficiência (29/10/2026):** a seção "Quanto custa e o que entrega" põe gasto e resultado lado a lado — gasto por aluno ×
+  adultos com médio completo, gasto público em saúde × expectativa de vida e mortalidade infantil, gasto estadual em segurança
+  por habitante × homicídios por estado. **Não é nota de eficiência e não há linha de tendência**: o resultado de hoje vem de
+  décadas de gasto, o preço de um professor ou de um hospital muda de lugar para lugar, e o ponto de partida importa. Judiciário
+  e obras entram só como limite declarado, porque o dado do lado do resultado é do próprio órgão interessado.
 - Completo: nesta página; os números por país estão em `/rankings/`.
 
 ## Imposto de Renda — o que os brasileiros declaram ganhar
