@@ -162,6 +162,19 @@ export const CHECAGENS: Checagem[] = [
     fonte: "IBGE — Censo 2022 (tabela 10141) e PNAD Contínua 2022 (tabela 7189)",
     url: "https://sidra.ibge.gov.br/tabela/10141",
   },
+  {
+    painel: "Comparação", slug: "/comparacao/",
+    oQue: "Gasto em educação do Brasil, medido em % do PIB e em dólares por aluno",
+    nosso: "5,6% do PIB — acima da média dos países de referência",
+    outro: "US$ 2.972 por aluno do fundamental, contra US$ 11.605 da Coreia",
+    status: "explicada",
+    explicacao: "As duas medidas são verdadeiras e dizem coisas opostas. Percentual do PIB não é dinheiro: a mesma " +
+      "fatia rende menos onde o PIB por habitante é menor e onde há mais crianças por adulto (19,4% da população " +
+      "brasileira tem até 14 anos, contra 10,2% na Coreia). A página passou a mostrar as duas depois de o dono " +
+      "apontar que só o percentual 'não traduz a realidade'.",
+    fonte: "Banco Mundial — SE.XPD.TOTL.GD.ZS, SE.XPD.PRIM.PC.ZS e NY.GDP.PCAP.PP.CD",
+    url: "https://data.worldbank.org/indicator/SE.XPD.PRIM.PC.ZS",
+  },
 ];
 
 /** As regras que valem para todas as páginas, e que é possível checar olhando o site. */

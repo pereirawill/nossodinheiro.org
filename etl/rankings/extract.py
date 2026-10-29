@@ -63,6 +63,7 @@ INDICADORES_WB = [
     ("internet_pct", "IT.NET.USER.ZS", "Pessoas usando internet", "Percentual da população que usa internet", "% da população", True),
     ("eletricidade_pct", "EG.ELC.ACCS.ZS", "Acesso a energia elétrica", "Percentual da população com energia elétrica em casa", "% da população", True),
     ("mortalidade_infantil", "SP.DYN.IMRT.IN", "Mortalidade infantil", "Mortes de menores de 1 ano por mil nascidos vivos", "por mil nascidos vivos (menor é melhor)", False),
+    ("criancas_pct", "SP.POP.0014.TO.ZS", "Crianças de 0 a 14 anos", "Percentual da população com até 14 anos — quanto mais alto, mais alunos para a mesma despesa", "% da população", True),
     ("medio_completo_pct", "SE.SEC.CUAT.UP.ZS", "Adultos com ensino médio completo", "Percentual das pessoas de 25 anos ou mais que concluíram o ensino médio", "% dos adultos", True),
     # Mortes no trânsito, para o painel /transito/ e a comparação internacional (pedido de 29/10/2026). É estimativa
     # da OMS, que corrige o sub-registro de cada país — por isso não bate com a contagem nacional.
@@ -125,6 +126,18 @@ def indicador_wb(c: httpx.Client, codigo: str, paises: dict[str, str]) -> list[d
         if iso not in melhor or ano > melhor[iso][0]:
             melhor[iso] = (ano, float(v))
     return [{"iso3": iso, "valor": v, "ano": ano} for iso, (ano, v) in melhor.items()]
+
+
+def _serie_por_ano(c: httpx.Client, codigo: str, paises: dict[str, str]) -> dict[int, dict[str, float]]:
+    """{ano: {iso3: valor}} de um indicador — usado para casar um dado antigo com o PIB daquele mesmo ano."""
+    d = _get(c, f"{WB}/country/all/indicator/{codigo}", params={"format": "json", "per_page": 20000,
+                                                               "date": f"{2000}:{datetime.now().year}"}).json()
+    saida: dict[int, dict[str, float]] = {}
+    for x in d[1] or []:
+        iso, v = x.get("countryiso3code"), x.get("value")
+        if iso in paises and v is not None:
+            saida.setdefault(int(x["date"]), {})[iso] = float(v)
+    return saida
 
 
 ANO_INICIO = 1985
@@ -272,6 +285,32 @@ def run() -> Path:
             indices.append(montar(id_, tit, desc, "Banco Mundial (dados abertos)" + (" / UNODC" if id_ == "homicidios" else ""), "organismo oficial",
                                   f"https://data.worldbank.org/indicator/{cod}", unid, maior, linhas, nomes, nomes_en, serie))
             log.info("%s: %d países; série %d anos", tit, len(linhas), len(serie))
+
+        # Gasto por aluno em dólares, que é o que "% do PIB em educação" esconde: o mesmo percentual rende muito
+        # menos onde o PIB por habitante é menor e há proporcionalmente mais crianças. O Banco Mundial publica a
+        # despesa por aluno como % do PIB per capita; aqui ela é convertida em dólares PPP do MESMO ano de cada país.
+        # (Pergunta do dono em 29/10/2026: "5,6% do PIB em educação não traduz a realidade" — não traduz mesmo.)
+        for id_, cod, etapa in (("gasto_aluno_fundamental", "SE.XPD.PRIM.PC.ZS", "do ensino fundamental"),
+                                ("gasto_aluno_superior", "SE.XPD.TERT.PC.ZS", "do ensino superior")):
+            razao = indicador_wb(c, cod, nomes_en)
+            pib_ano = _serie_por_ano(c, "NY.GDP.PCAP.PP.CD", nomes_en)
+            linhas = []
+            for r in razao:
+                pib = (pib_ano.get(r["ano"]) or {}).get(r["iso3"])
+                if pib:
+                    linhas.append({"iso3": r["iso3"], "valor": round(r["valor"] / 100 * pib, 2), "ano": r["ano"]})
+            if not linhas:
+                log.warning("gasto por aluno (%s): sem país com os dois dados", cod)
+                continue
+            indices.append(montar(
+                id_, f"Gasto público por aluno {etapa}",
+                "Despesa pública por aluno em dólares ajustados pelo poder de compra (PPP), calculada por nós: a "
+                "razão que o Banco Mundial publica (despesa por aluno como % do PIB por habitante) multiplicada pelo "
+                "PIB por habitante em PPP do mesmo ano e do mesmo país",
+                "Banco Mundial (dados abertos), cálculo nosso", "organismo oficial",
+                f"https://data.worldbank.org/indicator/{cod}", "US$ PPP por aluno por ano", True,
+                linhas, nomes, nomes_en, []))
+            log.info("Gasto por aluno %s: %d países", etapa, len(linhas))
         linhas, serie = idh(c)
         indices.append(montar("idh", "Desenvolvimento humano (IDH)", "Índice de Desenvolvimento Humano 2023: renda, educação e expectativa de vida, de 0 a 1",
                               "PNUD, Relatório de Desenvolvimento Humano 2025", "organismo oficial", "https://hdr.undp.org/data-center", "índice 0–1", True, linhas, nomes, nomes_en, serie))

@@ -451,6 +451,11 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   NL deixa palácios fora (+€ 21,4 mi), DK conta só dinheiro a pessoas. Conversão pela PTAX do dia; `etl/cambio` passou a
   trazer as 10 moedas da PTAX (entraram DKK, NOK, SEK) e `rankings` ganhou `populacao` (SP.POP.TOTL) para o per capita.
 
+- 29/10 (o dono: "5,6% do PIB em educação **não traduz a realidade**" — não traduz mesmo): entrou **gasto por aluno em US$ PPP**,
+  calculado no `etl/rankings` como `SE.XPD.PRIM.PC.ZS/100 × NY.GDP.PCAP.PP.CD` **do mesmo ano e país** (helper `_serie_por_ano`),
+  mais `criancas_pct` (SP.POP.0014.TO.ZS). Brasil **US$ 2.972/aluno (2015)** × Coreia 11.605 × Alemanha 8.993, embora o Brasil
+  gaste mais % do PIB. Explicação: PIB por habitante menor + 19,4% da população com até 14 anos (Coreia 10,2%). Ano antigo e
+  variável por país (a série da UNESCO parou) — declarado na barra de cada país.
 - 29/10 (pedido do dono): seção **"Violência: o Brasil, os outros países e as guerras"** em `/comparacao/`. Homicídios do
   Brasil (19,3/100 mil, UNODC 2023, 18º maior de 149) numa lista só com os 5 piores do mundo e os de referência. Conflitos em
   `CONFLITOS` (comparacao.ts), **só com fonte de órgão da ONU** e com o que cada número NÃO conta: Gaza 72.045 (OCHA citando o

@@ -12,6 +12,7 @@ import orgaos from "../../../public/data/poderes_orgaos_2025.json";
 import cambio from "../../../public/data/cambio.json";
 import { JUDICIARIO_BR, JUDICIARIO_EUROPA, JUDICIARIO_EUROPA_META, MONARQUIAS, PARLAMENTOS, CONGRESSO_BR , CONFLITOS, SEM_TOTAL_OFICIAL } from "../../lib/comparacao";
 
+const n0 = (v: number) => Math.round(v).toLocaleString("pt-BR");
 const n1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
 const n2 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(2).replace(".", ",");
 const compact = (v: number) =>
@@ -120,6 +121,18 @@ const parlamentos = [
   ...PARLAMENTOS.map((x) => ({ ...x, reais: ptax[x.moeda] ? x.valor * ptax[x.moeda] : null, br: false })),
 ].sort((a, b) => (b.reais ?? 0) - (a.reais ?? 0));
 const maxParl = Math.max(...parlamentos.map((p2) => p2.reais ?? 0));
+// ── Por que "% do PIB" engana em educação (pergunta do dono em 29/10/2026) ─────────────────────────────────────────
+const porAluno = idx("gasto_aluno_fundamental");
+const criancas = idx("criancas_pct");
+const alunoLinhas = porAluno ? REF.map((iso) => {
+  const g = (porAluno.paises as any[]).find((x) => x.iso3 === iso);
+  const cr = criancas ? (criancas.paises as any[]).find((x) => x.iso3 === iso) : null;
+  const ed = valorDe(idx("educacao_pct_pib"), iso);
+  return g ? { iso, pais: g.pais, porAluno: g.valor, ano: g.ano, criancas: cr?.valor ?? null, pctPib: ed?.valor ?? null } : null;
+}).filter(Boolean).sort((a: any, b: any) => b.porAluno - a.porAluno) as any[] : [];
+const brAluno = alunoLinhas.find((l) => l.iso === "BRA");
+const maxAluno = Math.max(...alunoLinhas.map((l) => l.porAluno), 1);
+
 // ── Violência: o Brasil, o mundo e as guerras (pedido de 29/10/2026) ───────────────────────────────────────────────
 const indHom = idx("homicidios");
 const popInd = idx("populacao");
@@ -434,6 +447,37 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
       internacionais de propósito: saúde e educação no Brasil são pagas principalmente por estados e municípios, que
       aparecem em <a href="/estados/">Estados</a> e <a href="/municipios/">Municípios</a>, e o indicador do Banco Mundial
       para educação e saúde soma todos os níveis de governo, enquanto o de "despesa do governo central" não.
+    </p>
+  </div>
+
+
+  <h2>Por que "% do PIB" engana em educação</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      O Brasil gasta <b>{n1(brAluno?.pctPib ?? 0)}% do PIB</b> em educação, acima da média dos países de referência — e
+      mesmo assim gasta <b>US$ {n0(brAluno?.porAluno ?? 0)} por aluno</b> do ensino fundamental, contra
+      {" "}US$ {n0(alunoLinhas[0]?.porAluno ?? 0)} do país que mais gasta desta lista. Percentual do PIB não é dinheiro:
+      a mesma fatia rende muito menos onde o PIB por habitante é menor — e onde há proporcionalmente mais crianças
+      para dividir a conta ({n1(brAluno?.criancas ?? 0)}% da população brasileira tem até 14 anos, contra
+      {" "}{n1(alunoLinhas.find((l) => l.iso === "KOR")?.criancas ?? 0)}% na Coreia e
+      {" "}{n1(alunoLinhas.find((l) => l.iso === "DEU")?.criancas ?? 0)}% na Alemanha).
+    </p>
+    <svg viewBox={`0 0 ${W} ${alunoLinhas.length * 19 + 10}`} width="100%" role="img" aria-label="Gasto público por aluno do ensino fundamental, em dólares PPP">
+      {alunoLinhas.map((l, i) => (<g transform={`translate(0 ${i * 19 + 5})`}>
+        <text x={rotuloW - 8} y="11" text-anchor="end" font-size="11.5" fill={l.iso === "BRA" ? "var(--ink)" : "var(--ink-2)"} font-weight={l.iso === "BRA" ? "700" : "400"}>{l.pais}</text>
+        <rect x={rotuloW} y="2" width={Math.max(2, (l.porAluno / maxAluno) * barraW)} height="12" rx="2"
+          fill={l.iso === "BRA" ? "var(--s4)" : "var(--neutro)"} opacity={l.iso === "BRA" ? 1 : 0.55}>
+          <title>{l.pais}: US$ {n0(l.porAluno)} por aluno por ano ({l.ano}) · {n1(l.pctPib ?? 0)}% do PIB em educação</title></rect>
+        <text x={rotuloW + (l.porAluno / maxAluno) * barraW + 8} y="12" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">US$ {n0(l.porAluno)}</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      Em dólares ajustados pelo poder de compra, por aluno do ensino fundamental, por ano.
+      <b>Conta nossa, a partir de dois dados oficiais</b>: o Banco Mundial publica a despesa por aluno como percentual
+      do PIB por habitante, e nós multiplicamos pelo PIB por habitante em PPP <b>do mesmo ano e do mesmo país</b>.
+      <b>O ano é antigo e muda de país para país</b> — o do Brasil é {brAluno?.ano} — porque a série da UNESCO, de onde
+      o Banco Mundial tira esse dado, parou de ser alimentada por boa parte dos países; o ano de cada um está na dica
+      da barra. Fonte: Banco Mundial, indicador SE.XPD.PRIM.PC.ZS, combinado com NY.GDP.PCAP.PP.CD.
     </p>
   </div>
 

@@ -147,6 +147,10 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Mundial (homicídios), PNUD (IDH, posição oficial) e Transparência Internacional (corrupção, posição oficial; é ONG e
   está marcada como tal). Nos índices do Banco Mundial a posição é calculada por nós ordenando os países.
 - **Atenção:** "Xº de N" é entre os países com dado, não entre todos; o ano pode variar por país e aparece na tabela.
+- **Gasto por aluno (29/10/2026):** "% do PIB em educação" esconde o tamanho do bolo e o número de alunos. A página passou a
+  mostrar também o **gasto por aluno em dólares PPP**, conta nossa a partir de dois dados do Banco Mundial (despesa por aluno como
+  % do PIB por habitante × PIB por habitante em PPP do mesmo ano e país): Brasil US$ 2.972, Coreia US$ 11.605. O ano é antigo
+  (2015 no caso do Brasil) porque a série da UNESCO parou de ser alimentada por muitos países, e o ano de cada um fica na dica.
 - **Violência e guerras (29/10/2026):** a página de Comparação traz a taxa de homicídios do Brasil ao lado dos países de
   referência e dos cinco com a maior taxa do mundo (UNODC, via Banco Mundial), e uma comparação com conflitos armados. Nos
   conflitos só entra número divulgado por **órgão da ONU**, com a data em que foi lido, e cada linha diz o que **não** conta:
