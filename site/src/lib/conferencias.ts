@@ -254,6 +254,16 @@ export const LIMITES: string[] = [
 export const CORRECOES: { data: string; painel: string; oQue: string; como: string }[] = [
   {
     data: "29/10/2026", painel: "Inflação",
+    oQue: "A página tinha virado uma sequência de cartões defendendo que o salário mínimo subiu mais que os preços — verdade, " +
+      "mas o salário mínimo é a única renda do país com aumento real garantido por lei, e a página quase não falava de quem não " +
+      "ganha o mínimo. O dono disse que os números não traduziam a realidade; o problema era o protagonista, não a conta.",
+    como: "Os cartões argumentativos saíram. Entrou um quadro com o rendimento real por tipo de ocupação (PNAD Contínua, 2012→2025): " +
+      "quem trabalha ganhou 15,5% em treze anos, quem tem carteira no setor privado 8,3%, o empregador médio −0,5%; o próprio mínimo " +
+      "subiu 17% nesse trecho — o salto dele foi antes de 2012. Ao lado, a parcela da renda comprometida com dívida (23,5% → 29,0%), " +
+      "que não entra no IPCA. O aviso da página passou a dizer o que o índice não mede: compra de imóvel, juros, redução de embalagem.",
+  },
+  {
+    data: "29/10/2026", painel: "Inflação",
     oQue: "A explicação do poder de compra usava um pão de R$ 0,10 em 1999 como âncora e concluía que ele custaria " +
       "R$ 0,68 hoje. O preço de 1999 era suposição nossa, não dado publicado — e o resultado, R$ 0,68, não bate com " +
       "a padaria de ninguém. O dono apontou.",

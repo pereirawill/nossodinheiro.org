@@ -5,6 +5,8 @@ import Glossario from "../../components/Glossario.astro";
 import d from "../../../public/data/inflacao.json";
 import precos from "../../../public/data/precos.json";
 import cambio from "../../../public/data/cambio.json";
+import renda from "../../../public/data/renda.json";
+import credito from "../../../public/data/credito.json";
 
 const pct = (v: number | null | undefined, c = 2) => v == null ? "—" : `${v.toFixed(c).replace(".", ",")}%`;
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
@@ -55,30 +57,14 @@ const mesesLongo = Object.keys((longo["0"]?.indice) ?? {}).sort();
 const baseLongo = mesesLongo[0], fimLongo = mesesLongo[mesesLongo.length - 1];
 const multGeral = longo["0"] ? longo["0"].indice[fimLongo] / 100 : 1;
 const smLongo = (precos as any).salario_minimo ?? {};
-const multSM = smLongo[baseLongo] && smLongo[fimLongo] ? smLongo[fimLongo] / smLongo[baseLongo] : null;
 const linhasLongo = Object.entries(longo).filter(([k]) => k !== "0").map(([k, v]: [string, any]) => ({
   codigo: k, nome: v.nome, tipo: v.tipo, mult: v.indice[fimLongo] / 100,
-})).map((l) => ({ ...l, nome: l.nome.replace(" - ", " "), vsGeral: 100 * (l.mult / multGeral - 1),
-                  emSM: multSM ? 100 * (multSM / l.mult - 1) : null }))
+})).map((l) => ({ ...l, nome: l.nome.replace(" - ", " "), vsGeral: 100 * (l.mult / multGeral - 1) }))
   .sort((a, b) => b.mult - a.mult);
 const itemMaior = linhasLongo[0], itemMenor = linhasLongo[linhasLongo.length - 1];
-const smIni = smLongo[baseLongo] ?? null, smFim = smLongo[fimLongo] ?? null;
-// quantas unidades de uma coisa que custava R$ 1,00 em 1999 um salário mínimo paga, antes e agora
-const quantas = (mult: number) => (smFim ? smFim / mult : 0);
-const quantasAntes = smIni ?? 0;
 const brl0 = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const inteiro = (v: number) => Math.round(v).toLocaleString("pt-BR");
 const pao = linhasLongo.find((l) => /Pão francês/.test(l.nome));
-// A conta feita devagar precisa de PREÇO PUBLICADO nas duas pontas, senão a âncora é chute: o IBGE publica a
-// variação do pão, nunca o preço dele. Quem publica preço em reais, mês a mês, é a ANP — então a conta é com
-// combustível, onde as duas pontas são medidas, não supostas.
-const serieGas = (precos as any).combustiveis?.gasolina?.serie ?? [];
-const gasIni = serieGas.find((x: any) => x.mes === "2001-07") ?? serieGas[0];
-const gasFim = serieGas[serieGas.length - 1];
-const smGasIni = gasIni ? smLongo[gasIni.mes] : null;
-const smGasFim = gasFim ? smLongo[gasFim.mes] : null;
-const litrosAntes = gasIni && smGasIni ? smGasIni / gasIni.preco : null;
-const litrosHoje = gasFim && smGasFim ? smGasFim / gasFim.preco : null;
 const linhasPeso = Object.entries(pesosCestas).map(([k, v]: [string, any]) => ({
   codigo: k, nome: v.nome, ipca: v.ipca, inpc: v.inpc, dif: (v.inpc ?? 0) - (v.ipca ?? 0),
   mult: longo[k] ? longo[k].indice[fimLongo] / 100 : null,
@@ -86,20 +72,35 @@ const linhasPeso = Object.entries(pesosCestas).map(([k, v]: [string, any]) => ({
 const n1l = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const n2l = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const mesPtBr = (m: string) => `${["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"][+m.slice(5) - 1]} de ${m.slice(0, 4)}`;
-const ITL = 920, ITH = 30 + linhasLongo.length * 22, itPadL = 230, itPadR = 80;
-const maxMult = Math.max(...linhasLongo.map((l) => l.mult), multGeral);
-const itw = (v: number) => (v / maxMult) * (ITL - itPadL - itPadR);
 
-// A ponte que faltava: R$ 100 não comprava mais só porque os preços eram menores — é que R$ 100 ERA muito mais
-// dinheiro em relação ao que se ganhava. Em jul/1994 valia um mês e meio de salário mínimo; hoje, dois dias.
-const smPC = (precos as any).salario_minimo ?? {};
-const PC_BASE = "1994-07";
-const PC_HOJE = Object.keys(smPC).filter((m) => m <= "2026-12").sort().filter((m) => smPC[m]).pop() as string;
-const smBase = smPC[PC_BASE] ?? null;
-const smHoje = smPC["2026-09"] ?? null;
-const cemEmSM = (s: number | null) => (s ? 100 / s : null);
-const smBaseQtd = cemEmSM(smBase), smHojeQtd = cemEmSM(smHoje);
-const diasDe = (q: number | null) => (q ? q * 30 : null);
+
+// O que aconteceu com quem RECEBE, não só com a nota: rendimento real por posição (PNADC, já a preços do último
+// ano), o salário mínimo deflacionado pelo IPCA médio do ano e a parcela da renda que vai para dívida (BC).
+const posicoes = (renda as any).posicoes as any[];
+const anoRenda = String((renda as any).ano);
+const anoBaseRenda = "2012";
+const linhaRenda = (chave: string, rotulo: string) => {
+  const s = posicoes.find((x) => x.chave === chave)?.serie ?? {};
+  return s[anoBaseRenda] && s[anoRenda] ? { rotulo, de: s[anoBaseRenda], ate: s[anoRenda], var: 100 * (s[anoRenda] / s[anoBaseRenda] - 1) } : null;
+};
+const mediaAno = (serie: Record<string, number>, ano: string) => { const v = Object.keys(serie).filter((m) => m.startsWith(ano)).map((m) => serie[m]); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+const ipcaIdx = (precos as any).indices?.ipca ?? {};
+const smMedBase = mediaAno(smLongo, anoBaseRenda), smMedAte = mediaAno(smLongo, anoRenda);
+const ipcaMedBase = mediaAno(ipcaIdx, anoBaseRenda), ipcaMedAte = mediaAno(ipcaIdx, anoRenda);
+const smRealVar = smMedBase && smMedAte && ipcaMedBase && ipcaMedAte ? 100 * ((smMedAte / smMedBase) / (ipcaMedAte / ipcaMedBase) - 1) : null;
+const rendas = [
+  linhaRenda("total", "Todos os que trabalham"),
+  linhaRenda("privado_com_carteira", "Empregado com carteira (setor privado)"),
+  linhaRenda("privado_sem_carteira", "Empregado sem carteira (setor privado)"),
+  linhaRenda("conta_propria", "Conta própria"),
+  linhaRenda("publico", "Setor público"),
+  linhaRenda("empregador", "Empregador"),
+].filter(Boolean) as any[];
+const fam = (credito as any).familias ?? {};
+const comprometimento = fam.comprometimento?.pontos ?? {};
+const mesesComp = Object.keys(comprometimento).sort();
+const compBase = comprometimento[`${anoBaseRenda}-12`] ?? null, compHoje = comprometimento[mesesComp[mesesComp.length - 1]] ?? null;
+const mesCompHoje = mesesComp[mesesComp.length - 1];
 
 // Poder de compra do real: quanto R$ 100 de julho de 1994 (quando a moeda nasceu) compram em cada mês desde então
 const REAL = "199407";
@@ -154,9 +155,12 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
   </div>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
-    <div><b>Nenhum índice é "a sua inflação".</b> O IPCA mede o preço de uma cesta média das famílias que ganham de 1 a 40 salários
-    mínimos nas 16 áreas pesquisadas pelo IBGE. Quem gasta mais com comida e transporte sente mais que a média quando esses itens
-    sobem; quem tem carro próprio ou escola particular tem outra cesta. O peso de cada grupo está na tabela abaixo.</div>
+    <div><b>Nenhum índice é "a sua inflação", e o IPCA não mede tudo o que pesa no bolso.</b> Ele acompanha o preço de uma
+    cesta média das famílias que ganham de 1 a 40 salários mínimos nas 16 áreas pesquisadas pelo IBGE — e quase nenhum item
+    sobe como a média (a tabela item por item está abaixo). <b>Ficam fora do índice</b>, por desenho: o preço de <b>comprar</b>
+    uma casa (entra só o aluguel), os <b>juros</b> da dívida (cartão, cheque especial, prestação) e a redução de quantidade
+    dentro da mesma embalagem. Boa parte da distância entre o número oficial e a sensação de quem paga as contas está nessas
+    três coisas, e esta página mostra o que existe publicado sobre elas.</div>
   </div>
 
   <h2 id="poder-de-compra">Quanto o real perdeu de poder de compra</h2>
@@ -180,9 +184,9 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
       A linha mostra, mês a mês, quanto valem em compras os mesmos R$ 100 de julho de 1994 — não é cotação de moeda nem comparação com
       o dólar, é só o quanto o dinheiro compra. A queda é mais íngreme nos primeiros anos do real, quando a inflação ainda rodava perto
       de 20% ao ano, e vai ficando lenta depois de 1999. Calculado com o número-índice do IPCA (IBGE, SIDRA 1737).
-      Esta conta compara dinheiro com dinheiro. Para comparar <b>preço com salário</b> — quantos minutos de trabalho
-      custa um litro de gasolina ou o botijão de gás, desde 2001 —, veja
-      {" "}<a href="/economia/poder-de-compra/">Poder de compra em tempo de trabalho</a>.
+      <b>Esta conta é sobre a cédula, não sobre a renda</b>: diz o que acontece com dinheiro que ficou parado. O que
+      aconteceu com quem recebe salário está no quadro seguinte, e a medida em tempo de trabalho (quantos minutos
+      custa um litro de gasolina, desde 2001) está em <a href="/economia/poder-de-compra/">Poder de compra</a>.
     </p>
   </div>
 
@@ -197,31 +201,99 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
   </div>
 
   <div class="card" style="margin-top:14px">
-    <h3 style="margin:0 0 8px">“Mas com R$ 100 hoje eu não compro quase nada, e antes comprava muito mais”</h3>
+    <h3 style="margin:0 0 8px">E a renda de quem trabalha, acompanhou os preços?</h3>
     <p style="margin:0 0 10px">
-      Verdade — e a razão não é só que os preços subiram. É que <b>R$ 100 deixou de ser muito dinheiro</b>.
-      "R$ 100" não quer dizer a mesma coisa em 1994 e hoje, mas "um mês de trabalho" quer. Então a conta abaixo
-      troca de unidade antes de comparar: divide os cem reais pelo <b>salário mínimo mensal</b> de cada época, para
-      saber quantos meses de trabalho eles valiam.
+      Depende de quem. Abaixo, o rendimento médio <b>já descontada a inflação</b>, por tipo de ocupação, de
+      {" "}{anoBaseRenda} a {anoRenda} — o período mais longo em que o IBGE mede isso com a mesma pesquisa.
     </p>
-    {smBaseQtd && smHojeQtd && <div class="conta">
-      <div><span>Julho de 1994</span><b>R$ 100 ÷ {brl(smBase ?? 0)}</b><i>o salário mínimo da época era de {brl(smBase ?? 0)} por mês<br/><b class="dentro">= {n2l(smBaseQtd)} salários mínimos</b>, ou {Math.round(diasDe(smBaseQtd) ?? 0)} dias de trabalho</i></div>
-      <div class="seta" aria-hidden="true">→</div>
-      <div><span>Hoje</span><b>R$ 100 ÷ {brl(smHoje ?? 0)}</b><i>o salário mínimo hoje é de {brl(smHoje ?? 0)} por mês<br/><b class="dentro">= {n2l(smHojeQtd)} do salário mínimo</b>, ou {n1l(diasDe(smHojeQtd) ?? 0)} dias de trabalho</i></div>
-    </div>}
+    <table>
+      <thead><tr><th>Quem</th><th class="num">Em {anoBaseRenda}</th><th class="num">Em {anoRenda}</th><th class="num">Mudança real em {+anoRenda - +anoBaseRenda} anos</th></tr></thead>
+      <tbody>
+        {rendas.map((r) => (<tr><td>{r.rotulo}</td><td class="num">{brl(r.de)}</td><td class="num">{brl(r.ate)}</td>
+          <td class="num"><b>{r.var >= 0 ? "+" : "−"}{n1l(Math.abs(r.var))}%</b></td></tr>))}
+        {smRealVar != null && <tr class="destaque"><td>Salário mínimo (valor de lei)</td><td class="num">{brl(smMedBase ?? 0)}</td><td class="num">{brl(smMedAte ?? 0)}</td>
+          <td class="num"><b>{smRealVar >= 0 ? "+" : "−"}{n1l(Math.abs(smRealVar))}%</b> <span class="un">real</span></td></tr>}
+      </tbody>
+    </table>
     <p class="src">
-      Em 1994, R$ 100 eram <b>mais de um mês e meio de trabalho</b> de quem ganhava o mínimo. Hoje são
-      {" "}<b>menos de dois dias</b>. Claro que compravam mais: era uma quantia muito maior na vida de quem
-      recebia. <b>A nota de R$ 100 continuou sendo R$ 100 — o salário é que não ficou parado.</b> Quem guardou
-      cem reais em 1994 e não mexeu tem hoje o poder de compra de {brl(poderHoje)}; quem ganhava o mínimo, de
-      {" "}{brl(smBase ?? 0)} por mês, ganha {brl(smHoje ?? 0)}.
-      <b>As duas frases desta página são verdadeiras ao mesmo tempo</b>: o dinheiro parado perdeu
-      {" "}{pct(perdaReal, 1)}, e quem vive de salário comprava menos coisas em 1994 do que compra hoje. A
-      primeira é sobre a cédula; a segunda, sobre a renda. Confundir uma com a outra é o que faz a conta parecer
-      errada.
+      Rendimento médio mensal real de todos os trabalhos, a preços de {anoRenda} (IBGE, PNAD Contínua anual, tabela
+      4659); salário mínimo médio de cada ano deflacionado pelo IPCA médio do ano. <b>Em treze anos, quem trabalha
+      ganhou {n1l(rendas[0]?.var ?? 0)}% a mais em poder de compra — cerca de 1% ao ano.</b> Quem tem carteira
+      assinada no setor privado ganhou {n1l(rendas.find((r) => /carteira \(setor privado\)/.test(r.rotulo) && /com/.test(r.rotulo))?.var ?? 0)}%, e o empregador
+      médio, {(() => { const v = rendas.find((r) => r.rotulo === "Empregador")?.var ?? 0; return `${v < 0 ? "−" : "+"}${n1l(Math.abs(v))}`; })()}%. O salário mínimo subiu bem mais que isso
+      <b> antes</b> de 2012 (de R$ 64,79 em julho de 1994 para R$ 622 em 2012, mais que o dobro em termos reais); desde então
+      anda no passo dos demais.
+      {compBase && compHoje && <span> <b>E a parcela da renda que vai para pagar dívida</b> foi de {n1l(compBase)}% em dezembro de
+      {" "}{anoBaseRenda} para {n1l(compHoje)}% em {mesNome(mesCompHoje.replace("-", ""))} — o maior nível desde que o Banco Central
+      mede (série 29034). Ou seja: a renda cresceu pouco, e uma fatia maior dela já sai comprometida antes de chegar ao
+      mercado. Esse custo <b>não entra no IPCA</b>, e é parte do que o índice não captura. Detalhe em{" "}
+      <a href="/inadimplencia/">Inadimplência</a>.</span>}
     </p>
   </div>
 
+  <h2 id="o-que-subiu-mais">Item por item: o que subiu mais desde 1999</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      <b>Pense numa coisa que custava R$ 1,00 em {mesPtBr(baseLongo)}.</b> Se ela acompanhou a média dos preços,
+      hoje custa {brl0(multGeral)}. Mas quase nada acompanha a média: <b>aquele</b> R$ 1,00,
+      se tiver subido como o pão, virou {pao ? brl0(pao.mult) : "—"}; se tiver subido como um carro novo, virou
+      {" "}{brl0((linhasLongo.find((l) => /Automóvel/.test(l.nome))?.mult) ?? 0)}. <b>Não é o preço do pão nem o do
+      carro</b> — é o que acontece com um real de 1999 que siga a trajetória de cada um deles.
+      É essa diferença, item por item, que a palavra "inflação" esconde — e é por isso que a conta do índice nunca
+      bate com a lembrança de ninguém.
+    </p>
+    <table>
+      <thead><tr>
+        <th>O que custava R$ 1,00 em {mesPtBr(baseLongo).replace(" de ", "/")}…</th>
+        <th class="num">…custa hoje</th>
+        <th class="num">Subiu quanto a mais (ou a menos) que a média</th>
+      </tr></thead>
+      <tbody>{linhasLongo.map((l) => (<tr>
+        <td>{l.nome} {l.tipo === "grupo" && <span class="un">(o grupo inteiro)</span>}</td>
+        <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(l.mult)}</b></td>
+        <td class="num">{l.vsGeral >= 0 ? "+" : "−"}{n1l(Math.abs(l.vsGeral))}%</td></tr>))}
+        <tr class="destaque">
+          <td><b>A média de tudo (o índice geral)</b></td>
+          <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(multGeral)}</b></td>
+          <td class="num">—</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      <b>O que a tabela mostra:</b> comida, plano de saúde, luz e refeição fora de casa subiram <b>bem acima</b> da
+      média; aluguel, roupa, eletrodoméstico, telefone e carro subiram bem abaixo. Quem gasta a maior parte da renda
+      nos itens do topo viveu uma inflação maior que a oficial — e isso não é erro do índice, é a média fazendo o que
+      médias fazem.
+      <b>Por que parte de R$ 1,00 e não do preço real:</b> o IBGE publica a <b>variação</b> do preço de cada item,
+      nunca o preço em reais. Sabemos quanto o pão subiu; não sabemos quanto custava. Partir de R$ 1,00 usa só o que
+      é medido. Variação mensal do IPCA por item, encadeada das tabelas 655, 2938, 1419 e 7060 do SIDRA.
+    </p>
+  </div>
+
+
+  <h2>Quem sente mais: as duas cestas oficiais</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      O IBGE calcula dois índices com a mesma coleta de preços e cestas diferentes: o <b>IPCA</b>, das famílias que
+      ganham de 1 a 40 salários mínimos, e o <b>INPC</b>, das que ganham até 5. A diferença entre eles é só o peso de
+      cada grupo — e o peso é onde se vê a vida de cada família.
+    </p>
+    <table>
+      <thead><tr><th>Grupo de gasto</th><th class="num">Peso na cesta do IPCA</th><th class="num">Na cesta de quem ganha até 5 s.m.</th><th class="num">Diferença</th><th class="num">Quanto subiu desde 1999</th></tr></thead>
+      <tbody>{linhasPeso.map((l) => (<tr>
+        <td>{l.nome}</td>
+        <td class="num">{n1l(l.ipca ?? 0)}%</td>
+        <td class="num">{n1l(l.inpc ?? 0)}%</td>
+        <td class="num">{l.dif >= 0 ? "+" : "−"}{n1l(Math.abs(l.dif))} p.p.</td>
+        <td class="num">{l.mult ? `${n2l(l.mult)}×` : "—"}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      <b>Quem ganha menos gasta mais com comida e moradia</b> — os dois grupos que mais subiram — e menos com
+      educação e despesas pessoais. No total, os dois índices andaram perto um do outro desde o Plano Real (preços
+      ×8,40 pelo IPCA, ×8,51 pelo INPC), porque a família de menor renda também gasta relativamente mais com o que
+      ficou barato (artigos de residência, comunicação). O INPC é o índice que mais se aproxima da cesta de quem
+      ganha pouco; mesmo ele é uma média, e a tabela acima mostra o que a média esconde.
+    </p>
+  </div>
 
   <h2>Inflação em 12 meses, mês a mês, desde 1996</h2>
   <div class="card">
@@ -280,104 +352,6 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
     <p class="src">Fonte: IBGE, IPCA por região (SIDRA 7060). O IPCA é calculado em 16 áreas: 10 regiões metropolitanas e 6 municípios. O índice nacional é a média ponderada delas pelo peso de cada área no consumo — não existe IPCA de cada estado.</p>
   </div>
 
-
-  <h2 id="o-que-subiu-mais">Item por item: o que subiu mais desde 1999</h2>
-  <div class="card">
-    <p style="margin:0 0 10px">
-      <b>Pense numa coisa que custava R$ 1,00 em {mesPtBr(baseLongo)}.</b> Se ela acompanhou a média dos preços,
-      hoje custa {brl0(multGeral)}. Mas quase nada acompanha a média: <b>aquele</b> R$ 1,00,
-      se tiver subido como o pão, virou {pao ? brl0(pao.mult) : "—"}; se tiver subido como um carro novo, virou
-      {" "}{brl0((linhasLongo.find((l) => /Automóvel/.test(l.nome))?.mult) ?? 0)}. <b>Não é o preço do pão nem o do
-      carro</b> — é o que acontece com um real de 1999 que siga a trajetória de cada um deles.
-      É essa diferença, item por item, que a palavra "inflação" esconde — e é por isso que a conta do índice nunca
-      bate com a lembrança de ninguém.
-    </p>
-    <table>
-      <thead><tr>
-        <th>O que custava R$ 1,00 em {mesPtBr(baseLongo).replace(" de ", "/")}…</th>
-        <th class="num">…custa hoje</th>
-        <th class="num">Um salário mínimo pagava {inteiro(quantasAntes)} deles. Hoje paga</th>
-        <th class="num">Então dá para comprar</th>
-      </tr></thead>
-      <tbody>{linhasLongo.map((l) => { const q = quantas(l.mult); const dif = 100 * (q / quantasAntes - 1); return (<tr>
-        <td>{l.nome} {l.tipo === "grupo" && <span class="un">(o grupo inteiro)</span>}</td>
-        <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(l.mult)}</b></td>
-        <td class="num">{inteiro(q)}</td>
-        <td class="num">{dif >= 0 ? "+" : "−"}{n1l(Math.abs(dif))}%</td></tr>); })}
-        <tr class="destaque">
-          <td><b>A média de tudo (o índice geral)</b></td>
-          <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(multGeral)}</b></td>
-          <td class="num">{inteiro(quantas(multGeral))}</td>
-          <td class="num">+{n1l(100 * (quantas(multGeral) / quantasAntes - 1))}%</td></tr>
-      </tbody>
-    </table>
-    <p class="src">
-      <b>Como ler.</b> A segunda coluna é o preço de hoje de uma coisa que custava R$ 1,00 em
-      {" "}{mesPtBr(baseLongo)}, calculado com o índice <b>daquele item</b> e não com a média. As duas últimas
-      respondem a pergunta que interessa: quantas daquelas coisas o salário mínimo paga hoje, contra
-      {" "}{inteiro(quantasAntes)} naquela época — o mínimo era de {brl0(smIni ?? 0)} e é de {brl0(smFim ?? 0)}.
-      <b> Nem o feijão, que foi o que mais subiu, subiu mais que o salário mínimo</b>; mas quem não ganha o mínimo não
-      teve esse aumento, e para essa pessoa as duas últimas colunas são piores.
-      <b>Por que a tabela parte de R$ 1,00 e não do preço real:</b> o IBGE publica a <b>variação</b> do preço de
-      cada item, nunca o preço em reais. Sabemos o quanto o pão subiu; não sabemos quanto ele custava. Partir de
-      R$ 1,00 é a forma de usar só o que é medido.
-      Variação mensal do IPCA por item, encadeada das tabelas 655, 2938, 1419 e 7060 do SIDRA.
-    </p>
-  </div>
-
-
-  {litrosAntes && litrosHoje && <div class="card" style="margin-top:14px">
-    <h3 style="margin:0 0 8px">A conta feita devagar: por que “o salário subiu 4 vezes” não se anula com “a moeda perdeu 3 vezes”</h3>
-    <p style="margin:0 0 10px">
-      As duas coisas são verdade ao mesmo tempo, e a tentação é subtrair uma da outra. Mas a desvalorização da moeda
-      <b> é</b> a multiplicação dos preços — ela já está do outro lado da conta. O que resolve é <b>dividir</b>.
-      Abaixo, com o <b>preço que a ANP publicou</b> em cada ponta, sem índice e sem suposição nenhuma:
-    </p>
-    <div class="conta">
-      <div><span>{mesPtBr(gasIni.mes)}</span><b>{brl0(smGasIni)} ÷ {brl0(gasIni.preco)}</b><i>= {inteiro(litrosAntes)} litros de gasolina</i></div>
-      <div class="seta" aria-hidden="true">→</div>
-      <div><span>{mesPtBr(gasFim.mes)}</span><b>{brl0(smGasFim)} ÷ {brl0(gasFim.preco)}</b><i>= {inteiro(litrosHoje)} litros</i></div>
-      <div class="seta" aria-hidden="true">=</div>
-      <div class="res"><span>Dá para comprar</span><b>+{n1l(100 * (litrosHoje / litrosAntes - 1))}%</b><i>com um salário mínimo</i></div>
-    </div>
-    <p class="src">
-      De um lado o salário mínimo, que é lei; do outro o preço médio de revenda da gasolina, que a ANP publica todo
-      mês desde 2001. <b>Nenhum número aqui é estimado.</b> A mesma conta com o botijão de 13 kg dá +35% e com o
-      diesel, +11%: o resultado muda de item para item, mas o sinal não.
-      <b>Por que não com pão, arroz ou feijão:</b> o IBGE publica <b>a variação</b> do preço desses itens, nunca o
-      preço em reais. Dá para dizer que o pão subiu {n1l(100 * ((pao?.mult ?? multGeral) / multGeral - 1))}% acima da média —
-      e está na tabela acima —, mas não dá para dizer quanto ele custava sem inventar o número, e aqui não se
-      inventa número. Quem publica preço de alimento em reais é instituto privado, que este site não usa como fonte
-      principal. Detalhe em <a href="/economia/poder-de-compra/">Poder de compra</a>.
-    </p>
-  </div>}
-
-  <h2>Quem sente mais: as duas cestas oficiais</h2>
-  <div class="card">
-    <p style="margin:0 0 10px">
-      O IBGE calcula dois índices com a mesma coleta de preços e cestas diferentes: o <b>IPCA</b>, das famílias que
-      ganham de 1 a 40 salários mínimos, e o <b>INPC</b>, das que ganham até 5. A diferença entre eles é só o peso de
-      cada grupo — e o peso é onde se vê a vida de cada família.
-    </p>
-    <table>
-      <thead><tr><th>Grupo de gasto</th><th class="num">Peso na cesta do IPCA</th><th class="num">Na cesta de quem ganha até 5 s.m.</th><th class="num">Diferença</th><th class="num">Quanto subiu desde 1999</th></tr></thead>
-      <tbody>{linhasPeso.map((l) => (<tr>
-        <td>{l.nome}</td>
-        <td class="num">{n1l(l.ipca ?? 0)}%</td>
-        <td class="num">{n1l(l.inpc ?? 0)}%</td>
-        <td class="num">{l.dif >= 0 ? "+" : "−"}{n1l(Math.abs(l.dif))} p.p.</td>
-        <td class="num">{l.mult ? `${n2l(l.mult)}×` : "—"}</td></tr>))}</tbody>
-    </table>
-    <p class="src">
-      <b>Quem ganha menos gasta mais com comida e moradia</b> — os dois grupos que mais subiram —
-      e menos com educação e despesas pessoais. <b>E, ainda assim, os dois índices andaram quase igual:</b> desde o
-      Plano Real os preços multiplicaram por 8,40 pelo IPCA e por 8,51 pelo INPC. A diferença de cesta aparece no
-      peso, mas quase se anula no total, porque a família de menor renda também gasta relativamente mais com os itens
-      que ficaram <b>baratos</b> (artigos de residência, comunicação) e menos com os serviços caros.
-      Por isso a sensação de que “a inflação do pobre é outra” não se confirma no índice geral — ela se confirma
-      <b> item a item</b>, na tabela acima.
-    </p>
-  </div>
 
   <h2>O real frente ao dólar e às outras moedas</h2>
   <div class="card">

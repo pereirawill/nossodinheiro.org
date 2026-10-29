@@ -380,6 +380,23 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   item, sem mexer em mais nada; o menu foi a 36 itens em 4 linhas). A proposta de consolidação 35 → 29, já enviada
   por imagem, continua esperando o sim dele.
 
+## Revisão da página de Inflação (29/10/2026) — a lição
+- O dono disse quatro vezes, de formas diferentes, que "os números não traduzem a realidade". Os números estavam certos.
+  **O erro era editorial**: a cada objeção eu acrescentava um cartão defendendo a mesma tese (salário mínimo × preços),
+  e a página virou discussão com o leitor. Regra que sai disso: **o site não rebate, publica**. Se uma objeção se repete,
+  o problema é o que a página escolheu mostrar, não o leitor.
+- **O salário mínimo é o protagonista errado** para "poder de compra": é a única renda com aumento real por lei. O que bate
+  com a sensação das pessoas está na **PNAD Contínua por posição** (`renda.json`, real a preços do último ano): 2012→2025,
+  todos +15,5%, carteira assinada privada **+8,3%**, empregador **−0,5%**; o próprio mínimo +17% real nesse trecho (o
+  salto dele foi 1994→2012, +155% real). Mais o **comprometimento de renda com dívida** (SGS 29034, 23,5% → 29,0%),
+  que o IPCA não mede. Esses dois agora abrem a página, logo depois do poder de compra da cédula.
+- O aviso da página passou a dizer o que o IPCA **não mede por desenho**: preço de compra de imóvel (só aluguel entra),
+  juros da dívida, redução de quantidade na embalagem. Era a resposta honesta a "não traduz a realidade".
+- Três correções de dados nesta rodada, todas registradas em `/conferir/`: pão a R$ 0,68 (âncora de 1999 inventada por
+  mim — nunca supor preço; o IBGE publica variação, não preço); "×11,92" como linguagem (trocado por reais e quantidades);
+  e o R$ 64,79 sem rótulo (era o salário mínimo de jul/1994). Ordem final: poder de compra → renda real por ocupação →
+  item por item desde 1999 → as duas cestas → IPCA 12 meses → ano a ano → grupos → regiões → câmbio.
+
 ## Indústria — seção de Desenvolvimento (29/10/2026)
 - Pergunta do dono: "estamos industrializando ou perdendo indústrias nos últimos 50 anos?". `etl/industria/extract.py`
   → `industria.json`, seção em `/desenvolvimento/`, mensal dia 17. Sem painel novo (o dono quer menos abas).
