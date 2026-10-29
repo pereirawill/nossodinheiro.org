@@ -11,13 +11,16 @@ Quatro fontes, todas públicas e sem chave:
   `mensal-brasil-desde-jan2013.xlsx` (jan/2013 em diante), mais `mensal-estados-desde-jan2013.xlsx` para o
   recorte por estado. São vintages diferentes do mesmo relatório, com a mesma definição de coluna, e os períodos
   são contíguos — por isso a série é uma só, sem emenda de metodologia.
-- **Banco Central, SGS série 1619** — salário mínimo mensal, de 2001 em diante. É valor de lei, exato para cada
+- **Banco Central, SGS série 1619** — salário mínimo mensal, de julho de 1994 (Plano Real) em diante. É valor de lei, exato para cada
   mês, e por isso serve de denominador para a série longa: a hora no salário mínimo é o salário dividido por
   **220 horas**, o divisor mensal da jornada de 44 horas semanais (CLT, art. 58 e 64).
 - **IBGE, PNAD Contínua trimestral** — rendimento médio habitual de todos os trabalhos (tabela **5436**,
   variável 5933) e média de horas habitualmente trabalhadas em todos os trabalhos (tabela **6371**, variável
   8190). Mesmo universo nas duas, então a divisão dá a hora do trabalhador médio. O rendimento dessa tabela é
   **real, a preços do último trimestre** — por isso ele só é usado no retrato atual, nunca na série longa.
+- **IBGE, números-índice do IPCA (SIDRA 1737) e do INPC (SIDRA 1736)** — servem para a conferência cruzada: o IPCA
+  mede a cesta de quem ganha de 1 a 40 salários mínimos e o INPC a de quem ganha até 5. Se as duas cestas dão a mesma
+  resposta sobre o salário mínimo, a resposta não depende de qual cesta se escolhe.
 - **Banco Mundial, International Comparison Program (ICP) 2021** — índice de nível de preços por categoria de
   consumo (classificação `PX.WL`, mundo = 100), ano de referência **2021**, publicado em 2024. É a única fonte
   pública que compara o preço de categorias de produto entre países com a mesma cesta. O ICP 2017 publica os
@@ -68,8 +71,10 @@ HORAS_MES = 220  # divisor mensal da jornada de 44 h semanais (CLT, art. 58 e 64
 SEMANAS_MES = 4.345  # 52 semanas ÷ 12 meses
 
 SGS_SM = ("https://api.bcb.gov.br/dados/serie/bcdata.sgs.1619/dados?formato=json"
-          "&dataInicial=01/01/2001&dataFinal=31/12/{ate}")
+          "&dataInicial=01/07/1994&dataFinal=31/12/{ate}")
 SIDRA = "https://apisidra.ibge.gov.br/values/t/{t}/n{n}/all/v/{v}/p/{p}?formato=json"
+# números-índice para a conferência cruzada: IPCA (cesta de 1 a 40 s.m.) e INPC (até 5 s.m.)
+INDICES = {"ipca": (1737, "2266"), "inpc": (1736, "2289")}
 
 WB = "https://api.worldbank.org/v2"
 ICP_FONTE = 90  # ICP 2021
@@ -239,6 +244,24 @@ def rendimento(c: httpx.Client) -> dict:
     return {"trimestre": ultimo, "brasil": dict(sorted(completos.items())), "ufs": ufs}
 
 
+def indices_de_preco(c: httpx.Client) -> dict:
+    """Números-índice do IPCA e do INPC, mês a mês. Servem para medir o salário mínimo nas duas cestas."""
+    saida: dict[str, dict[str, float]] = {}
+    for chave, (tabela, var) in INDICES.items():
+        pontos = {}
+        for l in _sidra(c, tabela, var, "all"):
+            periodo = l.get("Mês (Código)") or l.get("Mês")
+            try:
+                valor = float(str(l.get("Valor")).replace(",", "."))
+            except (TypeError, ValueError):
+                continue
+            if periodo and len(str(periodo)) == 6:
+                pontos[f"{str(periodo)[:4]}-{str(periodo)[4:]}"] = valor
+        if pontos:
+            saida[chave] = dict(sorted(pontos.items()))
+    return saida
+
+
 def _icp(c: httpx.Client, classificacao: str) -> dict[tuple[str, str], float]:
     """Uma classificação do ICP 2021, para os países e categorias escolhidos, no ano de referência."""
     paises, series = ";".join(REF), ";".join(cod for cod, _ in CATEGORIAS)
@@ -316,6 +339,7 @@ def run() -> Path:
         trabalho = rendimento(c)
         internacional = precos_internacionais(c)
         nivel = nivel_de_precos(c)
+        indices = indices_de_preco(c)
 
     if "gasolina" not in serie or len(serie["gasolina"]) < 200:
         raise SystemExit("série da gasolina veio curta — a planilha da ANP mudou?")
@@ -355,6 +379,7 @@ def run() -> Path:
         "hora_media": hora_media,
         "internacional": internacional,
         "nivel_precos": nivel,
+        "indices": indices,
         "notas_anp": notas,
         "fontes": {
             "combustiveis": "ANP, Sistema de Levantamento de Preços — preço médio de revenda, média mensal "
@@ -366,6 +391,8 @@ def run() -> Path:
                         "(tabela 6371, variável 8190)",
             "internacional": "Banco Mundial, International Comparison Program (ICP) 2021 — índice de nível de "
                              "preços por categoria de despesa, ano de referência 2021 (mundo = 100)",
+            "indices": "IBGE, número-índice do IPCA (SIDRA 1737) e do INPC (SIDRA 1736) — o INPC é a cesta de "
+                       "quem ganha até 5 salários mínimos",
             "nivel_precos": "Banco Mundial, séries PA.NUS.PPP (fator de conversão de paridade) e PA.NUS.FCRF "
                             "(câmbio oficial); a razão entre as duas é o nível de preços em relação aos EUA",
         },

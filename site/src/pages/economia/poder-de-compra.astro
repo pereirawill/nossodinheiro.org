@@ -51,6 +51,34 @@ const caminho = (chave: string) => (combs[chave]?.serie ?? []).filter((x: any) =
   .map((x: any, i: number) => `${i ? "L" : "M"}${px(x.mes).toFixed(1)} ${py(x.minutos_sm).toFixed(1)}`).join(" ");
 const anosEixo = [2002, 2006, 2010, 2014, 2018, 2022, 2026];
 
+// A conferência que torna a conta falsificável: o salário mínimo medido nas duas cestas oficiais e em coisas.
+const sm = pr.salario_minimo as Record<string, number>;
+const idx = (pr as any).indices ?? {};
+const MARCOS = [
+  { mes: "1994-07", rotulo: "julho de 1994", nota: "o mês em que o real nasceu" },
+  { mes: "2001-07", rotulo: "julho de 2001", nota: "o começo da série de preços da ANP" },
+  { mes: "2006-09", rotulo: "setembro de 2006", nota: "vinte anos atrás" },
+  { mes: "2016-09", rotulo: "setembro de 2016", nota: "dez anos atrás" },
+].filter((m) => sm[m.mes] && idx.ipca?.[m.mes] && idx.inpc?.[m.mes]);
+const linhasCesta = MARCOS.map((m) => {
+  const multSM = sm[pr.mes] / sm[m.mes];
+  const multIPCA = idx.ipca[pr.mes] / idx.ipca[m.mes];
+  const multINPC = idx.inpc[pr.mes] / idx.inpc[m.mes];
+  return { ...m, multSM, multIPCA, multINPC,
+           ganhoIPCA: 100 * (multSM / multIPCA - 1), ganhoINPC: 100 * (multSM / multINPC - 1) };
+});
+// "em coisas": quantas unidades de cada combustível um salário mínimo paga, sem deflator nenhum
+const BASE_COISAS = "2001-07";
+const emCoisas = ORDEM.map((k) => {
+  const serie = combs[k]?.serie ?? [];
+  const ini = serie.find((x: any) => x.mes === BASE_COISAS);
+  const fim = serie[serie.length - 1];
+  if (!ini || !fim) return null;
+  return { nome: combs[k].nome, unidade: combs[k].unidade,
+           antes: sm[BASE_COISAS] / ini.preco, agora: sm[pr.mes] / fim.preco,
+           precoAntes: ini.preco, precoAgora: fim.preco };
+}).filter(Boolean) as any[];
+
 // estados: minutos de trabalho por litro de gasolina, pela hora média do próprio estado
 const ufs = pr.ufs as Record<string, Record<string, any>>;
 const linhasUF = Object.entries(ufs).filter(([, v]) => v.gasolina?.minutos_medio)
@@ -184,6 +212,77 @@ const ocdeRenda = ocdeAno ? ocde.bases["Renda, Lucros e Ganhos de Capital"][ocde
       ela isola o preço; a coluna do meio usa o rendimento médio do próprio estado e mistura preço com renda. Clique
       no cabeçalho para ordenar.
     </p>
+  </div>
+
+
+  <h2>Como conferir isto sem acreditar em índice nenhum</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      Dizer que o preço caiu em tempo de trabalho depende de duas coisas: o preço, que a ANP publica, e quanto vale
+      a hora, que depende do salário. Quem desconfia do índice de inflação tem um bom motivo — o índice é uma média
+      de cestas, e ninguém compra a cesta média. Então a página faz o teste <b>sem índice</b>: conta quantas
+      unidades da mesma coisa um salário mínimo pagava e paga hoje.
+    </p>
+    <table>
+      <thead><tr><th>Um salário mínimo pagava…</th><th class="num">Em {mesRotulo(BASE_COISAS)}</th><th class="num">Em {mesRotulo(pr.mes)}</th><th class="num">Diferença</th></tr></thead>
+      <tbody>{emCoisas.map((c) => (<tr>
+        <td>{c.nome} <span class="un">{c.unidade}</span></td>
+        <td class="num">{n1(c.antes)} <span class="un">a {brl(c.precoAntes)}</span></td>
+        <td class="num">{n1(c.agora)} <span class="un">a {brl(c.precoAgora)}</span></td>
+        <td class="num"><b>{c.agora >= c.antes ? "+" : "−"}{n1(Math.abs(100 * (c.agora / c.antes - 1)))}%</b></td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Nenhuma dessas linhas usa índice de inflação: é o salário mínimo do mês dividido pelo preço médio do mês, nos
+      dois extremos da série da ANP. <b>São combustíveis, não a cesta inteira</b> — é o que existe publicado em reais
+      desde 2001. Quem quiser refazer a conta precisa só de duas colunas: o salário mínimo (lei) e o preço da ANP.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">E a moeda, que perdeu valor?</h3>
+    <p style="margin:0 0 10px">
+      Perdeu mesmo — e isso <b>já está</b> dentro da conta, não é um desconto a mais. A coluna do meio é o quanto os
+      preços multiplicaram; a da esquerda, o quanto o salário mínimo multiplicou. O poder de compra é a divisão de uma
+      pela outra. Contar a desvalorização de novo seria descontá-la duas vezes.
+    </p>
+    <table>
+      <thead><tr><th>Desde</th><th class="num">Salário mínimo ×</th><th class="num">Preços × (IPCA)</th><th class="num">Preços × (INPC)</th><th class="num">Poder de compra</th></tr></thead>
+      <tbody>{linhasCesta.map((l) => (<tr>
+        <td>{l.rotulo} <span class="un">{l.nota}</span></td>
+        <td class="num">{n1(l.multSM)}×</td>
+        <td class="num">{n1(l.multIPCA)}×</td>
+        <td class="num">{n1(l.multINPC)}×</td>
+        <td class="num"><b>{l.ganhoIPCA >= 0 ? "+" : "−"}{n1(Math.abs(l.ganhoIPCA))}%</b></td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      <b>O IPCA mede a cesta de quem ganha de 1 a 40 salários mínimos; o INPC, a de quem ganha até 5.</b> As duas
+      colunas estão aí de propósito: se a resposta mudasse conforme a cesta escolhida, não daria para publicar nada.
+      Ela não muda — pelo INPC o ganho desde {linhasCesta[0]?.rotulo} é de {n1(linhasCesta[0]?.ganhoINPC ?? 0)}%,
+      contra {n1(linhasCesta[0]?.ganhoIPCA ?? 0)}% pelo IPCA.
+      <b>E o que precisaria ser verdade para o resultado se inverter:</b> os preços teriam de ter multiplicado por
+      mais de {n1(linhasCesta.find((l) => l.mes === "2006-09")?.multSM ?? 0)} em vinte anos, e não pelos
+      {" "}{n1(linhasCesta.find((l) => l.mes === "2006-09")?.multIPCA ?? 0)} que o IBGE mede — ou seja, a inflação
+      verdadeira teria de ter sido mais da metade maior que a oficial, todo mês, por vinte anos.
+      Em <a href="/inflacao/#poder-de-compra">Inflação</a> está a outra metade da mesma conta: R$ 100 de 1994 compram
+      hoje o que {n1(100 / (linhasCesta.find((l) => l.mes === "1994-07")?.multIPCA ?? 1))} reais compravam. É o mesmo
+      número, visto do lado do dinheiro parado em vez do lado de quem trabalha.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Três coisas que esta conta não diz</h3>
+    <ul class="dois">
+      <li><b>Ela vale para o salário mínimo, não para todo mundo.</b> O mínimo subiu bem mais que o resto: o
+        rendimento médio de quem trabalha, pela PNAD Contínua, subiu 15,5% em treze anos, enquanto o mínimo subiu
+        mais do que isso no mesmo período. Quem tem salário que só acompanhou a média teve ganho muito menor.</li>
+      <li><b>Ela é sobre o que entra, não sobre o que sobra.</b> Em 2005 as famílias brasileiras deviam 16,5% da
+        renda de um ano e o pagamento das dívidas consumia 17,0% da renda do mês; hoje são 50,1% e 29,0% — os dois
+        no maior nível da série. Ganhar mais e sobrar menos podem acontecer ao mesmo tempo, e estão acontecendo:
+        está em <a href="/inadimplencia/">Inadimplência</a>.</li>
+      <li><b>Ela é a média da cesta, e ninguém compra a média.</b> Aluguel, plano de saúde e mensalidade escolar
+        podem ter subido acima do índice sem que o índice erre. A série do IPCA aberta por grupo de gasto, que
+        permitiria testar isso item a item, ainda não está neste site.</li>
+    </ul>
   </div>
 
   <h2>O que é caro no Brasil — e o que é barato</h2>
