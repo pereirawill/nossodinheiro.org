@@ -95,22 +95,29 @@ def _get(c: httpx.Client, url: str, tentativas: int = 4) -> list[dict]:
     raise RuntimeError(f"IF.data não respondeu: {url}")
 
 
-def _cache(c: httpx.Client, nome: str, url: str) -> list[dict]:
+def _cache(c: httpx.Client, nome: str, url: str, ano: int | None = None) -> list[dict]:
+    """
+    Guarda o retorno bruto para que reexecutar não repita ~110 requisições. Dois cuidados: resposta **vazia**
+    (período ainda não publicado) não vira arquivo, senão o período nunca mais seria buscado; e o **ano em
+    curso** não é cacheado, porque o IF.data reapresenta os trimestres recentes.
+    """
     arq = RAW / "ifdata" / f"{nome}.json.gz"
-    if arq.exists():
+    cachear = ano is None or ano < datetime.now(timezone.utc).year
+    if cachear and arq.exists():
         with gzip.open(arq, "rt", encoding="utf-8") as f:
             return json.load(f)
     v = _get(c, url)
-    arq.parent.mkdir(parents=True, exist_ok=True)
-    with gzip.open(arq, "wt", encoding="utf-8") as f:
-        json.dump(v, f)
+    if v and cachear:
+        arq.parent.mkdir(parents=True, exist_ok=True)
+        with gzip.open(arq, "wt", encoding="utf-8") as f:
+            json.dump(v, f)
     return v
 
 
 def cadastro(c: httpx.Client, anomes: int) -> dict[str, dict]:
     url = f"{OLINDA}IfDataCadastro(AnoMes=@AnoMes)?@AnoMes={anomes}&$format=json"
     out = {}
-    for x in _cache(c, f"cadastro_{anomes}", url):
+    for x in _cache(c, f"cadastro_{anomes}", url, anomes // 100):
         out[x["CodInst"]] = {"nome": (x.get("NomeInstituicao") or "").strip(),
                              "tcb": (x.get("Tcb") or "").strip().upper(),
                              "prudencial": x.get("CodConglomeradoPrudencial"),
@@ -124,7 +131,7 @@ def resumo(c: httpx.Client, anomes: int, tipo: int = TIPO_FINANCEIRO) -> dict[st
            f"?@AnoMes={anomes}&@TipoInstituicao={tipo}&@Relatorio='1'&$format=json")
     bruto: dict[tuple, float] = {}
     sem_codigo = 0
-    for x in _cache(c, f"resumo_{tipo}_{anomes}", url):
+    for x in _cache(c, f"resumo_{tipo}_{anomes}", url, anomes // 100):
         campo = COLUNAS.get((x.get("NomeColuna") or "").split("\n")[0].strip())
         if campo is None:
             continue
@@ -199,8 +206,12 @@ def ler_anos(c: httpx.Client) -> list[dict]:
             inst[cod] = {"lucro": (s1.get(cod, {}).get("lucro") or 0.0) + (s2.get(cod, {}).get("lucro") or 0.0),
                          "pl": fim.get("pl") or 0.0, "ativo": fim.get("ativo") or 0.0,
                          "credito": fim.get("credito") or 0.0}
-        out.append({"ano": ano, "parcial": not s2, "periodos": periodos,
-                    "inst": inst, "cadastro": cadastro(c, periodos[-1])})
+        # Cadastro dos dois períodos: a instituição que é comprada no meio do ano tem resultado em junho e já
+        # não aparece no cadastro de dezembro — sem o de junho ela ficaria sem nome e sem tipo.
+        cad: dict[str, dict] = {}
+        for p in periodos:
+            cad.update(cadastro(c, p))
+        out.append({"ano": ano, "parcial": not s2, "periodos": periodos, "inst": inst, "cadastro": cad})
     return out
 
 
@@ -241,18 +252,37 @@ def _chaves(dados: list[dict]) -> dict[tuple[int, str], str]:
     return chaves
 
 
+def _tipo_por_grupo(reg_por_ano: dict[int, dict[str, dict]]) -> dict[tuple[int, str], str]:
+    """
+    Tipo de consolidado bancário de cada grupo em cada ano. A instituição que é comprada ou fecha no meio do ano
+    tem resultado em dezembro mas já não está no cadastro daquele mês (o Unibanco em 2008, R$ 1,5 bi) — sem
+    preencher a lacuna ela sairia da soma dos segmentos em silêncio. A lacuna é preenchida pelo ano conhecido
+    mais próximo do mesmo grupo, primeiro olhando para trás e depois para a frente.
+    """
+    anos = sorted(reg_por_ano)
+    conhecido: dict[str, dict[int, str]] = defaultdict(dict)
+    for ano in anos:
+        for g, r in reg_por_ano[ano].items():
+            if r["tcb"]:
+                conhecido[g][ano] = r["tcb"]
+    fora: dict[tuple[int, str], str] = {}
+    for ano in anos:
+        for g in reg_por_ano[ano]:
+            vistos = conhecido.get(g, {})
+            if not vistos:
+                continue
+            antes = [a for a in vistos if a <= ano]
+            fora[(ano, g)] = vistos[max(antes)] if antes else vistos[min(vistos)]
+    return fora
+
+
 def consolidar(dados: list[dict]) -> tuple[list[dict], dict[str, dict], int]:
     chaves = _chaves(dados)
-    anos: list[dict] = []
-    series: dict[str, dict] = defaultdict(lambda: {"serie": {}, "nome": None, "tcb": ""})
-    ultimo_fechado = 0
+    reg_por_ano: dict[int, dict[str, dict]] = {}
     for d in dados:
-        ano = d["ano"]
-        if not d["parcial"]:
-            ultimo_fechado = ano
         reg: dict[str, dict] = {}
         for cod, v in d["inst"].items():
-            g = chaves.get((ano, cod), cod)
+            g = chaves.get((d["ano"], cod), cod)
             r = reg.setdefault(g, {"lucro": 0.0, "pl": 0.0, "ativo": 0.0, "credito": 0.0, "n": 0,
                                    "nome": None, "tcb": "", "_ativo": -1.0})
             for campo in ("lucro", "pl", "ativo", "credito"):
@@ -261,27 +291,45 @@ def consolidar(dados: list[dict]) -> tuple[list[dict], dict[str, dict], int]:
             info = d["cadastro"].get(cod, {})
             if info.get("nome") and v["ativo"] >= r["_ativo"]:     # nome e tipo vêm da líder do grupo no ano
                 r["_ativo"], r["nome"], r["tcb"] = v["ativo"], info["nome"], info.get("tcb", "")
-        seg = {k: {"lucro": 0.0, "pl": 0.0, "n": 0} for k in ("bancos", "cooperativas", "nao_bancarias")}
+        reg_por_ano[d["ano"]] = reg
+    tipo = _tipo_por_grupo(reg_por_ano)
+
+    anos: list[dict] = []
+    series: dict[str, dict] = defaultdict(lambda: {"serie": {}, "nome": None, "tcb": ""})
+    ultimo_fechado = 0
+    for d in dados:
+        ano = d["ano"]
+        if not d["parcial"]:
+            ultimo_fechado = ano
+        reg = reg_por_ano[ano]
+        seg = {k: {"lucro": 0.0, "pl": 0.0, "n": 0}
+               for k in ("bancos", "cooperativas", "nao_bancarias", "sem_classificacao")}
         for g, r in reg.items():
             ser = series[g]
-            # Banco que sai do cadastro (fusão) mantém o último nome conhecido: o Unibanco não aparece no
-            # cadastro de dez/2008, mas tem resultado no ano.
             if r["nome"]:
-                ser["nome"], ser["tcb"] = r["nome"], r["tcb"]
-            tcb = r["tcb"] or ser["tcb"]
-            s = SEGMENTO.get(tcb, (None, ""))[0]
+                ser["nome"] = r["nome"]
+            tcb = tipo.get((ano, g), "")
+            s = SEGMENTO.get(tcb, (None, ""))[0] or "sem_classificacao"
             ser["segmento"], ser["tcb"] = s, tcb
-            if s:
-                seg[s]["lucro"] += r["lucro"]
-                seg[s]["pl"] += r["pl"]
-                seg[s]["n"] += 1
+            seg[s]["lucro"] += r["lucro"]
+            seg[s]["pl"] += r["pl"]
+            seg[s]["n"] += 1
             ser["serie"][str(ano)] = {k: round(r[k], 2) for k in ("lucro", "pl", "ativo", "credito")}
+        total = sum(r["lucro"] for r in reg.values())
+        # Invariante: nenhum grupo pode sumir entre os segmentos e o total; e o que ficou sem classificação (o
+        # BC nunca publicou o tipo dele) tem de ser miudeza, senão é código novo do BC que precisa entrar.
+        if abs(sum(v["lucro"] for v in seg.values()) - total) > 1 or sum(v["n"] for v in seg.values()) != len(reg):
+            raise RuntimeError(f"{ano}: os segmentos não somam o total")
+        if total and abs(seg["sem_classificacao"]["lucro"]) > 0.01 * abs(total):
+            raise RuntimeError(f"{ano}: R$ {seg['sem_classificacao']['lucro'] / 1e9:.2f} bi em "
+                               f"{seg['sem_classificacao']['n']} grupos sem tipo de consolidado bancário — "
+                               "tipo novo no cadastro do BC, revisar SEGMENTO")
         anos.append({"ano": ano, "parcial": d["parcial"], "periodos": d["periodos"],
                      "segmentos": {k: {"lucro": round(v["lucro"], 2), "pl": round(v["pl"], 2), "n": v["n"]}
                                    for k, v in seg.items()},
-                     "total": {"lucro": round(sum(r["lucro"] for r in reg.values()), 2), "n": len(reg)}})
-        log.info("%d: %sbancos R$ %.1f bi (%d grupos)", ano, "parcial " if d["parcial"] else "",
-                 seg["bancos"]["lucro"] / 1e9, len(reg))
+                     "total": {"lucro": round(total, 2), "n": len(reg)}})
+        log.info("%d: %sbancos R$ %.1f bi (%d grupos, %d sem tipo)", ano, "parcial " if d["parcial"] else "",
+                 seg["bancos"]["lucro"] / 1e9, len(reg), seg["sem_classificacao"]["n"])
     for g, s in series.items():
         s["nome"] = s["nome"] or g
     return anos, dict(series), ultimo_fechado

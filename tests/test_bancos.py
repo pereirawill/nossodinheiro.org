@@ -20,7 +20,7 @@ def _linha(cod, campo, valor, anomes="202512"):
 
 
 def _resumo_de(linhas, monkeypatch):
-    monkeypatch.setattr("etl.bancos.extract._cache", lambda c, nome, url: linhas)
+    monkeypatch.setattr("etl.bancos.extract._cache", lambda c, nome, url, ano=None: linhas)
     return resumo(None, 202512)
 
 

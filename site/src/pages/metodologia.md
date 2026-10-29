@@ -291,7 +291,7 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   independentes*; IPCA (SIDRA 1737) para corrigir a série; CVM (DFP) e o recorte *conglomerado prudencial* para conferir.
 - **Atenção:** **o lucro do IF.data acumula no semestre**, não no ano — junho é jan–jun e dezembro é jul–dez, então o ano é a
   soma dos dois; somar os quatro trimestres contaria o primeiro semestre duas vezes (há invariante no ETL, conferido em todos
-  os 27 anos). **Não existe 1988**: o IF.data começa em março de 2000 e os períodos anteriores voltam vazios. Cada linha do
+  os 27 anos), e os quatro segmentos têm de somar o total em reais e em número de grupos. **Não existe 1988**: o IF.data começa em março de 2000 e os períodos anteriores voltam vazios. Cada linha do
   ranking é o **grupo** — o conglomerado financeiro mais as instituições do mesmo dono que o BC publica à parte (Redecard no
   Itaú, Getnet no Santander, as duas metades do Nubank) —, e o critério é o conglomerado prudencial **do ano**, para que a
   compra de uma corretora não jogue para o comprador o lucro que ela teve antes de ser comprada. **Banco comprado tem a série

@@ -21,7 +21,7 @@ const deflator = d.deflator as Record<string, number>;
 const real = (v: number, ano: number | string) => v * (deflator[String(ano)] ?? 1);
 const ultimo = fechados[fechados.length - 1];
 const parcial = anos.find((a) => a.parcial);
-const MES_PARCIAL: Record<number, string> = { 3: "o primeiro trimestre", 6: "o primeiro semestre", 9: "os nove primeiros meses" };
+const MES_PARCIAL: Record<number, string> = { 3: "o primeiro trimestre", 6: "o primeiro semestre" };
 const rotuloParcial = parcial ? (MES_PARCIAL[parcial.periodos[parcial.periodos.length - 1] % 100] ?? "parte do ano") : "";
 const seg = (a: any, k: string) => a.segmentos[k];
 
@@ -35,11 +35,15 @@ const semSentido = (d.concentracao as any[]).filter((c) => c.sem_sentido).map((c
 const concUlt = conc.filter((c) => c.ano <= base).slice(-1)[0];
 const concMax = conc.reduce((m, c) => (c.pct_cinco_maiores > m.pct_cinco_maiores ? c : m), conc[0]);
 
-// Imposto federal das entidades financeiras: as quatro linhas que a Receita publica separadamente.
-const trib = (impostos.anual as any[]).find((a) => a.ano === base)?.tributos ?? {};
+// Imposto federal das entidades financeiras: as quatro linhas que a Receita publica separadamente. Só ano
+// completo — `impostos.json` carrega o ano em curso com os meses que já saíram, e compará-lo com doze meses de
+// lucro daria uma razão errada sem avisar.
+const anoTrib = (impostos.anual as any[]).filter((a) => a.meses === 12 && a.ano <= base).slice(-1)[0];
+const trib = anoTrib?.tributos ?? {};
 const LINHAS_FIN = ["IRPJ - ENTIDADES FINANCEIRAS", "CSLL - FINANCEIRAS", "COFINS - FINANCEIRAS",
   "CONTRIBUIÇÃO PARA O PIS/PASEP - FINANCEIRAS"];
 const impostoFin = LINHAS_FIN.reduce((s, k) => s + (trib[k] ?? 0), 0);
+const lucroTrib = fechados.find((a) => a.ano === anoTrib?.ano);
 const populacao = impostos.populacao as number;
 
 // gráfico de barras: lucro do segmento bancário por ano, em reais do ano-base
@@ -70,6 +74,7 @@ const rotulos = cinco.map((m, k) => ({ nome: curto(m.nome), cor: CORES[k],
 const caminho = (m: any) => anosLinha.map((a, i) => `${i ? "L" : "M"}${xL(i).toFixed(1)} ${yL(real(m.serie[String(a)]?.lucro ?? 0, a)).toFixed(1)}`).join(" ");
 
 const cvm = (d.conferencia_cvm as any)?.bancos ?? [];
+const anoCvm = (d.conferencia_cvm as any)?.ano;
 const prud = d.conferencia_prudencial as any;
 const difPrud = prud?.lucro_bancos ? (100 * (seg(ultimo, "bancos").lucro - prud.lucro_bancos)) / prud.lucro_bancos : 0;
 const nubank = maiores.find((m) => m.segmento === "nao_bancarias");
@@ -123,9 +128,10 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
     <p class="src">
       Valores em bilhões de reais de {base}, corrigidos pelo <Termo t="ipca">IPCA</Termo> de dezembro de cada ano.
       O lucro do setor em {ultimo.ano} é <b>{n1(real(seg(ultimo, "bancos").lucro, ultimo.ano) / real(seg(fechados[0], "bancos").lucro, fechados[0].ano))} vezes</b>
-      {" "}o de 2000. A barra de {pior.ano} é a exceção: naquele ano a Caixa e o então Banespa fecharam com prejuízo
-      no primeiro semestre, no meio da reestruturação dos bancos federais e da compra do Banespa pelo Santander, e o
-      setor inteiro terminou o ano em R$ {bi(real(seg(pior, "bancos").lucro, pior.ano))}. A última barra, mais clara, é
+      {" "}o de 2000. A barra de {pior.ano} é a exceção: naquele ano a Caixa e o então Banespa fecharam o primeiro
+      semestre com prejuízo de bilhões e o setor inteiro terminou o ano em
+      R$ {bi(real(seg(pior, "bancos").lucro, pior.ano))}. <b>Esta base não diz por quê</b> — ela traz o resultado,
+      não a explicação, e não vamos escrevê-la aqui. A última barra, mais clara, é
       {" "}{parcial ? `${parcial.ano} com apenas ${rotuloParcial}` : "parcial"} —
       não é um ano fechado e não entra em nenhuma soma desta página.
     </p>
@@ -199,7 +205,9 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
       <tbody>
         {[["bancos", "Bancos (comerciais, múltiplos, de investimento e de desenvolvimento)"],
           ["cooperativas", "Cooperativas de crédito"],
-          ["nao_bancarias", "Financeiras, corretoras e instituições de pagamento"]].map(([k, rot]) => { const s = seg(ultimo, k as string); return (<tr>
+          ["nao_bancarias", "Financeiras, corretoras e instituições de pagamento"],
+          ["sem_classificacao", "Sem tipo publicado pelo Banco Central"]]
+          .filter(([k]) => seg(ultimo, k as string).n > 0).map(([k, rot]) => { const s = seg(ultimo, k as string); return (<tr>
           <td>{rot}</td><td class="num">R$ {bi(s.lucro)}</td><td class="num">{num(s.n)}</td>
           <td class="num">{s.pl > 0 ? `${n1(roe(s.lucro, s.pl))}%` : "—"}</td></tr>); })}
         <tr class="destaque"><td><b>Todo o sistema financeiro</b></td><td class="num"><b>R$ {bi(ultimo.total.lucro)}</b></td>
@@ -208,51 +216,58 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
     </table>
     <p class="src">
       A classificação é do Banco Central (campo "tipo de consolidado bancário"), não nossa. O destaque desta página
-      é a primeira linha, porque a pergunta era sobre bancos; as outras estão aqui para que a soma feche e para
-      mostrar onde entram as fintechs. O total do sistema inclui cerca de {num(ultimo.total.n - seg(ultimo, "bancos").n)}
+      é a primeira linha, porque a pergunta era sobre bancos; as outras estão aqui para que a soma feche —
+      ela fecha no centavo — e para mostrar onde entram as fintechs. O total do sistema inclui cerca de {num(ultimo.total.n - seg(ultimo, "bancos").n)}
       {" "}grupos que não são bancos, a maioria cooperativa pequena.
     </p>
   </div>
 
+  {anoTrib && lucroTrib && <>
   <h2>Lucro e imposto, no mesmo ano</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Em {base}</th><th class="num">R$</th></tr></thead>
+      <thead><tr><th>Em {anoTrib.ano}</th><th class="num">R$</th></tr></thead>
       <tbody>
-        <tr><td>Lucro dos bancos (Banco Central)</td><td class="num">{bi(seg(ultimo, "bancos").lucro)}</td></tr>
+        <tr><td>Lucro dos bancos (Banco Central)</td><td class="num">{bi(seg(lucroTrib, "bancos").lucro)}</td></tr>
         {LINHAS_FIN.map((k) => (<tr><td class="sub">{k.replace("CONTRIBUIÇÃO PARA O ", "")}</td><td class="num">{bi(trib[k] ?? 0)}</td></tr>))}
         <tr class="destaque"><td><b>Imposto federal das entidades financeiras (Receita Federal)</b></td><td class="num"><b>{bi(impostoFin)}</b></td></tr>
       </tbody>
     </table>
     <p class="src">
       A Receita Federal publica quatro linhas de arrecadação só de <b>entidades financeiras</b>: IRPJ, CSLL, Cofins e
-      PIS/Pasep. Em {base} somaram R$ {bi(impostoFin)}, ou {pct(impostoFin, (impostos.anual as any[]).find((a) => a.ano === base)?.total ?? 1)}
-      {" "}de toda a arrecadação federal do ano. <b>Os dois números não são divisíveis um pelo outro</b>: "entidades
+      PIS/Pasep. Em {anoTrib.ano} somaram R$ {bi(impostoFin)}, ou {pct(impostoFin, anoTrib.total)} de toda a
+      arrecadação federal do ano — o último ano fechado dos dois lados. <b>Os dois números não são divisíveis um pelo outro</b>: "entidades
       financeiras" na Receita inclui seguradora e outras empresas que não estão no nosso total de bancos, e de fora
       ficam o <Termo t="arrecadacao">IOF</Termo> que o cliente paga, a contribuição sobre a folha e os tributos
       estaduais e municipais. Estão lado a lado porque são o mesmo ano e as duas fontes são oficiais — a conta de
       quanto o setor paga sobre o próprio lucro exigiria a base de cálculo de cada banco, que não é pública.
       Arrecadação completa em <a href="/impostos/">Impostos</a>.
     </p>
-  </div>
+  </div></>}
 
   <h2>Duas fontes oficiais para o mesmo lucro</h2>
   <div class="card">
-    {cvm.length > 0 && <table>
+    {cvm.length > 0 ? <><table>
       <thead><tr><th>Grupo</th><th class="num">Banco Central (IF.data)</th><th class="num">CVM (balanço da holding)</th><th class="num">Diferença</th></tr></thead>
       <tbody>{cvm.map((b: any) => (<tr>
         <td>{b.nome}</td><td class="num">{bi(b.ifdata)}</td><td class="num">{bi(b.cvm)}</td>
         <td class="num">{n1(b.dif_pct)}%</td></tr>))}</tbody>
-    </table>}
+    </table>
     <p class="src">
-      Em {base}, as duas fontes dão números diferentes para os mesmos bancos, e <b>é assim que tem de ser</b>: o
+      Em {anoCvm}, as duas fontes dão números diferentes para os mesmos bancos, e <b>é assim que tem de ser</b>: o
       IF.data mede o conglomerado financeiro <b>no Brasil</b> pelas regras do Cosif; o balanço entregue à CVM é da
       <b> holding</b> inteira, com as empresas não financeiras do grupo e as operações no exterior, em outro padrão
       contábil. Publicamos os dois em vez de escolher um. Dentro do próprio Banco Central a conta fecha: pelo
       <Termo t="conglomerado_prudencial">conglomerado prudencial</Termo>, que existe desde 2014 e reúne também as
       não financeiras do grupo, o lucro dos bancos em {ultimo.ano} é R$ {bi(prud.lucro_bancos)} — {n1(Math.abs(difPrud))}%
       de diferença para o número desta página. Essa conferência está registrada em <a href="/conferir/">Como conferir</a>.
-    </p>
+    </p></> : <p class="src">
+      Dentro do próprio Banco Central a conta fecha: pelo <Termo t="conglomerado_prudencial">conglomerado
+      prudencial</Termo>, que existe desde 2014 e reúne também as não financeiras do grupo, o lucro dos bancos em
+      {" "}{ultimo.ano} é R$ {bi(prud.lucro_bancos)} — {n1(Math.abs(difPrud))}% de diferença para o número desta
+      página. A conferência contra o balanço que os bancos de capital aberto entregam à CVM entra quando a CVM
+      publicar as demonstrações do ano, o que costuma acontecer depois.
+    </p>}
   </div>
 
   <h2>O que esta página não responde</h2>

@@ -75,7 +75,7 @@ até 2008, ABN Amro até 2008, HSBC até 2016. Logo, o Itaú da série não incl
 
 ## 4. O que está publicado
 
-- `anos`: por ano, o lucro e o patrimônio de cada segmento (bancos, cooperativas, não bancárias), o total do sistema,
+- `anos`: por ano, o lucro e o patrimônio de cada segmento (bancos, cooperativas, não bancárias, sem classificação), o total do sistema,
   os períodos usados e se o ano é parcial.
 - `maiores`: os 15 grupos de maior lucro somado em reais do ano-base, com a série ano a ano (lucro, patrimônio, ativo,
   carteira de crédito).
@@ -95,11 +95,18 @@ cooperativas; N1 a N4 são não bancárias. A classificação do grupo é a do s
   (instituição, conta, campo) e **falha** se duas cópias discordarem — repetição é dedupe, divergência é erro de leitura.
 - **Concentração em ano de prejuízo.** Em 2001 o setor somou quase zero e a fatia dos cinco maiores dá 10.651%. A
   conta é uma divisão, não uma medida de mercado: esses anos são marcados com `sem_sentido` e a página não os mostra.
-- **Nome que desaparece.** O Unibanco tem resultado em dezembro de 2008 mas já não está no cadastro daquele mês
-  (fusão com o Itaú). O último nome conhecido é preservado.
+- **Instituição que desaparece no meio do ano.** O Unibanco tem resultado em dezembro de 2008 (R$ 1,49 bi) mas já
+  não está no cadastro daquele mês (fusão com o Itaú). Por isso o cadastro é lido nos **dois períodos** do ano e a
+  lacuna do tipo de consolidado é preenchida pelo ano conhecido mais próximo do mesmo grupo, olhando primeiro para
+  trás. Sem isso o grupo some da soma dos segmentos **sem erro nenhum aparecer** — era o caso antes da correção.
+  Sobra uma instituição por ano sem tipo em oito dos 27 anos, nenhuma passando de R$ 20 milhões.
+- **Invariante da soma.** Os quatro segmentos (bancos, cooperativas, não bancárias e sem classificação) têm de
+  somar o total em reais e em número de grupos, e o que ficou sem classificação não pode passar de 1% do total —
+  se passar, é tipo novo no cadastro do BC e o ETL falha em vez de publicar uma soma que não fecha.
 - **Olinda instável.** Como o SGS, devolve 502/504 e HTML com status 200; há quatro tentativas e checagem de
   content-type. O retorno bruto é guardado em `data/raw/ifdata/` (não versionado) para que uma reexecução não repita
-  as ~110 requisições.
+  as ~140 requisições — mas resposta **vazia** não vira arquivo (senão o período nunca mais seria buscado) e o **ano
+  em curso** não é cacheado, porque o IF.data reapresenta os trimestres recentes.
 
 ## 6. O que o painel não responde
 
