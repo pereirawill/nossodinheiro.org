@@ -90,6 +90,17 @@ const ITL = 920, ITH = 30 + linhasLongo.length * 22, itPadL = 230, itPadR = 80;
 const maxMult = Math.max(...linhasLongo.map((l) => l.mult), multGeral);
 const itw = (v: number) => (v / maxMult) * (ITL - itPadL - itPadR);
 
+// A ponte que faltava: R$ 100 não comprava mais só porque os preços eram menores — é que R$ 100 ERA muito mais
+// dinheiro em relação ao que se ganhava. Em jul/1994 valia um mês e meio de salário mínimo; hoje, dois dias.
+const smPC = (precos as any).salario_minimo ?? {};
+const PC_BASE = "1994-07";
+const PC_HOJE = Object.keys(smPC).filter((m) => m <= "2026-12").sort().filter((m) => smPC[m]).pop() as string;
+const smBase = smPC[PC_BASE] ?? null;
+const smHoje = smPC["2026-09"] ?? null;
+const cemEmSM = (s: number | null) => (s ? 100 / s : null);
+const smBaseQtd = cemEmSM(smBase), smHojeQtd = cemEmSM(smHoje);
+const diasDe = (q: number | null) => (q ? q * 30 : null);
+
 // Poder de compra do real: quanto R$ 100 de julho de 1994 (quando a moeda nasceu) compram em cada mês desde então
 const REAL = "199407";
 const mesesReal = Object.keys(indice).filter((m) => m >= REAL).sort();
@@ -185,6 +196,31 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
     <p class="src">Projeção simples, não previsão: repete a inflação de 12 meses até {mesPorExtenso} para a frente. Serve para mostrar o efeito do juro composto ao contrário — a inflação futura pode ser maior ou menor, e dinheiro aplicado rende.</p>
   </div>
 
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">“Mas com R$ 100 hoje eu não compro quase nada, e antes comprava muito mais”</h3>
+    <p style="margin:0 0 10px">
+      Verdade — e a razão não é só que os preços subiram. É que <b>R$ 100 deixou de ser muito dinheiro</b>.
+      Compare com o salário mínimo, que é a régua mais concreta que existe:
+    </p>
+    {smBaseQtd && smHojeQtd && <div class="conta">
+      <div><span>Julho de 1994</span><b>R$ 100 ÷ {brl(smBase ?? 0)}</b><i>= {n2l(smBaseQtd)} salários mínimos, ou {Math.round(diasDe(smBaseQtd) ?? 0)} dias de trabalho</i></div>
+      <div class="seta" aria-hidden="true">→</div>
+      <div><span>Hoje</span><b>R$ 100 ÷ {brl(smHoje ?? 0)}</b><i>= {n2l(smHojeQtd)} do salário mínimo, ou {n1l(diasDe(smHojeQtd) ?? 0)} dias de trabalho</i></div>
+    </div>}
+    <p class="src">
+      Em 1994, R$ 100 eram <b>mais de um mês e meio de trabalho</b> de quem ganhava o mínimo. Hoje são
+      {" "}<b>menos de dois dias</b>. Claro que compravam mais: era uma quantia muito maior na vida de quem
+      recebia. <b>A nota de R$ 100 continuou sendo R$ 100 — o salário é que não ficou parado.</b> Quem guardou
+      cem reais em 1994 e não mexeu tem hoje o poder de compra de {brl(poderHoje)}; quem ganhava o mínimo, de
+      {" "}{brl(smBase ?? 0)} por mês, ganha {brl(smHoje ?? 0)}.
+      <b>As duas frases desta página são verdadeiras ao mesmo tempo</b>: o dinheiro parado perdeu
+      {" "}{pct(perdaReal, 1)}, e quem vive de salário comprava menos coisas em 1994 do que compra hoje. A
+      primeira é sobre a cédula; a segunda, sobre a renda. Confundir uma com a outra é o que faz a conta parecer
+      errada.
+    </p>
+  </div>
+
+
   <h2>Inflação em 12 meses, mês a mês, desde 1996</h2>
   <div class="card">
     <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="IPCA acumulado em 12 meses desde 1996">
@@ -247,27 +283,28 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
   <div class="card">
     <p style="margin:0 0 10px">
       <b>Pense numa coisa que custava R$ 1,00 em {mesPtBr(baseLongo)}.</b> Se ela acompanhou a média dos preços,
-      hoje custa {brl0(multGeral)}. Mas quase nada acompanha a média: se ela subiu
-      como o pão, hoje custa {pao ? brl0(pao.mult) : "—"}; se subiu como um carro novo,
-      {" "}{brl0((linhasLongo.find((l) => /Automóvel/.test(l.nome))?.mult) ?? 0)}.
+      hoje custa {brl0(multGeral)}. Mas quase nada acompanha a média: <b>aquele</b> R$ 1,00,
+      se tiver subido como o pão, virou {pao ? brl0(pao.mult) : "—"}; se tiver subido como um carro novo, virou
+      {" "}{brl0((linhasLongo.find((l) => /Automóvel/.test(l.nome))?.mult) ?? 0)}. <b>Não é o preço do pão nem o do
+      carro</b> — é o que acontece com um real de 1999 que siga a trajetória de cada um deles.
       É essa diferença, item por item, que a palavra "inflação" esconde — e é por isso que a conta do índice nunca
       bate com a lembrança de ninguém.
     </p>
     <table>
       <thead><tr>
         <th>O que custava R$ 1,00 em {mesPtBr(baseLongo).replace(" de ", "/")}…</th>
-        <th class="num">custa hoje</th>
+        <th class="num">…custa hoje</th>
         <th class="num">Um salário mínimo pagava {inteiro(quantasAntes)} deles. Hoje paga</th>
         <th class="num">Então dá para comprar</th>
       </tr></thead>
       <tbody>{linhasLongo.map((l) => { const q = quantas(l.mult); const dif = 100 * (q / quantasAntes - 1); return (<tr>
         <td>{l.nome} {l.tipo === "grupo" && <span class="un">(o grupo inteiro)</span>}</td>
-        <td class="num"><b>{brl0(l.mult)}</b></td>
+        <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(l.mult)}</b></td>
         <td class="num">{inteiro(q)}</td>
         <td class="num">{dif >= 0 ? "+" : "−"}{n1l(Math.abs(dif))}%</td></tr>); })}
         <tr class="destaque">
           <td><b>A média de tudo (o índice geral)</b></td>
-          <td class="num"><b>{brl0(multGeral)}</b></td>
+          <td class="num"><span class="de">R$ 1,00 →</span> <b>{brl0(multGeral)}</b></td>
           <td class="num">{inteiro(quantas(multGeral))}</td>
           <td class="num">+{n1l(100 * (quantas(multGeral) / quantasAntes - 1))}%</td></tr>
       </tbody>
@@ -421,6 +458,7 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
   <Glossario termos={["ipca", "inpc", "meta_inflacao", "peso_ipca"]} />
 </Base>
 <style>
+  .de { font-size: 11px; color: var(--ink-2); font-family: IBM Plex Mono, monospace; }
   .conta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 4px 0 10px; }
   .conta > div { flex: 1 1 180px; }
   .conta span { display: block; font-size: 12px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; }
