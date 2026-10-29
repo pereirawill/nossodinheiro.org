@@ -236,6 +236,16 @@ export const DATASETS: Dataset[] = [
              { nome: "Tesouro Nacional — Resultado do Tesouro Nacional, série histórica", url: "https://www.tesourotransparente.gov.br/ckan/dataset/resultado-do-tesouro-nacional" }],
     periodo: "1996/2026", atualizacao: "mensal",
   },
+  {
+    slug: "/economia/poder-de-compra/", nome: "Poder de compra: preço em tempo de trabalho",
+    descricao: "Preço médio de revenda de combustíveis por mês desde julho de 2001 e por estado, convertido em minutos de trabalho no salário mínimo e no rendimento médio; índice de nível de preços por categoria de consumo em 21 países.",
+    arquivos: ["precos.json"],
+    fontes: [{ nome: "ANP — Sistema de Levantamento de Preços (série histórica)", url: "https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/precos-revenda-e-de-distribuicao-combustiveis/serie-historica-do-levantamento-de-precos" },
+             { nome: "Banco Central — SGS, série 1619 (salário mínimo)", url: "https://www3.bcb.gov.br/sgspub/" },
+             { nome: "IBGE — PNAD Contínua trimestral (SIDRA 5436 e 6371)", url: "https://sidra.ibge.gov.br/tabela/5436" },
+             { nome: "Banco Mundial — International Comparison Program (ICP) 2021", url: "https://www.worldbank.org/en/programs/icp" }],
+    periodo: "2001/2026", atualizacao: "mensal",
+  },
 ];
 
 export const porSlug = (slug: string) => DATASETS.find((d) => d.slug === slug);

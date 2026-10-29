@@ -1,0 +1,39 @@
+name: ETL Preços — combustível em tempo de trabalho e nível de preços
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/etl-precos.yml", "etl/precos/**"]
+  schedule:
+    - cron: "19 12 18 * *"     # dia 18 de cada mês, 09:19 BRT (a ANP fecha o mês anterior com algumas semanas)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etl-precos
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+
+      - name: "Extrair (ANP SLP, BCB SGS 1619, IBGE PNADC, Banco Mundial ICP) — sem chave"
+        run: |
+          python -m etl.precos.extract
+          mkdir -p site/public/data && cp data/public/precos.json site/public/data/
+
+      - name: Commitar dados agregados
+        run: |
+          git config user.name "etl-bot"; git config user.email "etl-bot@users.noreply.github.com"
+          git add data/public site/public/data
+          git diff --cached --quiet && echo "sem mudanças" && exit 0
+          git commit -m "data: preços e tempo de trabalho ($(date -u +%F))"
+          git pull --rebase origin main && git push

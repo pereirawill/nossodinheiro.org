@@ -1,0 +1,274 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
+import pr from "../../../public/data/precos.json";
+import impostos from "../../../public/data/impostos.json";
+import rankings from "../../../public/data/rankings.json";
+import { MAPA_UF } from "../../lib/mapa-uf";
+
+const nomeUF: Record<string, string> = Object.fromEntries(MAPA_UF.map((e) => [e.uf, e.nome]));
+
+const quando = new Date(pr.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const n2 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const brl = (v: number) => `R$ ${n2(v)}`;
+const num = (v: number) => Math.round(v).toLocaleString("pt-BR");
+const pct = (v: number) => `${n1(v * 100)}%`;
+// 53,3 minutos → "53 min"; 931 minutos → "15 h 31 min"
+const tempo = (m: number) => (m < 90 ? `${Math.round(m)} min` : `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")} min`);
+const tempoCurto = (m: number) => (m < 90 ? `${Math.round(m)} min` : `${Math.floor(m / 60)}h${String(Math.round(m % 60)).padStart(2, "0")}`);
+const MES_NOME = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const mesRotulo = (m: string) => `${MES_NOME[Number(m.slice(5)) - 1]} de ${m.slice(0, 4)}`;
+
+const combs = pr.combustiveis as Record<string, { nome: string; unidade: string; serie: any[] }>;
+const ORDEM = ["gasolina", "etanol", "diesel", "diesel_s10", "glp", "gnv"];
+const gas = combs.gasolina.serie;
+const gasIni = gas[0], gasFim = gas[gas.length - 1];
+const gasPicoPostos = gas.reduce((m, x) => ((x.postos ?? 0) > (m.postos ?? 0) ? x : m), gas[0]);
+const gasPico = gas.reduce((m, x) => ((x.minutos_sm ?? 0) > (m.minutos_sm ?? 0) ? x : m), gas[0]);
+const glp = combs.glp.serie;
+const glpIni = glp[0], glpFim = glp[glp.length - 1];
+const horaSM = (pr.salario_minimo as Record<string, number>)[pr.mes] / pr.horas_mes;
+const horaMedia = pr.hora_media as number;
+const trimRotulo = (p: string | null) => (p ? `${Number(p.slice(4))}º trimestre de ${p.slice(0, 4)}` : "—");
+
+// gráfico: minutos de trabalho por litro, no salário mínimo
+const LINHAS = [
+  { chave: "gasolina", cor: "var(--s2)", rotulo: "Gasolina comum" },
+  { chave: "etanol", cor: "var(--s1)", rotulo: "Etanol" },
+  { chave: "diesel", cor: "#a3302a", rotulo: "Óleo diesel" },
+];
+const mesNum = (m: string) => Number(m.slice(0, 4)) * 12 + Number(m.slice(5)) - 1;
+const m0 = mesNum(gasIni.mes), m1 = mesNum(gasFim.mes);
+const W = 920, L = 46, R = 14, H = 250, T = 14, B = 26;
+const maxMin = Math.max(...LINHAS.flatMap((l) => (combs[l.chave]?.serie ?? []).map((x: any) => x.minutos_sm ?? 0)));
+const px = (m: string) => L + ((mesNum(m) - m0) / (m1 - m0)) * (W - L - R);
+const py = (v: number) => T + (1 - v / maxMin) * (H - T - B);
+const caminho = (chave: string) => (combs[chave]?.serie ?? []).filter((x: any) => x.minutos_sm)
+  .map((x: any, i: number) => `${i ? "L" : "M"}${px(x.mes).toFixed(1)} ${py(x.minutos_sm).toFixed(1)}`).join(" ");
+const anosEixo = [2002, 2006, 2010, 2014, 2018, 2022, 2026];
+
+// estados: minutos de trabalho por litro de gasolina, pela hora média do próprio estado
+const ufs = pr.ufs as Record<string, Record<string, any>>;
+const linhasUF = Object.entries(ufs).filter(([, v]) => v.gasolina?.minutos_medio)
+  .map(([uf, v]) => ({ uf, nome: nomeUF[uf] ?? uf, preco: v.gasolina.preco, minutos: v.gasolina.minutos_medio as number }))
+  .sort((a, b) => b.minutos - a.minutos);
+const ufPior = linhasUF[0], ufMelhor = linhasUF[linhasUF.length - 1];
+
+// comparação internacional (ICP do Banco Mundial): nível de preços e preço relativo
+const icp = pr.internacional as any;
+const nomePais: Record<string, string> = Object.fromEntries(
+  ((rankings.indices as any[])[0]?.paises ?? []).map((p: any) => [p.iso3, p.pais]));
+nomePais.BRA = "Brasil";
+const pibPLI = (icp.categorias as any[]).find((c) => c.codigo === "1000000")?.paises ?? {};
+const mediana = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); const k = s.length >> 1; return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2; };
+const catLinhas = (icp.categorias as any[]).filter((c) => c.codigo !== "1000000").map((c) => {
+  const rel: Record<string, number> = {};
+  for (const [p, v] of Object.entries(c.paises as Record<string, number>)) if (pibPLI[p]) rel[p] = v / pibPLI[p];
+  const outros = Object.entries(rel).filter(([p]) => p !== "BRA").map(([, v]) => v);
+  return { nome: c.nome, brasil: c.paises.BRA as number, relBR: rel.BRA, relUS: rel.USA, relMed: mediana(outros) };
+}).filter((c) => c.relBR).sort((a, b) => b.relBR / b.relMed - a.relBR / a.relMed);
+const caros = catLinhas.slice(0, 3);
+const consumo = icp.consumo_por_pessoa as Record<string, number>;
+const nivelBR = pibPLI.BRA as number, nivelUS = pibPLI.USA as number;
+const nivelSerie = (pr.nivel_precos as Record<string, Record<string, number>>).BRA ?? {};
+const anoNivel = Object.keys(nivelSerie).sort().pop() as string;
+
+// o imposto, sem atribuir causa
+const bases = (impostos as any).carga?.bases?.linhas ?? [];
+const baseBens = bases.find((b: any) => b.base === "Bens e serviços");
+const ocde = (impostos as any).carga?.ocde;
+const ocdeAno = ocde ? Object.keys(ocde.bases?.["Bens e Serviços"] ?? {}).sort().pop() : null;
+const ocdeBens = ocdeAno ? ocde.bases["Bens e Serviços"][ocdeAno] : null;
+const ocdeRenda = ocdeAno ? ocde.bases["Renda, Lucros e Ganhos de Capital"][ocdeAno] : null;
+---
+<Base title="Poder de compra: quanto tempo de trabalho custa — Nosso Dinheiro" accent="var(--s2)"
+  description="Quantos minutos de trabalho custa um litro de gasolina, o botijão de gás e o diesel desde 2001, por estado, e em que categorias o preço brasileiro está fora da linha na comparação internacional do Banco Mundial.">
+  <h1>Poder de compra</h1>
+  <p class="lede">
+    O preço em reais muda de significado com o tempo e com a renda de quem compra. Esta página mede o preço de outra
+    maneira: <strong>quanto tempo de trabalho ele custa</strong>. Em {mesRotulo(pr.mes)}, um litro de gasolina custava
+    <strong>{tempo(gasFim.minutos_sm)}</strong> de trabalho no salário mínimo — eram {tempo(gasIni.minutos_sm)} em
+    {" "}{mesRotulo(gasIni.mes)}. O botijão de 13 kg custa <strong>{tempo(glpFim.minutos_sm)}</strong>, contra
+    {" "}{tempo(glpIni.minutos_sm)} no começo da série.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fontes: ANP (preços), Banco Central (salário mínimo), IBGE/PNAD Contínua (rendimento e horas) e Banco Mundial (ICP) · <a href="/metodologia/">metodologia</a> · <a href="/conferir/">como conferir</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{tempoCurto(gasFim.minutos_sm)}</b><span>de trabalho no salário mínimo pagam um litro de gasolina em {mesRotulo(pr.mes)} ({brl(gasFim.preco)}); o pior mês da série foi {mesRotulo(gasPico.mes)}, com {tempo(gasPico.minutos_sm)}</span></div>
+    <div class="stat"><b>{tempoCurto(glpFim.minutos_sm)}</b><span>o botijão de gás de 13 kg, a {brl(glpFim.preco)} — era {tempo(glpIni.minutos_sm)} em {mesRotulo(glpIni.mes)}</span></div>
+    <div class="stat"><b>{brl(horaSM)}</b><span>a <Termo t="hora_salario_minimo">hora no salário mínimo</Termo>; a hora do trabalhador médio é {brl(horaMedia)} ({trimRotulo(pr.trabalho.trimestre)})</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Por que a régua é o salário mínimo.</b> Ele é valor de lei, exato para cada mês, e a hora sai de uma
+    divisão simples: salário ÷ {pr.horas_mes} horas, o divisor mensal da jornada de 44 horas da CLT. O rendimento
+    médio da PNAD Contínua também está aqui, mas só no retrato de agora: aquela série é publicada <b>a preços do
+    último trimestre</b>, e usá-la ano a ano contra um preço corrente daria um número errado.
+    <b>O preço é o da ANP</b> — média mensal de revenda ao consumidor, não o preço de um posto nem de um dia.
+    <b>E a comparação entre países mede nível de preços, não o preço da geladeira:</b> o Banco Mundial compara a mesma
+    cesta em cada país, o que responde "esta categoria é cara aqui?", e não "quanto custa este modelo".</div>
+  </div>
+
+  <h2>Quantos minutos de trabalho custa um litro</h2>
+  <div class="card">
+    <div class="legend">{LINHAS.map((l) => <span><i style={`background:${l.cor}`}></i>{l.rotulo}</span>)}</div>
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Minutos de trabalho no salário mínimo para pagar um litro de combustível, por mês, desde 2001">
+      {[maxMin, maxMin * 0.75, maxMin * 0.5, maxMin * 0.25].map((t) => <g>
+        <line x1={L} x2={W - R} y1={py(t)} y2={py(t)} stroke="var(--line)" />
+        <text x={L - 6} y={py(t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{Math.round(t)}</text></g>)}
+      {anosEixo.map((a) => <text x={px(`${a}-01`)} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text>)}
+      {LINHAS.map((l) => <path d={caminho(l.chave)} fill="none" stroke={l.cor} stroke-width="2" />)}
+      {LINHAS.map((l) => { const s = (combs[l.chave]?.serie ?? []).filter((x: any) => x.minutos_sm); const u = s[s.length - 1];
+        return u ? <circle cx={px(u.mes)} cy={py(u.minutos_sm)} r="3" fill={l.cor}><title>{l.rotulo}, {mesRotulo(u.mes)}: {tempo(u.minutos_sm)} ({brl(u.preco)})</title></circle> : null; })}
+    </svg>
+    <p class="src">
+      Minutos de trabalho na <Termo t="hora_salario_minimo">hora do salário mínimo de cada mês</Termo>, para um litro.
+      A escada da linha vem do próprio desenho da conta: o preço muda todo mês, o salário mínimo uma vez por ano.
+      Houve <b>dois meses sem pesquisa</b> (de 18/8 a 17/10 de 2020) e uma semana com 85% menos postos durante a greve
+      dos caminhoneiros de 2018 — as duas coisas são declaradas pela ANP e aparecem como falhas na linha.
+      O <Termo t="minutos_de_trabalho">tempo de trabalho</Termo> caiu para a gasolina
+      ({tempo(gasIni.minutos_sm)} → {tempo(gasFim.minutos_sm)}) e para o etanol, mas o diesel S10, que só existe na
+      série desde {mesRotulo(combs.diesel_s10.serie[0].mes)}, foi na direção oposta:
+      {" "}{tempo(combs.diesel_s10.serie[0].minutos_sm)} → {tempo(combs.diesel_s10.serie[combs.diesel_s10.serie.length - 1].minutos_sm)}.
+      Fonte: {(pr as any).fontes.combustiveis}.
+    </p>
+  </div>
+
+  <h2>Hoje, combustível por combustível</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Combustível</th><th class="num">Preço médio</th><th class="num">No salário mínimo</th><th class="num">No rendimento médio</th><th class="num">Postos pesquisados</th></tr></thead>
+      <tbody>{ORDEM.filter((k) => combs[k]).map((k) => { const s = combs[k].serie; const u = s[s.length - 1];
+        return (<tr><td>{combs[k].nome}</td>
+          <td class="num">{brl(u.preco)} <span class="un">{combs[k].unidade}</span></td>
+          <td class="num">{u.minutos_sm ? tempo(u.minutos_sm) : "—"}</td>
+          <td class="num">{horaMedia ? tempo((60 * u.preco) / horaMedia) : "—"}</td>
+          <td class="num">{u.postos ? num(u.postos) : "—"}</td></tr>); })}</tbody>
+    </table>
+    <p class="src">
+      Preço médio de revenda de {mesRotulo(pr.mes)}. A coluna do <b>rendimento médio</b> usa a hora do trabalhador
+      ocupado médio ({brl(horaMedia)}), do {trimRotulo(pr.trabalho.trimestre)}: rendimento habitual de todos os
+      trabalhos dividido pelas horas habituais da mesma pesquisa. Metade dos ocupados ganha menos que a média, então
+      para muita gente o tempo de trabalho está mais perto da coluna do salário mínimo.
+      O tamanho da pesquisa mudou ao longo do tempo: foram {num(gasPicoPostos.postos ?? 0)} postos no mês de maior
+      coleta ({mesRotulo(gasPicoPostos.mes)}) e {num(gasFim.postos ?? 0)} em {mesRotulo(pr.mes)}. A ANP reduziu a
+      abrangência de 501 para 459 municípios em 2017, e declara isso na própria planilha.
+    </p>
+  </div>
+
+  <h2>Onde o litro custa mais tempo de trabalho</h2>
+  <div class="card">
+    <MapaBrasil valores={Object.fromEntries(linhasUF.map((l) => [l.uf, l.minutos]))} formato={(v) => `${n1(v)} min`}
+      titulo={`Minutos de trabalho, pelo rendimento médio do próprio estado, para pagar um litro de gasolina em ${mesRotulo(pr.mes)}`}
+      legenda={`minutos de trabalho por litro de gasolina (${mesRotulo(pr.mes)})`} cor="var(--s2)" melhorMenor={true} />
+    <p class="src">
+      Aqui entram <b>as duas coisas ao mesmo tempo</b>: o preço do litro no estado e o rendimento por hora de quem
+      mora nele. É por isso que o mapa não é o mapa do preço: {ufPior.nome} tem a gasolina a {brl(ufPior.preco)} e
+      {" "}{n1(ufPior.minutos)} minutos de trabalho por litro, enquanto {ufMelhor.nome}, com
+      {" "}{brl(ufMelhor.preco)}, precisa de {n1(ufMelhor.minutos)} — {n1(ufPior.minutos / ufMelhor.minutos)} vezes
+      menos tempo pelo mesmo litro.
+    </p>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <table>
+      <thead><tr><th>Estado</th><th class="num">Preço do litro</th><th class="num">Minutos de trabalho</th><th class="num">No salário mínimo</th></tr></thead>
+      <tbody>{linhasUF.map((l) => (<tr><td>{l.nome}</td><td class="num">{brl(l.preco)}</td><td class="num">{n1(l.minutos)}</td>
+        <td class="num">{ufs[l.uf].gasolina.minutos_sm ? n1(ufs[l.uf].gasolina.minutos_sm) : "—"}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Gasolina comum, {mesRotulo(pr.mes)}. A última coluna usa a mesma hora de salário mínimo em todo o país, então
+      ela isola o preço; a coluna do meio usa o rendimento médio do próprio estado e mistura preço com renda. Clique
+      no cabeçalho para ordenar.
+    </p>
+  </div>
+
+  <h2>O que é caro no Brasil — e o que é barato</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      O Banco Mundial coleta, no <b>International Comparison Program</b>, o preço dos mesmos produtos em cada país e
+      publica um <Termo t="nivel_de_precos">índice de nível de preços</Termo> por categoria, com o mundo valendo 100.
+      No geral o Brasil é <b>barato</b>: o nível de preços da economia inteira é {n1(nivelBR)} contra {n1(nivelUS)} dos
+      Estados Unidos, ou seja, a mesma cesta sai por {pct(nivelBR / nivelUS)} do preço americano. O que pesa não é o
+      preço médio, é a renda: em consumo por habitante o brasileiro está em {n1(consumo.BRA)} numa escala em que o
+      americano é 100.
+    </p>
+    <table>
+      <thead><tr><th>Categoria</th><th class="num">Nível de preços (mundo = 100)</th><th class="num">Preço relativo no Brasil</th><th class="num">Nos EUA</th><th class="num">Mediana dos outros 20</th></tr></thead>
+      <tbody>{catLinhas.map((c) => (<tr><td>{c.nome}</td><td class="num">{n1(c.brasil)}</td>
+        <td class="num"><b>{n2(c.relBR)}×</b></td><td class="num">{c.relUS ? `${n2(c.relUS)}×` : "—"}</td>
+        <td class="num">{n2(c.relMed)}×</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      O <Termo t="preco_relativo">preço relativo</Termo> é o nível de preços da categoria dividido pelo nível de
+      preços geral do mesmo país: acima de 1, a categoria é cara <b>perto de tudo o mais que se compra ali</b>.
+      É essa coluna que compara países de renda diferente. Os três itens mais fora da linha no Brasil são
+      {" "}{caros.map((c) => c.nome.toLowerCase()).join(", ")} — <b>{caros[0].nome.toLowerCase()}</b> a
+      {" "}{n2(caros[0].relBR)}× contra {n2(caros[0].relMed)}× na mediana dos outros países, e
+      {" "}<b>compra de veículo</b> a {n2(catLinhas.find((c) => c.nome === "Compra de veículo")?.relBR ?? 0)}× contra
+      {" "}{n2(catLinhas.find((c) => c.nome === "Compra de veículo")?.relUS ?? 0)}× nos Estados Unidos.
+      No outro extremo estão restaurante, moradia e construção, bem abaixo de 1 — serviço feito por gente é barato
+      aqui, pela mesma razão que a renda é baixa.{" "}
+      <b>Um resultado contra a intuição:</b> móvel e eletrodoméstico ({n2(catLinhas.find((c) => c.nome === "Móvel e eletrodoméstico")?.relBR ?? 0)}×)
+      e eletrônicos de lazer, onde entram TV, celular e computador
+      ({n2(catLinhas.find((c) => /Lazer/.test(c.nome))?.relBR ?? 0)}×), estão <b>na linha</b> do preço relativo dos
+      outros países. A geladeira custa mais horas de trabalho aqui, mas pelo lado da renda, não do preço relativo.
+      Rodada {icp.rodada}, ano de referência {icp.ano}, publicada em 2024. Fonte: {(pr as any).fontes.internacional}.
+    </p>
+  </div>
+
+  <h2>E o imposto?</h2>
+  <div class="card">
+    <p style="margin:0 0 8px">
+      Esta é a pergunta que todo mundo faz, e o site responde com o que é publicado, sem escrever a conclusão.
+      Dois fatos oficiais, lado a lado com a tabela acima:
+    </p>
+    <ul class="dois">
+      <li><b>{baseBens ? pct(baseBens.pct) : "—"} de toda a arrecadação brasileira</b> incide sobre
+        {" "}<Termo t="base_incidencia">bens e serviços</Termo>, contra {bases.find((b: any) => b.base === "Renda") ? pct(bases.find((b: any) => b.base === "Renda").pct) : "—"} sobre a renda
+        (Receita Federal, estudo da <Termo t="carga_tributaria">carga tributária</Termo>, tabela {(impostos as any).carga?.bases?.tabela}).</li>
+      {ocdeBens && <li>Em percentual do PIB ({ocdeAno}), o Brasil arrecada <b>{n1(ocdeBens.brasil)}%</b> sobre bens e
+        serviços, contra <b>{n1(ocdeBens.ocde)}%</b> na média de 36 países da OCDE. Sobre a renda é o contrário:
+        {" "}{n1(ocdeRenda.brasil)}% aqui contra {n1(ocdeRenda.ocde)}% lá (Receita Federal, tabela 07, a partir do
+        Revenue Statistics da OCDE).</li>}
+      <li>O imposto sobre consumo entra no preço de tudo, inclusive do que está <b>barato</b> na tabela acima
+        (restaurante, moradia, construção). Por isso a carga, sozinha, não explica por que o carro e a máquina estão
+        fora da linha e a geladeira não.</li>
+    </ul>
+    <p class="src">
+      O que falta para fechar a conta é público em nenhum lugar: a abertura do preço de um carro ou de uma geladeira
+      em imposto, insumo, frete e margem não é publicada por órgão oficial. Quem publica estimativa disso são
+      institutos privados, e este site não usa fonte paga nem compilação de terceiros como número principal.
+      O detalhe do que o país arrecada está em <a href="/impostos/">Impostos</a> e
+      {" "}<a href="/imposto-de-renda/">Imposto de Renda</a>; a comparação com outros países, em
+      {" "}<a href="/comparacao/">Comparação internacional</a>.
+    </p>
+  </div>
+
+  <h2>O que esta página não consegue medir</h2>
+  <div class="card">
+    <ul class="dois">
+      <li><b>Horas de trabalho para comprar uma TV ou um carro em cada país.</b> Exigiria o preço do mesmo modelo em
+        cada país, que nenhum órgão público publica. O ICP compara categorias, não produtos — e é por isso que a
+        tabela acima fala em "compra de veículo", não em "um Onix".</li>
+      <li><b>Preço de combustível entre países.</b> O indicador do Banco Mundial que trazia o preço da bomba por
+        litro (EP.PMP.SGAS.CD) foi <b>arquivado</b> e não responde mais. Não substituímos por levantamento privado.</li>
+      <li><b>Série de preço de alimento em reais.</b> O IBGE publica a <b>variação</b> dos preços (IPCA), não o preço
+        médio do quilo de arroz. Por isso a série longa aqui é de combustível, que a ANP publica em reais desde 2001.</li>
+      <li><b>Antes de 2001.</b> O levantamento da ANP começa em julho de 2001. Para o período anterior, o que existe é
+        o poder de compra medido pelo IPCA, em <a href="/inflacao/#poder-de-compra">Inflação</a>, que compara o mesmo
+        dinheiro com o mesmo dinheiro — não com o salário.</li>
+    </ul>
+  </div>
+
+  <Glossario termos={["minutos_de_trabalho", "hora_salario_minimo", "nivel_de_precos", "preco_relativo", "rendimento_habitual", "poder_de_compra", "base_incidencia", "carga_tributaria"]} />
+</Base>
+<style>
+  td.num, th.num { white-space: nowrap; }
+  .un { color: var(--ink-2); font-size: 11.5px; }
+  ul.dois { margin: 0; padding-left: 18px; }
+  ul.dois li { margin: 6px 0; }
+</style>

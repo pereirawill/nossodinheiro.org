@@ -10,6 +10,7 @@ import trabalho from "../../../public/data/trabalho.json";
 import credito from "../../../public/data/credito.json";
 import estatais from "../../../public/data/estatais.json";
 import renda from "../../../public/data/renda.json";
+import precos from "../../../public/data/precos.json";
 
 const quando = new Date(d.gerado_em_utc);
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -54,6 +55,9 @@ const cPasso = (W - L - R) / anosContas.length, cLarg = cPasso - 3;
 const cy = (v: number) => T + (1 - (v + maxConta) / (2 * maxConta)) * (H - T - B);
 
 // cartões dos painéis econômicos que já existem
+const serieGas = (precos as any).combustiveis?.gasolina?.serie ?? [];
+const pcGasolina = serieGas.length ? serieGas[serieGas.length - 1].minutos_sm : null;
+const tempo = (m: number) => (m < 90 ? `${Math.round(m)} min` : `${Math.floor(m / 60)} h ${String(Math.round(m % 60)).padStart(2, "0")} min`);
 const arrec = (impostos as any).anual[(impostos as any).anual.length - 1];
 const ipca12 = (inflacao as any).doze_meses[(inflacao as any).ultimo_mes];
 const jurosDivida = (divida as any).juros_nominais[(divida as any).anos_juros[(divida as any).anos_juros.length - 1]];
@@ -61,7 +65,6 @@ const estoque = (divida as any).estoque.meses[(divida as any).estoque.meses.leng
 const desocupacao = (trabalho as any).pnad?.desocupacao ?? null;
 const inadimplencia = (credito as any).brasil?.PF?.pct ?? null;
 const lucroEstatais = (estatais as any).sest.agregado[(estatais as any).sest.anos[(estatais as any).sest.anos.length - 1]];
-const rendaMedia = (renda as any).por_uf ? null : null;
 ---
 <Base title="Economia: PIB, juros e contas públicas — Nosso Dinheiro" accent="var(--s2)"
   description="O tamanho da economia brasileira e o quanto ela cresce desde 1996, a taxa Selic desde 1999 e o resultado das contas do governo desde 1997 — com a porta de entrada para os painéis de impostos, inflação, dívida, trabalho e renda.">
@@ -169,6 +172,7 @@ const rendaMedia = (renda as any).por_uf ? null : null;
   <div class="tiles">
     <a class="card tile" href="/impostos/"><b>{grande(arrec.total)}</b><span>a arrecadação federal em {arrec.meses} meses de {arrec.ano}, por tributo e por estado</span></a>
     <a class="card tile" href="/imposto-de-renda/"><b>{(impostos as any).carga ? n1((impostos as any).carga.bases.linhas.find((l: any) => l.base === "Renda")?.pct * 100) + "%" : "—"}</b><span>da arrecadação total vem de imposto sobre a renda — quem declara, quanto paga e quanto é isento</span></a>
+    <a class="card tile" href="/economia/poder-de-compra/"><b>{pcGasolina ? tempo(pcGasolina) : "Poder de compra"}</b><span>de trabalho no salário mínimo pagam um litro de gasolina — o preço medido em tempo de trabalho, desde 2001</span></a>
     <a class="card tile" href="/inflacao/"><b>{String(ipca12).replace(".", ",")}%</b><span>de alta de preços em 12 meses (IPCA), por grupo de gasto, com o câmbio e o poder de compra</span></a>
     <a class="card tile" href="/divida/"><b>{grande(jurosDivida)}</b><span>os juros da dívida federal no último ano fechado; estoque de {tri(estoque)}</span></a>
     <a class="card tile" href="/trabalho/"><b>{desocupacao ? `${String(desocupacao).replace(".", ",")}%` : "Trabalho"}</b><span>quem trabalha, com e sem carteira, as empresas do país e quem contribui para a previdência</span></a>

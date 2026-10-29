@@ -162,7 +162,7 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
     <p class="src">Fonte: IBGE, IPCA por região (SIDRA 7060). O IPCA é calculado em 16 áreas: 10 regiões metropolitanas e 6 municípios. O índice nacional é a média ponderada delas pelo peso de cada área no consumo — não existe IPCA de cada estado.</p>
   </div>
 
-  <h2>Quanto o real perdeu de poder de compra</h2>
+  <h2 id="poder-de-compra">Quanto o real perdeu de poder de compra</h2>
   <div class="card">
     <div class="hero" style="margin-top:0">
       <div class="stat big"><b>{brl(poderHoje)}</b><span>é o que R$ 100 de julho de 1994, quando o real foi criado, compram hoje. O resto a inflação levou</span></div>
@@ -183,6 +183,9 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
       A linha mostra, mês a mês, quanto valem em compras os mesmos R$ 100 de julho de 1994 — não é cotação de moeda nem comparação com
       o dólar, é só o quanto o dinheiro compra. A queda é mais íngreme nos primeiros anos do real, quando a inflação ainda rodava perto
       de 20% ao ano, e vai ficando lenta depois de 1999. Calculado com o número-índice do IPCA (IBGE, SIDRA 1737).
+      Esta conta compara dinheiro com dinheiro. Para comparar <b>preço com salário</b> — quantos minutos de trabalho
+      custa um litro de gasolina ou o botijão de gás, desde 2001 —, veja
+      {" "}<a href="/economia/poder-de-compra/">Poder de compra em tempo de trabalho</a>.
     </p>
   </div>
 

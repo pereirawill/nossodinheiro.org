@@ -331,6 +331,38 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Sugestões:** a caixa de sugestões (`/sugestoes/`) grava texto, contato opcional e página de origem; **nunca** IP, cookie ou
   navegador. O site mostra só a contagem de 24 horas — publicar texto de terceiro exigiria moderação, e isso está dito na página.
 
+## Poder de compra — o preço medido em tempo de trabalho
+
+- **O que é:** quanto tempo de trabalho custa um litro de gasolina, de etanol e de diesel, o botijão de 13 kg e o metro cúbico de
+  GNV, mês a mês desde julho de 2001 e por estado; e em que categorias de consumo o preço brasileiro está fora da linha quando
+  comparado com o de outros 20 países.
+- **Fonte:** ANP, Sistema de Levantamento de Preços — preço médio de **revenda ao consumidor**, média mensal, em duas planilhas
+  contíguas (`mensal-brasil-2001-a-2012`, de jul/2001 a dez/2012, e `mensal-brasil-desde-jan2013`) mais `mensal-estados-desde-jan2013`;
+  Banco Central, SGS 1619 (salário mínimo); IBGE, PNAD Contínua trimestral, tabelas 5436 (rendimento habitual de todos os trabalhos,
+  variável 5933) e 6371 (horas habitualmente trabalhadas em todos os trabalhos, variável 8190); Banco Mundial, International
+  Comparison Program (ICP) 2021, classificação `PX.WL` (índice de nível de preços, mundo = 100), e séries `PA.NUS.PPP` e
+  `PA.NUS.FCRF`.
+- **Como a conta é feita:** a hora no salário mínimo é o salário do mês dividido por **220 horas**, o divisor mensal da jornada de
+  44 horas semanais (CLT, art. 58 e 64). É valor de lei, exato para cada mês, e por isso é a régua da série longa. A hora do
+  trabalhador médio (rendimento ÷ horas, mesma pesquisa e mesmo trimestre) aparece **só no retrato atual**: aquela série é
+  publicada a preços do último trimestre, e usá-la ano a ano contra um preço corrente daria número errado.
+- **Atenção:** as duas planilhas da ANP são edições diferentes do mesmo relatório, com a mesma definição de coluna e períodos que
+  não se sobrepõem — por isso a série é uma só, sem emenda de metodologia. A própria ANP declara que **não houve pesquisa entre
+  18/8 e 17/10 de 2020**, que a semana da greve dos caminhoneiros de 2018 teve 85% menos postos e que a abrangência caiu de 501
+  para 459 municípios em 2017; as três coisas aparecem na página. A gasolina aditivada, que só existe no arquivo a partir de 2013,
+  fica fora da série comparável.
+- **Sobre a comparação entre países:** o ICP mede **nível de preços por categoria**, não o preço de um produto — diz se "compra de
+  veículo" é cara no país, não quanto custa um modelo. O **preço relativo** publicado na página (nível da categoria ÷ nível geral
+  do mesmo país) é conta nossa, e é o que permite comparar países de renda muito diferente. Usamos só a rodada **ICP 2021**: a
+  rodada 2017 republica os mesmos anos com números um pouco diferentes, e juntar as duas seria emendar vintages.
+- **O que não existe:** horas de trabalho para comprar uma TV ou um carro em cada país (nenhum órgão público publica preço de
+  produto por país); comparação do preço da bomba entre países (o indicador `EP.PMP.SGAS.CD` do Banco Mundial foi arquivado);
+  abertura do preço de um carro ou de uma geladeira em imposto, insumo, frete e margem (só institutos privados estimam isso, e o
+  site não usa fonte paga como número principal). Antes de julho de 2001 o que existe é o poder de compra medido pelo IPCA, no
+  painel de Inflação.
+- **O que não dizemos:** que o imposto explica o preço. A página publica, lado a lado, em que categorias o preço relativo
+  brasileiro está fora da linha e quanto da arrecadação incide sobre bens e serviços — e deixa a conclusão para o leitor.
+
 ## Imposto de Renda — o que os brasileiros declaram ganhar
 
 - **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem

@@ -25,6 +25,17 @@ export type Checagem = {
 
 export const CHECAGENS: Checagem[] = [
   {
+    painel: "Poder de compra", slug: "/economia/poder-de-compra/",
+    oQue: "Nível geral de preços do Brasil em relação aos Estados Unidos, medido pelo ICP 2021 do Banco Mundial e pela razão entre a paridade de poder de compra e o câmbio de mercado, que é outra série do mesmo banco",
+    status: "bate",
+    explicacao: "São duas contas independentes: o ICP compara a mesma cesta coletada em cada país (Brasil a 44,0% do " +
+      "preço americano no ano de referência de 2021) e a razão PPP ÷ câmbio dá 45,7% em 2025. Ficam a menos de dois " +
+      "pontos uma da outra, em anos diferentes — é a confirmação de que o Brasil é, no geral, barato em dólares.",
+    fonte: "Banco Mundial — ICP 2021 e séries PA.NUS.PPP e PA.NUS.FCRF",
+    url: "https://www.worldbank.org/en/programs/icp",
+    lido: "29/10/2026",
+  },
+  {
     painel: "Saneamento", slug: "/saneamento/",
     oQue: "Domicílios com esgoto ligado à rede em 2022, medidos pelo Censo (recenseia todos) e pela PNAD Contínua (amostra)",
     status: "explicada",
@@ -214,6 +225,9 @@ export const REGRAS: { titulo: string; texto: string }[] = [
 
 /** O que nenhuma conferência nossa alcança — dito nas páginas, repetido aqui. */
 export const LIMITES: string[] = [
+  "Quantas horas de trabalho custa uma TV ou um carro em cada país: exigiria o preço do mesmo modelo em cada lugar, que nenhum órgão público publica. O que existe é o nível de preços por categoria, do ICP.",
+  "O preço da bomba comparado entre países: o indicador do Banco Mundial que trazia isso (EP.PMP.SGAS.CD) foi arquivado e não responde mais.",
+  "Quanto do preço de um carro ou de uma geladeira é imposto: a abertura em imposto, insumo, frete e margem não é publicada por órgão oficial.",
   "Se o morador respondeu certo ao recenseador, ou se o prestador declarou certo ao sistema do governo.",
   "Se a obra registrada como 'em execução' existe no mundo: a situação é declarada pelo próprio órgão.",
   "Se a nota fiscal de uma cota parlamentar corresponde ao serviço prestado. O link da nota está publicado; a conferência é caso a caso.",

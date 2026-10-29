@@ -157,6 +157,11 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   selic: { rotulo: "Selic", texto: "A taxa básica de juros da economia, cuja meta é definida pelo Copom, no Banco Central. É o piso a partir do qual se formam os juros de todo o resto — crédito, financiamento e a própria dívida pública." },
   resultado_primario: { rotulo: "Resultado primário", texto: "O que o governo arrecada menos o que gasta, sem contar os juros da dívida. Mede o esforço do ano, separado do custo do que se deve de antes." },
   resultado_nominal: { rotulo: "Resultado nominal", texto: "O resultado do governo já com os juros da dívida dentro. A diferença entre ele e o primário é, basicamente, o custo da dívida no ano." },
+  // Poder de compra
+  hora_salario_minimo: { rotulo: "Hora no salário mínimo", texto: "O salário mínimo do mês dividido por 220 horas — o divisor mensal da jornada de 44 horas semanais da CLT. Serve de régua porque é valor de lei, exato para cada mês, e não depende de pesquisa amostral." },
+  minutos_de_trabalho: { rotulo: "Minutos de trabalho", texto: "O preço de uma coisa dividido pelo valor de um minuto de trabalho. Mostra o preço do jeito que ele é sentido: não quanto custa em reais, que mudam de valor, mas quanto tempo de trabalho é preciso vender para pagar." },
+  nivel_de_precos: { rotulo: "Nível de preços", texto: "Índice que compara o preço da mesma cesta entre países, com o mundo valendo 100. Acima de 100, a categoria é mais cara que a média mundial; abaixo, mais barata. Vem do International Comparison Program do Banco Mundial, que coleta o preço dos mesmos produtos em cada país." },
+  preco_relativo: { rotulo: "Preço relativo", texto: "O nível de preços de uma categoria dividido pelo nível de preços geral do mesmo país. Responde a uma pergunta diferente de \"é caro?\": responde \"é caro perto de tudo o mais que se compra aqui?\". É o que permite comparar países de renda muito diferente." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

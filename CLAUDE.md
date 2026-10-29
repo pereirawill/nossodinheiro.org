@@ -378,6 +378,36 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   nominal −R$ 950,6 bi. A página é também porta de entrada (cartões) para Impostos, IR, Inflação, Dívida, Trabalho, Renda,
   Inadimplência, Estatais e Desenvolvimento. **Menu ainda não mexido** — proposta com imagem antes, conforme a regra.
 
+## Poder de compra — subpágina de Economia (NO AR, sem chave, mensal dia 18; feito 29/10/2026)
+- Pedido antigo do dono ("quantas horas de trabalho para comprar TV, geladeira, carro; e o motivo seria o imposto?").
+  `etl/precos/extract.py` → `precos.json`, `/economia/poder-de-compra/`. **Subpágina de propósito**: o dono pediu menos
+  abas, então não entrou no menu — é cartão em `/economia/` e link no bloco de poder de compra de `/inflacao/`.
+- **ANP, Sistema de Levantamento de Preços**: duas planilhas contíguas e de mesma definição (`mensal-brasil-2001-a-2012`,
+  jul/2001→dez/2012, e `mensal-brasil-desde-jan2013`) + `mensal-estados-desde-jan2013`. O cabeçalho **não** está em linha
+  fixa (acha-se a linha cujo primeiro campo é "MÊS"); "ÓLEO DIESEL" × "OLEO DIESEL" casa sem acento; a aditivada (só
+  2013+) fica fora. As observações acima do cabeçalho vão para o JSON e para a página: **sem pesquisa de 18/8 a
+  17/10/2020**, 85% menos postos na greve de 2018, abrangência 501→459 municípios em 2017.
+- **Denominador** (foi a decisão que moldou tudo): série longa no **salário mínimo ÷ 220 h** (valor de lei, exato por mês,
+  CLT art. 58 e 64). O rendimento da PNADC (**SIDRA 5436 v5933** ÷ **6371 v8190**, mesmo universo) é **real a preços do
+  último trimestre** → só no retrato atual e no mapa, nunca na série. Hora do SM R$ 7,37; hora média R$ 21,62 (2026Q2).
+- Resultados: gasolina **123 min (jul/2001) → 53 min**; pior mês fev/2003, 147 min. Botijão 21h → 15h31. **Diesel S10 foi
+  na direção oposta** (47 → 58 min desde dez/2012). Mapa por UF usa a hora do próprio estado: MA 27,1 min × DF 11,3 min.
+- **Comparação internacional = ICP do Banco Mundial** (fonte **90** da API de `sources`, dimensões Country/Series/
+  Classification/Time; `PX.WL` = nível de preços, mundo = 100; ano de referência **2021**). Só a rodada 2021 — a de 2017
+  (fonte 78) republica os mesmos anos com outro vintage. O **preço relativo** (categoria ÷ PIB do mesmo país) é conta
+  nossa e é o que permite comparar países de renda diferente.
+- **O achado**: o Brasil é barato no geral (nível 69,8 contra 158,5 dos EUA; 44% do preço americano, confirmado pela razão
+  PPP÷câmbio, 45,7% em 2025) — mas **máquina e equipamento 1,59× e compra de veículo 1,43×** o nível local, contra 0,88×
+  e 0,89× na mediana dos outros 20 países. **Contra a intuição: geladeira (1,00×) e TV/eletrônicos (0,99×) estão na
+  linha** — custam mais horas aqui pela renda (consumo por habitante 10,1 numa escala em que os EUA são 100), não pelo
+  preço relativo. A página publica isso ao lado da carga sobre bens e serviços (43,5%; 13,0% do PIB × 10,5% na OCDE) e
+  **não escreve que o imposto é a causa**.
+- Indicadores **arquivados** no Banco Mundial (não usar): `EP.PMP.SGAS.CD` (preço da bomba por país), `PA.NUS.PPPC.RF`
+  (nível de preços pronto) → o nível de preços é calculado por nós com `PA.NUS.PPP` ÷ `PA.NUS.FCRF`.
+- Sem painel próprio, com motivo: preço de produto por país (nenhum órgão publica), preço médio de alimento em reais
+  (IBGE publica variação, não preço), abertura do preço do carro em imposto/insumo/margem (só institutos privados).
+  Metodologia: seção "Poder de compra" em `metodologia.md`. Glossário ganhou 4 termos.
+
 ## Comparação com o mundo em Desenvolvimento (29/10/2026)
 - Pedido do dono: "o que melhorou deveria ser comparado com o que melhorou no mundo". `rankings.json` ganhou
   `agregados` — séries dos grupos que o **próprio Banco Mundial** publica: WLD (Mundo), HIC (renda alta), LMY (renda
