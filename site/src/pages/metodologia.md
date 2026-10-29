@@ -331,6 +331,29 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Sugestões:** a caixa de sugestões (`/sugestoes/`) grava texto, contato opcional e página de origem; **nunca** IP, cookie ou
   navegador. O site mostra só a contagem de 24 horas — publicar texto de terceiro exigiria moderação, e isso está dito na página.
 
+## Endividamento de risco — seção de Inadimplência
+
+- **O que é:** quantas pessoas o Banco Central classifica em endividamento de risco (20,3 milhões, ou 17% dos devedores do
+  sistema financeiro, em junho de 2026), a série de seis em seis meses desde 2021, os quatro critérios da definição, quantos
+  tomadores há em cada faixa de renda, e o peso da dívida no conjunto das famílias desde 2005.
+- **Fonte:** Banco Central, **Relatório de Estabilidade Financeira, volume 25, outubro de 2026** (PDF) — número de pessoas e
+  Gráfico 2.3.1 na p. 77, definição na nota 70 da p. 72, tomadores por faixa de renda no Boxe 3, p. 37–38; e Banco Central,
+  **SGS séries 29034** (comprometimento de renda das famílias) e **29037** (endividamento das famílias), mensais desde 2005.
+- **Como entra no site:** os números do relatório não têm API, então ficam como constantes declaradas em
+  `site/src/lib/endividamento.ts`, cada bloco com a página do PDF e a data da leitura — o mesmo padrão de `comparacao.ts`.
+  As duas séries do SGS entram pelo ETL do painel (`etl/credito/extract.py`), pela API.
+- **O que NÃO publicamos:** os valores de comprometimento de renda por faixa de salário mínimo que a imprensa citou (42% para
+  quem ganha até dois mínimos). Eles existem no relatório **apenas como rótulo de gráfico** (Gráfico 1.2.2.12), e ler número de
+  gráfico é estimativa com régua. Enquanto o BC não publicar a tabela, a página fica sem esse recorte.
+- **Atenção, porque são três universos diferentes:** (1) os 20,3 milhões são pessoas, calculadas pelo BC dentro do SCR com a
+  renda de cada devedor — informação que ele tem e não abre; (2) o resto do painel é **reais em atraso**, dos arquivos abertos
+  do SCR; (3) os 95,4 milhões de tomadores por faixa de renda só incluem quem tem renda conhecida e carteira acima de R$ 200.
+  Os três não se somam, e a página diz isso em cada bloco.
+- **Atraso é só um dos quatro critérios**: dá para ser endividado de risco sem nunca ter deixado de pagar, bastando comprometer
+  mais de 50% da renda e usar cheque especial, crédito pessoal não consignado e rotativo ao mesmo tempo.
+- **O que não dizemos:** se o crédito deveria ser mais caro, mais barato ou mais restrito. As frases de análise na página são
+  **citações do relatório, com a página**, e não opinião do site.
+
 ## Poder de compra — o preço medido em tempo de trabalho
 
 - **O que é:** quanto tempo de trabalho custa um litro de gasolina, de etanol e de diesel, o botijão de 13 kg e o metro cúbico de

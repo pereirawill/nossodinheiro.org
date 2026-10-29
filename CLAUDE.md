@@ -380,6 +380,26 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   item, sem mexer em mais nada; o menu foi a 36 itens em 4 linhas). A proposta de consolidação 35 → 29, já enviada
   por imagem, continua esperando o sim dele.
 
+## Endividamento de risco — seção de Inadimplência (29/10/2026)
+- O dono mandou uma notícia do g1 ("endividamento de risco cresce 75%") e perguntou se os nossos dados iam na contramão.
+  **Não iam**: a nossa inadimplência de PF subiu de 3,97% (jan/2025) para 6,19% (ago/2026), mesma direção. Virou seção.
+- **Fonte primária = REF do BC, volume 25, out/2026** (PDF, 13 MB, `data/raw/bcb_ref_202610.pdf`): 20,3 mi de pessoas =
+  **17% dos devedores do SFN** em jun/2026, +75% sobre jun/2021 (p. 77, com a série semestral do Gráfico 2.3.1, 11 pontos);
+  definição na **nota 70 da p. 72** — é endividado de risco quem atende a **dois ou mais** de quatro critérios (atraso >90 d;
+  >50% da renda no serviço da dívida; sobra abaixo da linha de pobreza; cheque especial + pessoal não consignado + rotativo
+  ao mesmo tempo). Tomadores por faixa de renda no Boxe 3, p. 37–38 (até 2 SM: 61,2 mi de 95,4 mi).
+- **Minha hipótese inicial estava errada** e está registrada aqui para não se repetir: supus que os 20,3 mi fossem a *união*
+  dos quatro critérios e os 4,6 mi do estudo de 2023 a *interseção*. É "dois ou mais" — li a nota de rodapé do PDF.
+- **Não publicamos os 42% da renda de quem ganha até 2 SM** que a imprensa citou: no relatório esse valor só existe como
+  rótulo do Gráfico 1.2.2.12, e ler número de gráfico é régua. Em lugar disso entraram as séries agregadas equivalentes,
+  que têm API: **SGS 29034** (comprometimento, mar/2005 17,0% → ago/2026 **28,99%**) e **29037** (endividamento,
+  jan/2005 16,51% → **50,11%**) — as duas no **máximo da série**, e são as mesmas que o REF cita.
+- Números do PDF ficam em `site/src/lib/endividamento.ts` (constante declarada com página e data de leitura, padrão de
+  `comparacao.ts`); as séries do SGS entraram no `etl/credito/extract.py` (`familias`, com as 4 tentativas do SGS).
+- Armadilha de CSS: `<b>` dentro do `<span>` de um `.stat` herda a fonte-herói e vira texto gigante — usar texto puro.
+- Glossário: `endividamento_risco`, `comprometimento_renda`, `superendividamento`. `/conferir/` ganhou a linha das duas
+  medidas subindo juntas e o limite "não há endividamento de risco por estado".
+
 ## Poder de compra — subpágina de Economia (NO AR, sem chave, mensal dia 18; feito 29/10/2026)
 - Pedido antigo do dono ("quantas horas de trabalho para comprar TV, geladeira, carro; e o motivo seria o imposto?").
   `etl/precos/extract.py` → `precos.json`, `/economia/poder-de-compra/`. **Subpágina de propósito**: o dono pediu menos

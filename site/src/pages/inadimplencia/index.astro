@@ -4,6 +4,7 @@ import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
 import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/credito.json";
+import { FONTE_REF, CRITERIOS, SERIE_RISCO, RISCO, TOMADORES_POR_FAIXA, ACHADOS } from "../../lib/endividamento";
 
 const tri = (v: number) => `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri`;
 const bi = (v: number) => v >= 1e12 ? tri(v) : `R$ ${(v / 1e9).toFixed(v >= 1e11 ? 0 : 1).replace(".", ",")} bi`;
@@ -28,6 +29,29 @@ const SW = 920, SH = 200, padL = 48, padB = 24;
 const maxS = Math.max(...d.serie.map((s) => Math.max(s.pct_pf ?? 0, s.pct_pj ?? 0))) * 1.1;
 const sx = (i: number) => padL + (i * (SW - padL - 10)) / Math.max(1, d.serie.length - 1);
 const sy = (v: number) => 8 + (SH - padB - 8) * (1 - v / maxS);
+// endividamento de risco (REF do BC) e as duas séries agregadas do SGS
+const mi = (v: number) => `${(v / 1e6).toFixed(1).replace(".", ",")} milhões`;
+const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const riscoIni = SERIE_RISCO[0], riscoFim = SERIE_RISCO[SERIE_RISCO.length - 1];
+const RW = 920, RH = 210, rPadL = 40, rPadB = 30;
+const maxR = Math.max(...SERIE_RISCO.map((x) => x.pct)) * 1.18;
+const rPasso = (RW - rPadL - 12) / SERIE_RISCO.length;
+const ry = (v: number) => 12 + (RH - rPadB - 12) * (1 - v / maxR);
+
+const fam = (d as any).familias ?? {};
+const compr = fam.comprometimento?.pontos ?? {};
+const endiv = fam.endividamento?.pontos ?? {};
+const mesesFam = Object.keys(compr).filter((m) => m in endiv).sort();
+const ultFam = mesesFam[mesesFam.length - 1];
+const FW = 920, FH = 220, fPadL = 40, fPadB = 26;
+const maxF = Math.max(...mesesFam.map((m) => endiv[m])) * 1.12;
+const fx = (i: number) => fPadL + (i * (FW - fPadL - 12)) / Math.max(1, mesesFam.length - 1);
+const fy = (v: number) => 10 + (FH - fPadB - 10) * (1 - v / maxF);
+const caminhoFam = (pontos: Record<string, number>) =>
+  mesesFam.map((m, i) => `${i ? "L" : "M"}${fx(i).toFixed(1)} ${fy(pontos[m]).toFixed(1)}`).join(" ");
+const mesLongo = (m: string) => `${MESES[+m.slice(5) - 1]}/${m.slice(0, 4)}`;
+const anosFam = [2008, 2012, 2016, 2020, 2024];
+
 const rotulo = (m: string) => `${MESES[+m.slice(5) - 1]}/${m.slice(2, 4)}`;
 ---
 <Base title="Inadimplência por estado — Nosso Dinheiro" accent="var(--s4)" description="Quanto do crédito a pessoas e empresas está atrasado há mais de 90 dias, por estado, tipo de crédito e faixa de renda. Banco Central, SCR.data.">
@@ -50,6 +74,96 @@ const rotulo = (m: string) => `${MESES[+m.slice(5) - 1]}/${m.slice(2, 4)}`;
     dias, não quantas pessoas estão com o nome sujo (isso é dado de birôs privados, que não usamos). Um estado com muito crédito
     imobiliário (quase sempre em dia) tende a ter taxa menor. O menor recorte que o BC publica é o estado: <b>não há dado oficial por
     município</b>.</div>
+  </div>
+
+
+  <h2>Quem está sufocado, e não só atrasado</h2>
+  <div class="card">
+    <div class="hero" style="margin-top:0">
+      <div class="stat big"><b>{mi(RISCO.pessoas)}</b><span>de pessoas em <Termo t="endividamento_risco">endividamento de risco</Termo> em {RISCO.referencia} — {RISCO.pct_devedores}% de quem deve ao sistema financeiro</span></div>
+      <div class="stat"><b>+{RISCO.variacao_5_anos}%</b><span>em cinco anos: eram {n1(riscoIni.pct)}% dos devedores em {riscoIni.periodo} e são {n1(riscoFim.pct)}% em {riscoFim.periodo}</span></div>
+      <div class="stat"><b>{pct(pf.pct)}</b><span>é a nossa medida ao lado: o crédito em atraso. Quem está sufocado pode estar em dia — são contas diferentes</span></div>
+    </div>
+    <svg viewBox={`0 0 ${RW} ${RH}`} width="100%" role="img" aria-label="Percentual dos devedores do sistema financeiro em endividamento de risco, de seis em seis meses">
+      {[5, 10, 15].map((v) => (<g><line x1={rPadL} x2={RW - 12} y1={ry(v)} y2={ry(v)} stroke="var(--line)" /><text x={rPadL - 6} y={ry(v) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{v}%</text></g>))}
+      {SERIE_RISCO.map((x, i) => (<g>
+        <rect x={rPadL + i * rPasso + 3} y={ry(x.pct)} width={rPasso - 6} height={ry(0) - ry(x.pct)} fill={i === SERIE_RISCO.length - 1 ? "#a3302a" : "var(--s4)"} opacity={i === SERIE_RISCO.length - 1 ? 1 : 0.8}>
+          <title>{x.periodo}: {n1(x.pct)}% dos devedores</title></rect>
+        <text x={rPadL + i * rPasso + rPasso / 2} y={ry(x.pct) - 5} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1(x.pct)}</text>
+        <text x={rPadL + i * rPasso + rPasso / 2} y={RH - 10} text-anchor="middle" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{x.periodo}</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      <b>Por que isto não é a mesma coisa que a inadimplência desta página.</b> O número de cima é de pessoas e é
+      calculado pelo Banco Central dentro do SCR, com a renda de cada tomador — informação que o BC tem e não
+      publica aberta. O resto da página é de reais em atraso, que é o que está nos arquivos públicos. As duas
+      medidas apontam para o mesmo lado, mas não se somam nem se substituem.
+      Fonte: {FONTE_REF.nome}, {FONTE_REF.edicao}, p. {RISCO.pagina} (lido em {FONTE_REF.lido}).
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Os quatro sinais que o Banco Central conta</h3>
+    <p class="explica" style="margin:0 0 10px">
+      É endividado de risco quem atende a <b>dois ou mais</b> destes critérios. Todos são objetivos, tirados do
+      cadastro de crédito — ninguém é entrevistado, nem se declara endividado:
+    </p>
+    <ol class="criterios">
+      {CRITERIOS.map((c) => (<li><b>{c.titulo}.</b> {c.detalhe}</li>))}
+    </ol>
+    <p class="src">
+      Definição da nota 70, p. 72 do relatório, que remete ao estudo <i>Endividamento de Risco no Brasil</i> (BC, 2023).
+      Repare no desenho: <b>atraso é só um dos quatro sinais</b> — dá para entrar na conta sem nunca ter deixado de
+      pagar, bastando comprometer mais da metade da renda e usar as três modalidades caras ao mesmo tempo.
+    </p>
+  </div>
+
+  <h2>O peso da dívida em todas as famílias</h2>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--s4)"></i>Dívida total ÷ renda de um ano</span><span><i style="background:var(--s1)"></i>Pagamento do mês ÷ renda do mês</span></div>
+    <svg viewBox={`0 0 ${FW} ${FH}`} width="100%" role="img" aria-label="Endividamento e comprometimento de renda das famílias brasileiras, desde 2005">
+      {[10, 20, 30, 40, 50].map((v) => (<g><line x1={fPadL} x2={FW - 12} y1={fy(v)} y2={fy(v)} stroke="var(--line)" /><text x={fPadL - 6} y={fy(v) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{v}%</text></g>))}
+      {anosFam.map((a) => { const i = mesesFam.indexOf(`${a}-01`); return i >= 0 && <text x={fx(i)} y={FH - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text>; })}
+      <path d={caminhoFam(endiv)} fill="none" stroke="var(--s4)" stroke-width="2.5" />
+      <path d={caminhoFam(compr)} fill="none" stroke="var(--s1)" stroke-width="2.5" />
+    </svg>
+    <p class="src">
+      Em {mesLongo(ultFam)}, a dívida das famílias brasileiras equivale a <b>{n1(endiv[ultFam])}% da renda de um ano</b>
+      e o pagamento mensal consome <b>{n1(compr[ultFam])}% da renda do mês</b> —
+      <Termo t="comprometimento_renda">comprometimento de renda</Termo>. As duas são o
+      <b> maior nível de toda a série</b>, que começa em {mesLongo(mesesFam[0])}, quando eram {n1(endiv[mesesFam[0]])}% e
+      {" "}{n1(compr[mesesFam[0]])}%. São médias do país inteiro: contam quem tem financiamento imobiliário em dia do
+      mesmo jeito que contam quem só tem rotativo de cartão. Fonte: Banco Central, SGS séries 29037 e 29034 — as mesmas
+      que o relatório usa.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Quem deve, por faixa de renda</h3>
+    <table>
+      <thead><tr><th>Faixa de renda</th><th class="num">Tomadores de crédito</th><th class="num">% do total</th></tr></thead>
+      <tbody>{TOMADORES_POR_FAIXA.map((f) => (<tr><td>{f.faixa}</td><td class="num">{n1(f.milhoes)} mi</td>
+        <td class="num">{n1(100 * f.milhoes / TOMADORES_POR_FAIXA.reduce((s, x) => s + x.milhoes, 0))}%</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Quem toma crédito no Brasil é, em grande maioria, quem ganha pouco:
+      {" "}{n1(100 * TOMADORES_POR_FAIXA[0].milhoes / TOMADORES_POR_FAIXA.reduce((s, x) => s + x.milhoes, 0))}% dos
+      tomadores ganham até dois salários mínimos. <b>Este universo é diferente</b> do dos {mi(RISCO.pessoas)} acima:
+      aqui entram só os tomadores com renda conhecida e carteira acima de R$ 200, que é o recorte do cálculo de
+      comprometimento de renda — por isso a soma não bate com o total de devedores do sistema. Boxe 3, p. 37–38.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">O que o relatório diz, nas palavras dele</h3>
+    <ul class="citacoes">
+      {ACHADOS.map((a) => (<li>“{a.texto}” <span class="pg">p. {a.pagina}</span></li>))}
+    </ul>
+    <p class="src">
+      Citações do próprio relatório, com a página, porque aqui a análise é do Banco Central e não nossa. O documento
+      inteiro está em <a href={FONTE_REF.url}>{FONTE_REF.nome}</a>. Este site não escreve se o crédito deveria ser mais
+      caro, mais barato ou mais restrito.
+    </p>
   </div>
 
   <h2>Por estado: pessoas físicas e empresas ({ref})</h2>
@@ -129,9 +243,14 @@ const rotulo = (m: string) => `${MESES[+m.slice(5) - 1]}/${m.slice(2, 4)}`;
     <p class="src">Série dos arquivos anuais do SCR.data disponíveis ({d.serie[0].mes} a {d.referencia}). Séries mais longas: Banco Central, SGS.</p>
   </div>
 
-  <Glossario termos={["inadimplencia_scr", "carteira_ativa", "modalidade_credito"]} />
+  <Glossario termos={["endividamento_risco", "comprometimento_renda", "inadimplencia_scr", "carteira_ativa", "modalidade_credito"]} />
 </Base>
 <style>
+  ol.criterios { margin: 0; padding-left: 20px; } ol.criterios li { margin: 6px 0; }
+  ul.citacoes { margin: 0; padding-left: 18px; list-style: none; }
+  ul.citacoes li { margin: 8px 0; padding-left: 10px; border-left: 3px solid var(--line); color: var(--ink-2); }
+  ul.citacoes .pg { font-family: IBM Plex Mono, monospace; font-size: 11.5px; white-space: nowrap; }
+  td.num, th.num { white-space: nowrap; }
   .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .duas h3 { margin: 0 0 8px; font-size: 15px; }
   @media (max-width: 720px) { .duas { grid-template-columns: 1fr; } }
 </style>

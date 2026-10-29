@@ -25,6 +25,18 @@ export type Checagem = {
 
 export const CHECAGENS: Checagem[] = [
   {
+    painel: "Inadimplência", slug: "/inadimplencia/",
+    oQue: "Nossa inadimplência de pessoa física, calculada do SCR.data aberto, contra o endividamento de risco que o próprio Banco Central calcula com a renda de cada devedor (dado que ele não publica aberto)",
+    status: "bate",
+    explicacao: "São medidas diferentes — reais em atraso de um lado, pessoas em risco do outro — e por isso os " +
+      "números não são comparáveis em nível. O que dá para conferir é a direção, e ela é a mesma: nossa taxa de PF " +
+      "foi de 3,97% (jan/2025) a 6,19% (ago/2026) enquanto o indicador do BC foi de 13,4% para 17,0% dos devedores " +
+      "no mesmo período. Duas contas independentes, feitas de jeitos diferentes, subindo juntas.",
+    fonte: "Banco Central — Relatório de Estabilidade Financeira, volume 25 (outubro de 2026), p. 77",
+    url: "https://www.bcb.gov.br/content/publicacoes/ref/202610/RELESTAB202610-refPub.pdf",
+    lido: "29/10/2026",
+  },
+  {
     painel: "Poder de compra", slug: "/economia/poder-de-compra/",
     oQue: "Nível geral de preços do Brasil em relação aos Estados Unidos, medido pelo ICP 2021 do Banco Mundial e pela razão entre a paridade de poder de compra e o câmbio de mercado, que é outra série do mesmo banco",
     status: "bate",
@@ -225,6 +237,7 @@ export const REGRAS: { titulo: string; texto: string }[] = [
 
 /** O que nenhuma conferência nossa alcança — dito nas páginas, repetido aqui. */
 export const LIMITES: string[] = [
+  "Quantas pessoas estão em endividamento de risco por estado ou por cidade: o Banco Central calcula isso com a renda de cada devedor, que não está nos arquivos abertos do SCR — só publica o total do país.",
   "Quantas horas de trabalho custa uma TV ou um carro em cada país: exigiria o preço do mesmo modelo em cada lugar, que nenhum órgão público publica. O que existe é o nível de preços por categoria, do ICP.",
   "O preço da bomba comparado entre países: o indicador do Banco Mundial que trazia isso (EP.PMP.SGAS.CD) foi arquivado e não responde mais.",
   "Quanto do preço de um carro ou de uma geladeira é imposto: a abertura em imposto, insumo, frete e margem não é publicada por órgão oficial.",
