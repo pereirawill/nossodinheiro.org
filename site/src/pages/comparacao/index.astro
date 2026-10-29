@@ -39,21 +39,26 @@ const linhasRef = REF.map((iso) => {
   return { iso, pais: base?.pais ?? iso, valores: Object.fromEntries(AREAS.map((a) => [a.id, valorDe(a.ind, iso)])) };
 }).filter((l) => Object.values(l.valores).some(Boolean));
 
-// gráfico de barras das áreas no Brasil, com a mediana dos países de referência ao lado
-// Média e mediana dos países de referência. A página mostra a MÉDIA, que é a palavra que todo mundo entende, e a
-// nota traz a mediana como conferência: nas seis áreas as duas ficam a menos de 1 ponto uma da outra, então nenhuma
-// conclusão depende da escolha.
+// A página mostra a MÉDIA, que é a palavra que todo mundo entende, e cada área traz a mediana ao lado como
+// conferência: nas seis áreas as duas ficam a menos de 1 ponto uma da outra, então nenhuma conclusão depende da escolha.
 const mediana = (xs: number[]) => {
   const v = [...xs].sort((a, b) => a - b);
   return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : 0;
 };
-const comparacao = AREAS.map((a) => {
-  const br = valorDe(a.ind, "BRA");
-  const outros = linhasRef.filter((l) => l.iso !== "BRA").map((l) => l.valores[a.id]?.valor).filter((v): v is number => v != null);
+// Um gráfico por área, com TODOS os países aparecendo (pedido do dono em 29/10/2026: a média não pode esconder
+// os 20 países dentro de uma barra só).
+const porArea = AREAS.map((a) => {
+  const linhas = [...REF].map((iso) => {
+    const v = valorDe(a.ind, iso);
+    return v ? { iso, pais: v.pais, valor: v.valor, ano: v.ano } : null;
+  }).filter(Boolean) as { iso: string; pais: string; valor: number; ano: number }[];
+  linhas.sort((x, y) => y.valor - x.valor);
+  const outros = linhas.filter((l) => l.iso !== "BRA").map((l) => l.valor);
   const media = outros.length ? outros.reduce((t, v) => t + v, 0) / outros.length : 0;
-  return { ...a, br, media, mediana: mediana(outros), n: outros.length };
+  const br = linhas.find((l) => l.iso === "BRA");
+  return { ...a, linhas, media, mediana: mediana(outros), br,
+           acimaDaMedia: (br?.valor ?? 0) > media, max: Math.max(...linhas.map((l) => l.valor), media) };
 });
-const maxComp = Math.max(...comparacao.flatMap((c) => [c.br?.valor ?? 0, c.media]));
 const W = 920, rotuloW = 240, barraW = 500;
 
 // carga tributária: o Banco Mundial mede só o governo central; a Receita mede os três níveis
@@ -163,30 +168,40 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
       quase 200 países: escolher 20 é uma decisão editorial, não um dado — por isso ela está declarada, e a tabela
       "país por país", mais abaixo, mostra o número de cada um para quem quiser refazer a média com outra lista.
     </p>
-    <div class="legend"><span><i style="background:var(--s4)"></i>Brasil</span><span><i style="background:var(--neutro)"></i>média dos outros 20 países</span></div>
-    <svg viewBox={`0 0 ${W} ${comparacao.length * 46 + 12}`} width="100%" role="img" aria-label="Gasto por área no Brasil e a média dos países de referência">
-      {comparacao.map((c, i) => (<g transform={`translate(0 ${i * 46 + 8})`}>
-        <text x={rotuloW - 8} y="14" text-anchor="end" font-size="12.5" fill="var(--ink)">{c.rotulo}</text>
-        <text x={rotuloW - 8} y="28" text-anchor="end" font-size="10.5" fill="var(--ink-2)">{c.ind.unidade}</text>
-        <rect x={rotuloW} y="2" width={Math.max(2, ((c.br?.valor ?? 0) / maxComp) * barraW)} height="14" fill="var(--s4)" rx="2">
-          <title>Brasil: {n2(c.br?.valor)} {c.ind.unidade} ({c.br?.ano})</title></rect>
-        <rect x={rotuloW} y="18" width={Math.max(2, (c.media / maxComp) * barraW)} height="14" fill="var(--neutro)" rx="2">
-          <title>Média dos {c.n} países de referência: {n2(c.media)} (mediana {n2(c.mediana)})</title></rect>
-        <text x={rotuloW + barraW + 10} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1(c.br?.valor)}</text>
-        <text x={rotuloW + barraW + 10} y="30" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n1(c.media)}</text>
-      </g>))}
-    </svg>
-    <p class="src">
-      Cada par de barras é uma área: em cima o Brasil, embaixo a média dos outros países listados acima — o número
-      deles muda de área para área ({comparacao.map((c) => `${c.rotulo.toLowerCase()}: ${c.n}`).join(", ")}), porque o
-      Banco Mundial não publica todos os indicadores para todos os países no mesmo ano. O Brasil
-      aparece em {comparacao.filter((c) => (c.br?.valor ?? 0) > c.media).length} das {comparacao.length} áreas acima da
-      média. Conferimos também pela <b>mediana</b>, o país do meio, que não se deixa puxar por um valor extremo: ela dá
-      {" "}{comparacao.map((c) => `${c.rotulo.toLowerCase()} ${n1(c.mediana)}`).join(", ")} — a menos de um ponto da média
-      em todas as áreas, de modo que nenhuma conclusão desta página depende de qual das duas se usa.
-      Fonte: Banco Mundial, indicadores {AREAS.map((a) => a.ind.url.split("/").pop()).join(", ")}.
+    <p class="src" style="margin:0">
+      Cada área tem o seu gráfico abaixo, com <b>um país por linha</b> — a média aparece como linha tracejada, para dar
+      referência sem esconder quem está onde. O Brasil fica acima da média em
+      {" "}{porArea.filter((a) => a.acimaDaMedia).length} das {porArea.length} áreas. Conferimos também pela
+      <b> mediana</b>, o país do meio, que não se deixa puxar por um valor extremo: ela aparece ao lado de cada média e
+      fica a menos de um ponto dela em todas as áreas, de modo que nenhuma conclusão depende de qual das duas se usa.
     </p>
   </div>
+
+  {porArea.map((a) => (
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin:0 0 2px">{a.rotulo}</h3>
+      <p class="sub" style="margin:0 0 10px">
+        {a.ind.unidade} · Brasil {n1(a.br?.valor ?? 0)} · média dos outros {n1(a.media)} (mediana {n1(a.mediana)}) ·
+        o Brasil está <b>{a.acimaDaMedia ? "acima" : "abaixo"}</b> da média
+      </p>
+      <svg viewBox={`0 0 ${W} ${a.linhas.length * 19 + 10}`} width="100%" role="img" aria-label={`${a.rotulo}: ${a.ind.unidade}, país por país`}>
+        {a.linhas.map((l, i) => (<g transform={`translate(0 ${i * 19 + 5})`}>
+          <text x={rotuloW - 8} y="11" text-anchor="end" font-size="11.5" fill={l.iso === "BRA" ? "var(--ink)" : "var(--ink-2)"} font-weight={l.iso === "BRA" ? "700" : "400"}>{l.pais}</text>
+          <rect x={rotuloW} y="2" width={Math.max(2, (l.valor / a.max) * barraW)} height="12" rx="2"
+            fill={l.iso === "BRA" ? "var(--s4)" : "var(--neutro)"} opacity={l.iso === "BRA" ? 1 : 0.55}>
+            <title>{l.pais}: {n2(l.valor)} {a.ind.unidade} ({l.ano})</title></rect>
+          <text x={rotuloW + (l.valor / a.max) * barraW + 8} y="12" font-size="11" font-family="IBM Plex Mono, monospace"
+            fill="var(--ink-2)">{n1(l.valor)}</text>
+        </g>))}
+        <line x1={rotuloW + (a.media / a.max) * barraW} x2={rotuloW + (a.media / a.max) * barraW} y1="2"
+          y2={a.linhas.length * 19 + 2} stroke="var(--ink-2)" stroke-dasharray="3 3" />
+      </svg>
+      <p class="src">
+        Brasil em destaque; a linha tracejada é a média dos outros países com dado nesta área ({a.linhas.length - 1} países).
+        O ano varia de país para país e está na dica de cada barra. Fonte: Banco Mundial, indicador {a.ind.url.split("/").pop()}.
+      </p>
+    </div>
+  ))}
 
   <h2>País por país</h2>
   <div class="card">
