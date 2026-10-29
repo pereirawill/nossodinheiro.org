@@ -10,7 +10,13 @@ Fontes (sem chave):
   (alimentação, habitação, artigos de residência, vestuário, transportes, saúde, despesas pessoais, educação, comunicação),
   com variação no mês, acumulada no ano, em 12 meses e o peso de cada grupo na cesta.
 - IBGE, SIDRA tabela 7060 por região: 10 regiões metropolitanas (nível N7) e 6 municípios (N6) que compõem o IPCA.
-- IBGE, SIDRA tabela 7063 (INPC), só o índice geral, para comparar com o IPCA.
+- IBGE, SIDRA tabelas 655, 2938, 1419 e 7060 (IPCA por grupo e por item): a variação mensal de cada grupo e de onze itens
+  do dia a dia, encadeada de agosto de 1999 em diante. As quatro tabelas se sucedem sem se sobrepor — cada uma vale enquanto
+  vale a estrutura de pesos de uma POF —, e o que encadeamos é a VARIAÇÃO medida em cada período, não números-índice de
+  pesquisas diferentes. O código interno do SIDRA muda entre as tabelas; o código do IBGE, que vem no rótulo
+  ("1112015.Pão francês"), é estável, e é por ele que a cadeia é montada.
+- IBGE, SIDRA tabela 7063 (INPC), o índice geral e o peso de cada grupo, para comparar a cesta de quem ganha até 5 salários
+  mínimos com a do IPCA (1 a 40).
 - Banco Central, SGS série 13521: meta de inflação definida pelo Conselho Monetário Nacional para cada ano.
 
 O IPCA mede a variação de preços para famílias com renda de 1 a 40 salários mínimos nas 16 áreas pesquisadas; o INPC, de 1 a 5
@@ -21,6 +27,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -97,6 +104,94 @@ def meta_bcb(c: httpx.Client) -> dict:
     return {x["data"][-4:]: float(x["valor"]) for x in r.json()}
 
 
+# ---------------------------------------------------------------------------
+# Série longa por grupo e por item, e o peso de cada grupo nas duas cestas.
+#
+# O IBGE publica a variação mensal por grupo/item em tabelas que se sucedem sem se sobrepor — cada uma vale
+# enquanto vale a estrutura de pesos de uma POF. Encadear a VARIAÇÃO de um mesmo item entre elas é legítimo
+# (é a variação medida em cada período), diferente de emendar números-índice de pesquisas diferentes. O que
+# muda entre as tabelas é o código interno do SIDRA; o código do IBGE, que vem no começo do rótulo
+# ("1112015.Pão francês"), é estável — e é por ele que a cadeia é montada.
+CADEIA = [(655, "199908-200606"), (2938, "200607-201112"), (1419, "201201-201912"), (7060, "202001-{fim}")]
+# grupos (código do IBGE de um dígito) e os itens do dia a dia que a página mostra
+GRUPOS_IBGE = {"1": "Alimentação e bebidas", "2": "Habitação", "3": "Artigos de residência", "4": "Vestuário",
+               "5": "Transportes", "6": "Saúde e cuidados pessoais", "7": "Despesas pessoais",
+               "8": "Educação", "9": "Comunicação"}
+ITENS_IBGE = {"1112015": "Pão francês", "1101002": "Arroz", "1101073": "Feijão (carioca)",
+              "1111004": "Leite longa vida", "1110044": "Ovo de galinha", "1201001": "Refeição fora de casa",
+              "2101001": "Aluguel residencial", "2202003": "Energia elétrica", "5104001": "Gasolina",
+              "5102001": "Automóvel novo", "6203001": "Plano de saúde"}
+GERAL_IBGE = "0"   # o rótulo do índice geral não tem prefixo numérico; tratado à parte
+
+
+def _rotulo(nome: str) -> tuple[str, str]:
+    """'1112015.Pão francês' → ('1112015', 'Pão francês'); 'Índice geral' → ('0', 'Índice geral')."""
+    m = re.match(r"\s*(\d+)\.\s*(.+)", nome or "")
+    return (m.group(1), m.group(2).strip()) if m else (GERAL_IBGE, (nome or "").strip())
+
+
+def _codigos_da_tabela(c: httpx.Client, tabela: int, mes: str) -> dict[str, str]:
+    """Mapa código do IBGE → código do SIDRA, lido de um mês qualquer da tabela."""
+    linhas = sidra(c, t=tabela, v="63", p=mes, c="/c315/all")
+    saida = {}
+    for l in linhas:
+        cod_sidra = l.get("D4C")
+        ibge, _ = _rotulo(l.get("D4N") or "")
+        if cod_sidra and ibge not in saida:
+            saida[ibge] = str(cod_sidra)
+    return saida
+
+
+def grupos_e_itens(c: httpx.Client, ultimo: str) -> dict:
+    """Número-índice por grupo e por item, encadeando a variação mensal das quatro tabelas."""
+    desejados = {GERAL_IBGE, *GRUPOS_IBGE, *ITENS_IBGE}
+    variacoes: dict[str, dict[str, float]] = {}
+    nomes: dict[str, str] = {}
+    for tabela, periodo in CADEIA:
+        periodo = periodo.format(fim=ultimo)
+        mapa = _codigos_da_tabela(c, tabela, periodo.split("-")[0])
+        codigos = sorted({mapa[k] for k in desejados if k in mapa})
+        if not codigos:
+            log.warning("tabela %s não trouxe nenhum dos códigos pedidos", tabela)
+            continue
+        for l in sidra(c, t=tabela, v="63", p=periodo, c="/c315/" + ",".join(codigos)):
+            ibge, nome = _rotulo(l.get("D4N") or "")
+            mes = str(l.get("D3C") or "")
+            try:
+                v = float(str(l.get("V")).replace(",", "."))
+            except (TypeError, ValueError):
+                continue
+            if ibge in desejados and len(mes) == 6:
+                variacoes.setdefault(ibge, {})[f"{mes[:4]}-{mes[4:]}"] = v
+                nomes[ibge] = nome
+    # da variação mensal para o número-índice, base 100 no primeiro mês de todos
+    saida = {}
+    for ibge, pontos in variacoes.items():
+        meses = sorted(pontos)
+        indice, valor = {}, 100.0
+        for m in meses:
+            valor *= 1 + pontos[m] / 100
+            indice[m] = round(valor, 4)
+        saida[ibge] = {"nome": nomes.get(ibge, ibge), "indice": indice,
+                       "tipo": "geral" if ibge == GERAL_IBGE else ("grupo" if len(ibge) == 1 else "item")}
+    return saida
+
+
+def pesos(c: httpx.Client, ultimo: str) -> dict:
+    """Peso de cada grupo nas duas cestas: IPCA (1 a 40 salários mínimos) e INPC (até 5)."""
+    saida: dict[str, dict] = {}
+    for cesta, (tabela, var) in (("ipca", (7060, "66")), ("inpc", (7063, "45"))):
+        for l in sidra(c, t=tabela, v=var, p=ultimo, c="/c315/all"):
+            ibge, nome = _rotulo(l.get("D4N") or "")
+            if ibge not in GRUPOS_IBGE:
+                continue
+            try:
+                saida.setdefault(ibge, {"nome": nome})[cesta] = float(str(l.get("V")).replace(",", "."))
+            except (TypeError, ValueError):
+                continue
+    return saida
+
+
 def run() -> Path:
     PUB.mkdir(parents=True, exist_ok=True)
     with httpx.Client(headers=UA, timeout=240, follow_redirects=True) as c:
@@ -105,16 +200,23 @@ def run() -> Path:
         reg = regioes(c)
         inpc = {r["D3C"]: _num(r["V"]) for r in sidra(c, t=7063, v=2292, p="last 13", c="/c315/7169") if _num(r["V"]) is not None}
         metas = meta_bcb(c)
+        longo = grupos_e_itens(c, hist["ultimo_mes"].replace("-", ""))
+        peso_cestas = pesos(c, hist["ultimo_mes"].replace("-", ""))
     dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), **hist,
              "grupos": g, "regioes": reg, "inpc_doze_meses": inpc, "meta_bcb": metas,
+             "longo": longo, "pesos_cestas": peso_cestas,
              "fontes": {"ipca": "IBGE, IPCA (SIDRA 1737, série desde dez/1979; e 7060 por grupo e por região, desde jan/2020)",
                         "inpc": "IBGE, INPC (SIDRA 7063)",
+                        "longo": "IBGE, variação mensal do IPCA por grupo e por item, encadeada das tabelas 655, "
+                                 "2938, 1419 e 7060 do SIDRA (agosto de 1999 em diante)",
+                        "pesos": "IBGE, peso de cada grupo na cesta do IPCA (SIDRA 7060) e do INPC (SIDRA 7063)",
                         "meta": "Banco Central, SGS série 13521 — meta de inflação definida pelo Conselho Monetário Nacional"}}
     out = PUB / "inflacao.json"
     out.write_text(json.dumps(dados, ensure_ascii=False), encoding="utf-8")
     log.info("IPCA %s: %.2f%% em 12 meses, %.2f%% no ano; meta %s = %s%%; %d grupos; %d regiões; série com %d meses",
              hist["ultimo_mes"], hist["doze_meses"][hist["ultimo_mes"]], hist["anual"][hist["ultimo_mes"][:4]],
              hist["ultimo_mes"][:4], metas.get(hist["ultimo_mes"][:4]), len(g), len(reg), len(hist["indice"]))
+    log.info("série longa: %d grupos e itens desde ago/1999; pesos de %d grupos nas duas cestas", len(longo), len(peso_cestas))
     return out
 
 
