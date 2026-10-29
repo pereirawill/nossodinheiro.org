@@ -21,7 +21,7 @@ jobs:
     # a API do Obrasgov leva ~85 s por requisição e devolve no máximo 50 registros: são ~1.000 chamadas
     timeout-minutes: 240
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - run: pip install -r requirements.txt
