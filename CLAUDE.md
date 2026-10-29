@@ -439,6 +439,12 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   NL deixa palácios fora (+€ 21,4 mi), DK conta só dinheiro a pessoas. Conversão pela PTAX do dia; `etl/cambio` passou a
   trazer as 10 moedas da PTAX (entraram DKK, NOK, SEK) e `rankings` ganhou `populacao` (SP.POP.TOTL) para o per capita.
 
+- 29/10 (pedido do dono): seção **"Violência: o Brasil, os outros países e as guerras"** em `/comparacao/`. Homicídios do
+  Brasil (19,3/100 mil, UNODC 2023, 18º maior de 149) numa lista só com os 5 piores do mundo e os de referência. Conflitos em
+  `CONFLITOS` (comparacao.ts), **só com fonte de órgão da ONU** e com o que cada número NÃO conta: Gaza 72.045 (OCHA citando o
+  MS de Gaza, civis + combatentes, 1.393/100 mil/ano ≈ 75× o Brasil) e Ucrânia 16.874 (OHCHR, **só civis verificados**, sem
+  militares → 9,4/100 mil/ano, metade do Brasil — e a página diz por que isso não significa "Brasil pior que a guerra").
+  `SEM_TOTAL_OFICIAL` lista Sudão/Congo/Mianmar/Haiti, onde a ONU não publica total.
 - Visual: `accent` por página (prop do `Base.astro`): deputados s1, senadores s3, STF s5, emendas s4, poderes s2, rankings s5.
 
 ## Benefícios (site)

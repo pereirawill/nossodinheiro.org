@@ -5,11 +5,12 @@ import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
 import rankings from "../../../public/data/rankings.json";
+import seg from "../../../public/data/seguranca.json";
 import imp from "../../../public/data/impostos.json";
 import funcoes from "../../../public/data/poderes_funcao_2025.json";
 import orgaos from "../../../public/data/poderes_orgaos_2025.json";
 import cambio from "../../../public/data/cambio.json";
-import { JUDICIARIO_BR, JUDICIARIO_EUROPA, JUDICIARIO_EUROPA_META, MONARQUIAS, PARLAMENTOS, CONGRESSO_BR } from "../../lib/comparacao";
+import { JUDICIARIO_BR, JUDICIARIO_EUROPA, JUDICIARIO_EUROPA_META, MONARQUIAS, PARLAMENTOS, CONGRESSO_BR , CONFLITOS, SEM_TOTAL_OFICIAL } from "../../lib/comparacao";
 
 const n1 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(1).replace(".", ",");
 const n2 = (v: number | null | undefined) => v == null ? "—" : v.toFixed(2).replace(".", ",");
@@ -114,6 +115,25 @@ const parlamentos = [
   ...PARLAMENTOS.map((x) => ({ ...x, reais: ptax[x.moeda] ? x.valor * ptax[x.moeda] : null, br: false })),
 ].sort((a, b) => (b.reais ?? 0) - (a.reais ?? 0));
 const maxParl = Math.max(...parlamentos.map((p2) => p2.reais ?? 0));
+// ── Violência: o Brasil, o mundo e as guerras (pedido de 29/10/2026) ───────────────────────────────────────────────
+const indHom = idx("homicidios");
+const popInd = idx("populacao");
+const popDe = (iso: string) => (popInd?.paises as any[])?.find((p) => p.iso3 === iso)?.valor ?? null;
+const homRef = indHom ? REF.filter((i) => i !== "BRA").map((iso) => (indHom.paises as any[]).find((p) => p.iso3 === iso))
+  .filter(Boolean).sort((a, b) => b.valor - a.valor) : [];
+const brHom = indHom?.brasil;
+// uma lista só, do maior para o menor: os 5 piores do mundo + os países de referência + o Brasil no lugar dele
+const homLista = indHom ? (() => {
+  const piores = [...(indHom.paises as any[])].sort((a, b) => b.valor - a.valor).slice(0, 5);
+  const juntos = [...piores, ...homRef.filter((p) => !piores.some((q) => q.iso3 === p.iso3))];
+  const br = (indHom.paises as any[]).find((p) => p.iso3 === "BRA");
+  return [...juntos, ...(br && !juntos.some((p) => p.iso3 === "BRA") ? [br] : [])].sort((a, b) => b.valor - a.valor);
+})() : [];
+const mviBr = (seg as any).brasil.mvi as number;
+const popBr = (seg as any).brasil.populacao as number;
+const taxaMviBr = (seg as any).brasil.taxa_mvi as number;
+const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.populacao) * 100_000 }))
+  .sort((a, b) => b.taxaAno - a.taxaAno);
 ---
 <Base title="Quanto cada país gasta nas mesmas coisas — Nosso Dinheiro" accent="var(--s5)"
   description="Gasto público em educação, saúde, defesa e benefícios como percentual do PIB, no Brasil e em 20 países de referência, com os dados do Banco Mundial.">
@@ -402,9 +422,62 @@ const maxParl = Math.max(...parlamentos.map((p2) => p2.reais ?? 0));
     </p>
   </div>
 
+  <h2>Violência: o Brasil, os outros países e as guerras</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      O Brasil teve <b>{mviBr.toLocaleString("pt-BR")}</b> mortes violentas intencionais em {(seg as any).ano}, uma
+      taxa de <b>{n1(taxaMviBr)} por 100 mil habitantes</b> (Sinesp). Pela contagem da ONU que permite comparar países,
+      a taxa de homicídios do Brasil é de <b>{n1(brHom?.valor ?? 0)} por 100 mil</b> ({brHom?.ano}) — a
+      {" "}{(indHom.total - (brHom?.posicao ?? 0) + 1)}ª maior entre os {indHom.total} países com dado.
+    </p>
+    <table>
+      <thead><tr><th>País</th><th class="num">Homicídios por 100 mil</th><th class="num">Ano</th></tr></thead>
+      <tbody>
+        {homLista.map((p) => (p.iso3 === "BRA"
+          ? <tr class="destaque"><td><b>Brasil</b></td><td class="num"><b>{n1(p.valor)}</b></td><td class="num">{p.ano}</td></tr>
+          : <tr><td>{p.pais}</td><td class="num">{n1(p.valor)}</td><td class="num">{p.ano}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      A lista junta os cinco países com a maior taxa do mundo e os países de referência desta página, em ordem, com o
+      Brasil no lugar dele. Fonte: {indHom.fonte} (<a href={indHom.url}>indicador</a>). O ano muda de país para país porque cada um
+      informa à ONU no seu tempo, e isso está em cada linha.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">E comparado com países em guerra?</h3>
+    <table>
+      <thead><tr><th>Lugar</th><th class="num">Mortes</th><th>Período</th><th class="num">Por 100 mil por ano</th></tr></thead>
+      <tbody>
+        {conflitos.map((c) => (<tr><td>{c.lugar}</td><td class="num">{c.mortes.toLocaleString("pt-BR")}</td>
+          <td class="desc">{c.periodo}</td><td class="num">{n1(c.taxaAno)}</td></tr>))}
+        <tr class="destaque"><td><b>Brasil (mortes violentas intencionais)</b></td><td class="num"><b>{mviBr.toLocaleString("pt-BR")}</b></td>
+          <td class="desc">ano de {(seg as any).ano}</td><td class="num"><b>{n1(taxaMviBr)}</b></td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      <b>O que cada número inclui — e é aqui que a comparação costuma mentir.</b>
+      {conflitos.map((c) => (<><br /><b>{c.lugar}:</b> conta {c.oQueConta}; <b>não</b> conta {c.oQueNaoConta}. Fonte: <a href={c.url}>{c.fonte}</a>, lido em {c.lido}.</>))}
+      <br />Por isso a linha da Ucrânia não quer dizer que o Brasil seja "mais perigoso que a guerra": ela conta só
+      civis verificados um a um, e deixa de fora os militares, que não têm número oficial. Já a de Gaza mostra a
+      diferença real de ordem de grandeza: a taxa por habitante é cerca de {Math.round(conflitos[0].taxaAno / taxaMviBr)} vezes
+      a brasileira. A taxa anual é conta nossa (mortes ÷ população ÷ anos do período); a população vem do Banco Mundial.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Onde nem a ONU tem número</h3>
+    <ul class="limites">{SEM_TOTAL_OFICIAL.map((t) => <li>{t}</li>)}</ul>
+    <p class="src">Publicar uma estimativa de imprensa ao lado de um dado verificado faria os dois parecerem a mesma coisa. Quando não há contagem oficial, esta página diz que não há.</p>
+  </div>
+
   <Glossario termos={["carga_tributaria", "base_incidencia", "quem_paga", "per_capita", "despesa_paga"]} />
 </Base>
 <style>
+  .limites { margin: 0; padding-left: 20px; } .limites li { margin: 6px 0; color: var(--ink-2); }
+  tr.destaque td { background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
+  td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); }
   tr.destaque td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
   .ano { font-size: 10.5px; color: var(--ink-2); font-family: var(--mono); }
 </style>

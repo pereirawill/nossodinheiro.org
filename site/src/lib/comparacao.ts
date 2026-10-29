@@ -258,3 +258,62 @@ export const CONGRESSO_BR = {
   cadeiras: 594,                 // 513 deputados + 81 senadores
   fonte: "SIOP, execução orçamentária da União de 2025, órgãos 01000 e 02000 (o TCU é órgão próprio e fica fora)",
 };
+
+/**
+ * Mortes em conflitos armados, para comparar a ordem de grandeza com a violência no Brasil (pedido de 29/10/2026).
+ *
+ * Esta é a comparação mais fácil de usar para enganar, e por isso cada linha carrega o que o número NÃO inclui.
+ * Regras que seguimos aqui:
+ * - só número divulgado por **órgão da ONU**, com a data em que lemos;
+ * - a taxa é calculada por nós (mortes ÷ população ÷ anos do período), e a população vem do Banco Mundial;
+ * - guerra e homicídio não são a mesma coisa: um conflito mata também por fome e doença, e essas mortes não
+ *   entram em nenhuma destas contagens.
+ */
+export type Conflito = {
+  lugar: string;
+  mortes: number;
+  periodo: string;
+  anos: number;            // duração do período, para a taxa anual
+  populacao: number;       // habitantes, Banco Mundial
+  oQueConta: string;
+  oQueNaoConta: string;
+  fonte: string;
+  url: string;
+  lido: string;
+};
+
+export const CONFLITOS: Conflito[] = [
+  {
+    lugar: "Faixa de Gaza",
+    mortes: 72045,
+    periodo: "7 de outubro de 2023 a fevereiro de 2026",
+    anos: 2.35,
+    populacao: 2_200_000,
+    oQueConta: "mortes registradas pelo Ministério da Saúde de Gaza, civis e combatentes juntos",
+    oQueNaoConta: "quem morreu sob escombros sem registro, e as mortes indiretas por fome e falta de tratamento",
+    fonte: "ONU/OCHA — Humanitarian Situation Update, citando o Ministério da Saúde de Gaza",
+    url: "https://www.unocha.org/occupied-palestinian-territory",
+    lido: "29/10/2026",
+  },
+  {
+    lugar: "Ucrânia",
+    mortes: 16874,
+    periodo: "24 de fevereiro de 2022 a setembro de 2026",
+    anos: 4.6,
+    populacao: 39_000_000,
+    oQueConta: "apenas civis cuja morte a ONU conseguiu verificar, um a um",
+    oQueNaoConta: "militares dos dois lados (não há número oficial) e os civis que a própria ONU diz que faltam, " +
+      "porque a verificação não alcança território ocupado nem áreas de combate",
+    fonte: "ONU/OHCHR — Missão de Monitoramento de Direitos Humanos na Ucrânia",
+    url: "https://ukraine.ohchr.org/en/reports/protection-of-civilians",
+    lido: "29/10/2026",
+  },
+];
+
+/** Conflitos em que a ONU não publica um total verificado — a ausência também é informação. */
+export const SEM_TOTAL_OFICIAL = [
+  "Sudão: a guerra civil desde abril de 2023 não tem contagem verificada pela ONU; os números que circulam vêm de " +
+    "projetos acadêmicos e de organizações humanitárias, com estimativas que variam em dezenas de milhares.",
+  "República Democrática do Congo, Mianmar, Haiti e Sahel: idem. Onde o Estado não registra a morte, ninguém conta " +
+    "direito — e isso vale para o Brasil também, nas 13,5 mil mortes a esclarecer que o Sinesp registrou em 2025.",
+];

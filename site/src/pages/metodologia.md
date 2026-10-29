@@ -147,6 +147,12 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   Mundial (homicídios), PNUD (IDH, posição oficial) e Transparência Internacional (corrupção, posição oficial; é ONG e
   está marcada como tal). Nos índices do Banco Mundial a posição é calculada por nós ordenando os países.
 - **Atenção:** "Xº de N" é entre os países com dado, não entre todos; o ano pode variar por país e aparece na tabela.
+- **Violência e guerras (29/10/2026):** a página de Comparação traz a taxa de homicídios do Brasil ao lado dos países de
+  referência e dos cinco com a maior taxa do mundo (UNODC, via Banco Mundial), e uma comparação com conflitos armados. Nos
+  conflitos só entra número divulgado por **órgão da ONU**, com a data em que foi lido, e cada linha diz o que **não** conta:
+  o número da Ucrânia (OHCHR) é só de civis verificados um a um, sem militares; o de Gaza (OCHA, citando o Ministério da Saúde
+  local) junta civis e combatentes e não alcança mortes indiretas. A taxa por 100 mil por ano é conta nossa. Onde a ONU não
+  publica total verificado — Sudão, Congo, Mianmar, Haiti — a página diz que não há, em vez de usar estimativa de imprensa.
 - Completo: `docs/metodologia/painel-rankings.md`.
 
 ## Histórico — séries longas, em reais de hoje
