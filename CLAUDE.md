@@ -325,6 +325,26 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   R$ 313,6 bi (2025); esperança de vida 78,0 anos (projeção). Pendências: SIOPS (recursos próprios), CNES/leitos (API do MS
   recusa conexão), atenção básica, filas.
 
+## Página /conferir/ e painel Dívida (29/10/2026)
+- Pergunta do dono — "como saber se esse dado não é maquiado?" — **para o site inteiro**. Virou `/conferir/`, ligada no **rodapé
+  de todas as páginas** (não entrou no menu) e no topo da metodologia. Conteúdo em `site/src/lib/conferencias.ts`: CHECAGENS
+  (cada conferência contra outra fonte, com selo bate/explicada/**não explicada**), REGRAS, LIMITES e CORRECOES (registro das
+  correções já feitas, com data e como apareceram). Os números do nosso lado são **lidos dos JSONs**, não digitados. Duas
+  conferências terminam sem explicação (estatais × MGI, SIOP × Portal) e continuam publicadas assim.
+- **Painel Dívida** `/divida/` (menu depois de Poderes — 33º item), `etl/divida/extract.py` → `divida.json`, mensal dia 20.
+  Resolve a confusão dos **três números**: juros nominais do Governo Central (Tesouro, RTN aba **2.1**, linha "9. JUROS
+  NOMINAIS", **desde 1997**; 2025 = R$ 891,9 bi), juros e encargos pagos no Orçamento (SIOP, R$ 362,7 bi) e amortização
+  (R$ 1,77 tri, que é **rolagem, não custo**). O "R$ 1,1 tri" que circula é do **setor público consolidado** (BCB), não do
+  Governo Central — declarado na página. Estoque da DPF pelo CSV por título (set/2017→, 12 MB): ago/2026 R$ 12,22 tri, 47,9%
+  **Selic**, 24,5% prefixado, 24,0% IPCA; R$ 2,55 tri vencem até o fim de 2027. Indexador deduzido da família do título
+  (LFT/NTN-B/NTN-C/LTN/NTN-F), mapeamento declarado em `INDEXADOR`.
+- **Fotos de deputados e senadores**: a Câmara devolve **503** quando o navegador pede as 513 de uma vez (curl isolado dá 200) e
+  a URL do Senado é **http** (bloqueada em página https). `etl/fotos/baixar.py` baixa uma vez, reduz a 96 px (2,3 MB no total)
+  e grava em `site/public/fotos/<casa>/<id>.jpg` + manifesto `fotos.json`; o componente usa o manifesto para não gerar img
+  quebrada. Os workflows da Câmara e do Senado baixam o que faltar e commitam `site/public/fotos`.
+- `/comparacao/`: os 20 países de referência passaram a ser **nomeados** no próprio gráfico, com o critério e o aviso de que a
+  lista é editorial (pedido do dono).
+
 ## Painel Saneamento (NO AR, sem chave, mensal dia 8; feito 28/10/2026)
 - Pedido do dono: "aba de saneamento, evolução desde 1988, e como saber se o dado do governo não é maquiado?".
 - `etl/saneamento/extract.py` → `saneamento.json`, `/saneamento/` (menu depois de Saúde — 32º item). **IBGE/SIDRA**, duas pesquisas

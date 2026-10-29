@@ -1,0 +1,200 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/divida.json";
+import h from "../../../public/data/historico.json";
+import categoria from "../../../public/data/poderes_categoria_2025.json";
+import funcoes from "../../../public/data/poderes_funcao_2025.json";
+
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const base = h.ano_base, defl = h.deflator as Record<string, number>;
+const real = (v: number, ano: string) => v * (defl[ano] ?? 1);
+const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const bi = (v: number) => `R$ ${n1(v / 1e9)} bi`;
+const tri = (v: number) => `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri`;
+const grande = (v: number) => (Math.abs(v) >= 1e12 ? tri(v) : bi(v));
+const pct = (v: number) => `${n1(v * 100)}%`;
+
+const juros = d.juros_nominais as Record<string, number>;
+const anosJ = d.anos_juros as string[];
+const ultJ = anosJ[anosJ.length - 1];
+const est = d.estoque as any;
+const estoqueTotal = est.meses[est.meses.length - 1].total;
+const MES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const mesPorExtenso = `${MES[est.ultimo_mes_numero - 1]} de ${est.ultimo_ano}`;
+
+// os três números que costumam ser chamados de "gasto com a dívida"
+const orc = Object.fromEntries((categoria as any[]).filter((x) => x.poder === "Dívida/Transferências").map((x) => [x.subcategoria, x.pago]));
+const jurosOrc = orc["Juros e Encargos da Dívida"] ?? 0;
+const amortizacao = orc["Amortização da Dívida"] ?? 0;
+const fun = Object.fromEntries((funcoes as any[]).map((f) => [f.funcao_nome, f.pago]));
+const compara = [["Saúde", fun["Saúde"]], ["Educação", fun["Educação"]], ["Assistência Social", fun["Assistência Social"]]]
+  .filter(([, v]) => v) as [string, number][];
+const somaCompara = compara.reduce((t, [, v]) => t + v, 0);
+
+const selic = est.por_indexador["Selic (pós-fixado)"] ?? 0;
+const indexadores = Object.entries(est.por_indexador) as [string, number][];
+
+// gráfico dos juros, em reais do último ano fechado
+const W = 920, L = 74, R = 16, H = 250, T = 16, B = 28;
+const serieJ = anosJ.map((a) => ({ ano: a, nominal: juros[a], real: real(juros[a], a) }));
+const maxJ = Math.max(...serieJ.map((s) => s.real));
+const passo = (W - L - R) / serieJ.length, largura = passo - 3;
+const yJ = (v: number) => T + (1 - v / maxJ) * (H - T - B);
+
+// estoque mês a mês
+const serieE = (est.meses as any[]).map((m) => ({ ...m, ordem: `${m.mes.slice(3)}${m.mes.slice(0, 2)}` }));
+const maxE = Math.max(...serieE.map((m) => m.total));
+const xE = (i: number) => L + (i / (serieE.length - 1)) * (W - L - R);
+const yE = (v: number) => T + (1 - v / maxE) * (H - T - B);
+const linhaE = serieE.map((m, i) => `${xE(i).toFixed(1)},${yE(m.total).toFixed(1)}`).join(" ");
+const vencimentos = Object.entries(est.vencimento_por_ano as Record<string, number>)
+  .filter(([a]) => Number(a) >= est.ultimo_ano).slice(0, 8) as [string, number][];
+---
+<Base title="A dívida pública: quanto custa por ano — Nosso Dinheiro" accent="var(--s4)"
+  description="Os três números que chamam de 'gasto com a dívida' — juros nominais, juros pagos pelo Orçamento e amortização —, a série desde 1997, o estoque da dívida federal e de que ela é feita.">
+  <h1>A dívida pública: o que ela custa por ano</h1>
+  <p class="lede">
+    A dívida é a maior linha do Orçamento da União, e é também onde mais se erra a conta — porque <strong>três números
+    diferentes</strong> são chamados de "gasto com a dívida", e eles vão de {bi(jurosOrc)} a {grande(amortizacao)} no
+    mesmo ano. O que mais se aproxima de "quanto a dívida custou" são os <Termo t="juros_nominais">juros nominais</Termo>,
+    apurados pelo Tesouro: <strong>{bi(juros[ultJ])}</strong> em {ultJ} para o Governo Central. O estoque da dívida
+    federal era de <strong>{tri(estoqueTotal)}</strong> em {mesPorExtenso}.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fontes: Tesouro Nacional (RTN e Estoque da DPF) e SIOP · <a href="/metodologia/">metodologia</a> · <a href="/conferir/">como conferir</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{bi(juros[ultJ])}</b><span>os juros nominais do Governo Central em {ultJ} — mais do que {compara.map(([n]) => n.toLowerCase()).join(", ")} somadas ({bi(somaCompara)})</span></div>
+    <div class="stat"><b>{tri(estoqueTotal)}</b><span>o estoque da dívida pública federal em {mesPorExtenso}, dos quais {grande(est.meses[est.meses.length - 1].externa)} de dívida externa</span></div>
+    <div class="stat"><b>{pct(selic / estoqueTotal)}</b><span>da dívida está indexada à Selic: quando o juro básico sobe, a conta reage quase junto</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Amortização não é custo.</b> O Orçamento registra {grande(amortizacao)} de amortização em 2025 — é o maior
+    número da União —, mas isso é <Termo t="rolagem">rolagem</Termo>: dívida velha paga com dívida nova. Somar
+    amortização e juros, como se fosse tudo despesa do ano, dobra a conta.
+    <b>Aqui é só a União.</b> O número de cerca de R$ 1,1 trilhão que circula é o do <b>setor público consolidado</b>
+    (União, estados, municípios e estatais), apurado pelo Banco Central. Esta página usa o Governo Central, do Tesouro,
+    porque é o recorte das outras páginas do site.</div>
+  </div>
+
+  <h2>Os três números — e o que cada um é</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>O que</th><th class="num">2025</th><th>O que mede</th><th>Fonte</th></tr></thead>
+      <tbody>
+        <tr><td><b>Juros nominais</b></td><td class="num">{bi(juros[ultJ])}</td>
+          <td class="desc">O custo da dívida no ano, inclusive os juros que vão sendo apropriados nos títulos e só serão pagos no resgate. É o número que responde "quanto custou".</td>
+          <td class="desc">Tesouro Nacional, RTN, tabela 2.1</td></tr>
+        <tr><td><b>Juros e encargos pagos</b></td><td class="num">{bi(jurosOrc)}</td>
+          <td class="desc">O que saiu do caixa como juros dentro do Orçamento, na função Encargos Especiais. É menor porque boa parte dos juros ainda não virou pagamento.</td>
+          <td class="desc">SIOP, execução orçamentária</td></tr>
+        <tr><td><b>Amortização</b></td><td class="num">{grande(amortizacao)}</td>
+          <td class="desc">Pagamento do principal que venceu — quase todo ele refinanciado com nova emissão no mesmo dia. Não é despesa nova do ano.</td>
+          <td class="desc">SIOP, execução orçamentária</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      Os três são oficiais e nenhum está errado: medem coisas diferentes. Quem quiser comparar a dívida com saúde ou
+      educação deve usar a primeira linha; quem estiver olhando o fluxo de caixa do Tesouro, a segunda; a terceira só
+      faz sentido ao lado das emissões do mesmo período. O detalhe por Poder e por função está em <a href="/poderes/">Poderes</a>.
+    </p>
+  </div>
+
+  <h2>Os juros da dívida desde {anosJ[0]}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Juros nominais do Governo Central por ano, em reais corrigidos">
+      {[1, 0.75, 0.5, 0.25].map((t) => <g><line x1={L} x2={W - R} y1={yJ(maxJ * t)} y2={yJ(maxJ * t)} stroke="var(--line)" /><text x={L - 6} y={yJ(maxJ * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{bi(maxJ * t)}</text></g>)}
+      {serieJ.map((s, i) => (<g>
+        <rect x={L + i * passo + 1} y={yJ(s.real)} width={largura} height={yJ(0) - yJ(s.real)} fill="var(--s4)">
+          <title>{s.ano}: {bi(s.real)} em reais de {base} (no ano, {bi(s.nominal)})</title></rect>
+        {Number(s.ano) % 4 === 0 && <text x={L + i * passo + largura / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{s.ano}</text>}
+      </g>))}
+    </svg>
+    <p class="src">
+      Em reais de {base}, corrigidos pelo IPCA. Em {anosJ[0]} os juros nominais eram {bi(real(juros[anosJ[0]], anosJ[0]))};
+      em {ultJ}, {bi(real(juros[ultJ], ultJ))}. O custo depende de duas coisas que mudam todo mês: o tamanho da dívida e a
+      taxa de juros a que ela está presa — por isso a composição, logo abaixo, importa tanto quanto o estoque.
+      Fonte: {d.fonte_juros} (<a href={d.url_juros}>planilha</a>).
+    </p>
+  </div>
+
+  <h2>Em que a União gastou {ultJ}, para comparar</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Despesa da União em {ultJ}</th><th class="num">Pago</th><th class="num">Vezes os juros</th></tr></thead>
+      <tbody>
+        <tr><td><b>Juros nominais da dívida</b></td><td class="num">{bi(juros[ultJ])}</td><td class="num">—</td></tr>
+        {compara.map(([nome, v]) => (<tr><td>{nome}</td><td class="num">{bi(v)}</td><td class="num">{n1(v / juros[ultJ])}×</td></tr>))}
+        <tr><td>Previdência Social</td><td class="num">{bi(fun["Previdência Social"])}</td><td class="num">{n1(fun["Previdência Social"] / juros[ultJ])}×</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      Comparação de ordens de grandeza, não de orçamentos: os juros são despesa financeira e as demais linhas são
+      função orçamentária paga. Saúde, educação e assistência social somadas deram {bi(somaCompara)} em {ultJ},
+      {" "}{n1(somaCompara / juros[ultJ])} vez{somaCompara / juros[ultJ] >= 2 ? "es" : ""} os juros nominais do mesmo ano.
+    </p>
+  </div>
+
+  <h2>O estoque: quanto se deve e a quem se paga</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Estoque da dívida pública federal, mês a mês">
+      {[1, 0.75, 0.5].map((t) => <g><line x1={L} x2={W - R} y1={yE(maxE * t)} y2={yE(maxE * t)} stroke="var(--line)" /><text x={L - 6} y={yE(maxE * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{tri(maxE * t)}</text></g>)}
+      <polyline points={linhaE} fill="none" stroke="var(--s4)" stroke-width="2.2" />
+      {serieE.map((m, i) => i % 6 === 0 && (<g>
+        <circle cx={xE(i)} cy={yE(m.total)} r="2.5" fill="var(--s4)"><title>{m.mes}: {tri(m.total)}</title></circle>
+        <text x={xE(i)} y={H - 8} text-anchor="middle" font-size="9.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{m.mes}</text>
+      </g>))}
+    </svg>
+    <p class="src">Valores correntes, sem correção pela inflação: é um saldo devedor, não uma despesa do ano. Fonte: {est.fonte} (<a href={est.url}>arquivo</a>), de {est.meses[0].mes} a {est.ultimo_mes}.</p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 10px">De que a dívida é feita</h3>
+    <svg viewBox={`0 0 ${W} ${indexadores.length * 30 + 8}`} width="100%" role="img" aria-label="Composição da dívida pública federal por indexador">
+      {indexadores.map(([nome, v], i) => (<g transform={`translate(0 ${i * 30 + 6})`}>
+        <text x="186" y="13" text-anchor="end" font-size="12.5" fill="var(--ink)">{nome}</text>
+        <rect x="194" y="2" width={Math.max(2, (v / estoqueTotal) * (W - 300))} height="15" fill="var(--s4)" rx="2"><title>{nome}: {tri(v)}</title></rect>
+        <text x={194 + (v / estoqueTotal) * (W - 300) + 8} y="14" font-size="11.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{tri(v)} · {pct(v / estoqueTotal)}</text>
+      </g>))}
+    </svg>
+    <p class="src">
+      Cada título carrega um indexador: a LFT segue a <b>Selic</b>, a NTN-B segue o <b>IPCA</b>, LTN e NTN-F são
+      <b>prefixadas</b> e a dívida externa segue o <b>câmbio</b>. Com {pct(selic / estoqueTotal)} do estoque atrelado à
+      Selic, uma alta do juro básico aparece na conta em semanas, não em anos — e é por isso que o gráfico de juros
+      acima acompanha de perto a trajetória da taxa, que está em <a href="/inflacao/">Inflação</a>.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 10px">Quando vence</h3>
+    <table>
+      <thead><tr><th>Ano de vencimento</th><th class="num">Valor</th><th class="num">% do estoque</th></tr></thead>
+      <tbody>{vencimentos.map(([ano, v]) => (<tr><td>{ano}</td><td class="num">{grande(v)}</td><td class="num">{pct(v / estoqueTotal)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      {grande(est.vence_ate_o_fim_do_ano_que_vem)} — {pct(est.vence_ate_o_fim_do_ano_que_vem / estoqueTotal)} do
+      estoque — vencem até o fim de {est.ultimo_ano + 1} e precisarão ser pagos ou refinanciados. É essa parte que
+      aparece como "amortização" no Orçamento do ano seguinte.
+    </p>
+  </div>
+
+  <h2>O que esta página não traz</h2>
+  <div class="card">
+    <ul class="limites">
+      <li><b>Estados e municípios.</b> O estoque e os juros aqui são só da União. O número de cerca de R$ 1,1 trilhão em juros refere-se ao setor público consolidado, medido pelo Banco Central, com outro recorte.</li>
+      <li><b>Dívida bruta em % do PIB.</b> É a medida que o mercado e o FMI acompanham; depende de um PIB que é revisado, e por isso não entra aqui junto dos valores em reais.</li>
+      <li><b>Quem são os credores.</b> O Tesouro publica o perfil dos detentores (fundos, bancos, estrangeiros, previdência) em outro relatório, que ainda não lemos.</li>
+      <li><b>Dívida de estatais e dívida contratual de estados.</b> Existem como arquivos abertos e ficam para depois.</li>
+    </ul>
+  </div>
+
+  <Glossario termos={["juros_nominais", "rolagem", "amortizacao", "selic_indexador", "estoque_divida", "encargos_especiais"]} />
+</Base>
+<style>
+  td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 330px; }
+  td.num, th.num { white-space: nowrap; }
+  .limites { margin: 0; padding-left: 20px; } .limites li { margin: 7px 0; color: var(--ink-2); }
+</style>

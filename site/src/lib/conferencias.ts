@@ -126,6 +126,18 @@ export const CHECAGENS: Checagem[] = [
       "O gráfico usa uma cor por pesquisa e não emenda as três numa linha só — emendar esconderia a troca de método.",
     fonte: "IBGE — SIDRA, tabelas 204, 271 e 7113",
   },
+  {
+    painel: "Dívida", slug: "/divida/",
+    oQue: "O custo da dívida em 2025, pelos juros nominais do Tesouro e pelos juros pagos dentro do Orçamento",
+    nosso: "R$ 891,9 bi de juros nominais",
+    outro: "R$ 362,7 bi pagos como juros e encargos no Orçamento",
+    status: "explicada",
+    explicacao: "Conceitos diferentes: o juro nominal inclui o que é apropriado no estoque dos títulos e só vira " +
+      "pagamento no resgate. E a amortização (R$ 1,77 tri) não é custo nenhum — é rolagem. A página publica os três " +
+      "números lado a lado em vez de escolher o mais impressionante.",
+    fonte: "Tesouro Nacional (RTN, tabela 2.1) e SIOP",
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/resultado-do-tesouro-nacional",
+  },
 ];
 
 /** As regras que valem para todas as páginas, e que é possível checar olhando o site. */

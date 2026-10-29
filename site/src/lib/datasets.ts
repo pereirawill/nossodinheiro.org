@@ -200,6 +200,14 @@ export const DATASETS: Dataset[] = [
              { nome: "IBGE — PNAD Contínua anual (SIDRA)", url: "https://sidra.ibge.gov.br/pesquisa/pnadca/tabelas" }],
     periodo: "1991/2025", atualizacao: "anual",
   },
+  {
+    slug: "/divida/", nome: "Dívida pública federal: custo e estoque",
+    descricao: "Juros nominais do Governo Central desde 1997, estoque da Dívida Pública Federal mês a mês, composição por indexador e perfil de vencimento.",
+    arquivos: ["divida.json"],
+    fontes: [{ nome: "Tesouro Nacional — Resultado do Tesouro Nacional, série histórica (tabela 2.1)", url: "https://www.tesourotransparente.gov.br/ckan/dataset/resultado-do-tesouro-nacional" },
+             { nome: "Tesouro Transparente — Estoque da Dívida Pública Federal", url: "https://www.tesourotransparente.gov.br/ckan/dataset/estoque-da-divida-publica-federal" }],
+    periodo: "1997/2026", atualizacao: "mensal",
+  },
 ];
 
 export const porSlug = (slug: string) => DATASETS.find((d) => d.slug === slug);

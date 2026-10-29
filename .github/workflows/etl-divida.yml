@@ -1,0 +1,39 @@
+name: ETL Dívida — juros nominais e estoque da DPF (Tesouro)
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/etl-divida.yml", "etl/divida/**"]
+  schedule:
+    - cron: "33 11 20 * *"     # dia 20 de cada mês, 08:33 BRT (o Tesouro publica o estoque no fim do mês seguinte)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etl-divida
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+
+      - name: "Extrair (Tesouro: RTN tabela 2.1 e Estoque da DPF) — sem chave"
+        run: |
+          python -m etl.divida.extract
+          mkdir -p site/public/data && cp data/public/divida.json site/public/data/
+
+      - name: Commitar dados agregados
+        run: |
+          git config user.name "etl-bot"; git config user.email "etl-bot@users.noreply.github.com"
+          git add data/public site/public/data
+          git diff --cached --quiet && echo "sem mudanças" && exit 0
+          git commit -m "data: dívida ($(date -u +%F))"
+          git pull --rebase origin main && git push

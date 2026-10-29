@@ -141,6 +141,11 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   censo_x_amostra: { rotulo: "Censo e amostra", texto: "O Censo visita todos os domicílios, de dez em dez anos. A PNAD Contínua visita uma amostra, todo ano, e por isso traz margem de erro. Medem a mesma coisa por caminhos diferentes, e os números não coincidem." },
   coeficiente_variacao: { rotulo: "Coeficiente de variação", texto: "A margem de erro de uma pesquisa por amostra, publicada pelo próprio IBGE. Quanto menor, mais estável a estimativa; num estado pequeno ele é maior porque há menos domicílios sorteados." },
   funcao_saneamento: { rotulo: "Função Saneamento", texto: "Código 17 da classificação funcional do orçamento público. Reúne a despesa dos governos com saneamento básico — mas não o investimento das companhias estaduais feito com tarifa e financiamento, que corre fora do orçamento." },
+  juros_nominais: { rotulo: "Juros nominais", texto: "O custo da dívida no ano, apurado pelo Tesouro: inclui os juros que vão sendo apropriados nos títulos e só serão pagos no resgate. É maior que os juros efetivamente pagos pelo Orçamento no mesmo ano." },
+  rolagem: { rotulo: "Rolagem da dívida", texto: "Pagar dívida que venceu emitindo dívida nova. Aparece no Orçamento como amortização de um lado e emissão do outro, sem ser despesa nova do ano." },
+  amortizacao: { rotulo: "Amortização", texto: "Pagamento do principal de uma dívida que venceu — diferente dos juros, que são o preço de dever. No Orçamento da União é o maior valor isolado, e quase todo ele é refinanciado." },
+  selic_indexador: { rotulo: "Dívida atrelada à Selic", texto: "Parte da dívida é paga em títulos (LFT) que rendem a taxa básica de juros. Quando a Selic sobe, o custo dessa parte sobe quase imediatamente, sem esperar o vencimento." },
+  estoque_divida: { rotulo: "Estoque da dívida", texto: "O saldo devedor em um dia — quanto se deve, e não quanto se gastou no ano. Por isso não é corrigido pela inflação como se fosse uma despesa." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

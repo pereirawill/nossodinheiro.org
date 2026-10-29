@@ -29,6 +29,11 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+divida: ## dívida: juros nominais (RTN) e estoque da DPF (Tesouro Transparente)
+	python -m etl.divida.extract
+	cp data/public/divida.json site/public/data/
+.PHONY: divida
+
 fotos: ## baixa as fotos oficiais que faltam (Câmara e Senado) para site/public/fotos
 	python -m etl.fotos.baixar
 .PHONY: fotos

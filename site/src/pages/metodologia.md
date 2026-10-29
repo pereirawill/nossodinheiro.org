@@ -256,6 +256,18 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   página mostra as duas, a categoria somada em cada pesquisa e o código da tabela de origem de cada número.
 - Completo: `docs/metodologia/painel-saneamento.md`.
 
+## Dívida pública — o que ela custa por ano
+
+- **O que é:** os três números que costumam ser chamados de "gasto com a dívida" — juros nominais do Governo Central
+  (R$ 891,9 bi em 2025), juros e encargos pagos pelo Orçamento (R$ 362,7 bi) e amortização (R$ 1,77 tri) —, a série dos juros
+  desde 1997, o estoque da Dívida Pública Federal mês a mês, a composição por indexador e o perfil de vencimento.
+- **Fonte:** Tesouro Nacional (Resultado do Tesouro Nacional, tabela 2.1; Estoque da Dívida Pública Federal) e SIOP.
+- **Atenção:** **amortização não é custo** — é rolagem, dívida velha paga com dívida nova; somá-la aos juros dobra a conta. O
+  recorte é a **União**: o número de cerca de R$ 1,1 trilhão que circula é o do setor público consolidado (com estados,
+  municípios e estatais), apurado pelo Banco Central. O estoque é saldo devedor e por isso não é corrigido pela inflação como
+  se fosse despesa. Dívida bruta em % do PIB não entra aqui porque depende de um PIB que é revisado.
+- Completo: `docs/metodologia/painel-divida.md`.
+
 ## Imposto de Renda — o que os brasileiros declaram ganhar
 
 - **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem
@@ -412,6 +424,8 @@ sempre só PDF ou metodologia diferente.
 | Lucro das estatais com registro na CVM (três esferas) | CVM (DFP e formulário de referência) | 2010 | demonstrações em PDF, empresa por empresa |
 | Água, esgoto e lixo nos domicílios | IBGE — Censo Demográfico | 1991 | o Censo de 1980 não está no SIDRA nesse recorte |
 | Água e esgoto ano a ano | IBGE — PNAD Contínua | 2016 (esgoto, 2019) | PNAD antiga com outra pergunta; sem 2020 e 2021 |
+| Juros nominais do Governo Central | Tesouro Nacional (RTN, tabela 2.1) | 1997 | o RTN começa em 1997 |
+| Estoque da Dívida Pública Federal | Tesouro Transparente (CSV por título) | set/2017 | relatórios mensais em PDF |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 
 ## Como conferir

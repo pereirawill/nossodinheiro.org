@@ -58,7 +58,7 @@ const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
         <td><a href={l.slug}>{l.painel}</a></td>
         <td class="desc">{l.oQue}</td>
         <td class="desc">
-          {l.vivo ? <><b>{l.vivo.nosso}</b>{l.vivo.outro ? <> contra <b>{l.vivo.outro}</b></> : null} — diferença de {l.vivo.diferenca}</>
+          {l.vivo ? <><b>{l.vivo.nosso}</b>{(l.vivo.outro ?? l.outro) ? <> contra <b>{l.vivo.outro ?? l.outro}</b></> : null} — diferença de {l.vivo.diferenca}</>
                   : <><b>{l.nosso}</b>{l.outro ? <> contra <b>{l.outro}</b></> : null}</>}
         </td>
         <td><span class={`selo ${l.status}`}>{ROTULO[l.status]}</span></td></tr>))}

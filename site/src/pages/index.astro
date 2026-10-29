@@ -9,6 +9,9 @@ import estados from "../../public/data/estados_2025.json";
 import municipios from "../../public/data/municipios_2025.json";
 import metaMun from "../../public/data/municipios_meta_2025.json";
 import impostos from "../../public/data/impostos.json";
+import divida from "../../public/data/divida.json";
+import estatais from "../../public/data/estatais.json";
+import saneamento from "../../public/data/saneamento.json";
 import dep from "../../public/data/custo_deputado_2026.json";
 import metaDep from "../../public/data/meta_2026.json";
 import sen from "../../public/data/custo_senador_2026.json";
@@ -87,6 +90,11 @@ const maxNivel = Math.max(...niveis.map((n) => n.uniao + n.estados + (n.municipi
 const maquina = categorias.filter((c) => c.categoria === "Manter a máquina" && c.poder !== "Dívida/Transferências").reduce((s, c) => s + c.pago, 0);
 
 // Cartões dos painéis
+const jurosUlt = (divida.anos_juros as string[])[(divida.anos_juros as string[]).length - 1];
+const jurosValor = (divida.juros_nominais as Record<string, number>)[jurosUlt];
+const estatalUlt = (estatais as any).sest.anos[(estatais as any).sest.anos.length - 1];
+const estatalLucro = (estatais as any).sest.agregado[estatalUlt];
+const esgotoCenso = (saneamento as any).censo["2022"].esgoto;
 const mediaDep = dep.reduce((s, r) => s + r.custo_total_estimado, 0) / dep.length / metaDep.meses_considerados;
 const mediaSen = sen.reduce((s, r) => s + r.custo_total_estimado, 0) / sen.length / metaSen.meses_considerados;
 const mediaStf = stf.reduce((s, r) => s + r.custo_mensal_medio, 0) / stf.length;
@@ -195,6 +203,9 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
     <a class="card tile" href="/presidencia/"><b>{compact(pres.totais.presidencia)}</b><span>cartão corporativo da Presidência em {pres.totais.meses_publicados} meses de 2026 · {pct(pres.totais.sigiloso, pres.totais.presidencia)} sob sigilo</span></a>
     <a class="card tile" href="/judiciario/"><b>{brl0(mediaStf)}</b><span>por mês, um ministro do STF com seu gabinete ({metaStf.ministros_ativos} ministros, folha real)</span></a>
     <a class="card tile" href="/poderes/"><b>{compact(maquina)}</b><span>manter a máquina dos Poderes da União em {ANO}: pessoal, aposentados, custeio</span></a>
+    <a class="card tile" href="/divida/"><b>{compact(jurosValor)}</b><span>os juros da dívida federal em {jurosUlt} — mais que saúde e educação somadas; amortização não é custo, e a página explica</span></a>
+    <a class="card tile" href="/estatais/"><b>{compact(estatalLucro)}</b><span>o lucro das estatais federais em {estatalUlt} · e quanto o Orçamento põe de volta nelas</span></a>
+    <a class="card tile" href="/saneamento/"><b>{String(esgotoCenso.pct).replace(".", ",")}%</b><span>dos domicílios com esgoto ligado à rede no Censo de 2022 · água, esgoto e lixo desde 1991</span></a>
     <a class="card tile" href="/estados/"><b>{compact(somaF("pago_legislativa") + somaF("pago_judiciaria"))}</b><span>Assembleias, TCEs e Tribunais de Justiça dos estados em {ANO}</span></a>
     <a class="card tile" href="/municipios/"><b>{compact(metaMun.totais.pago_legislativo)}</b><span>Câmaras Municipais em {ANO} · {metaMun.totais.vereadores.toLocaleString("pt-BR")} vereadores</span></a>
     <a class="card tile" href="/emendas/"><b>R$ 47,1 bi</b><span>empenhados em emendas parlamentares em 2025 · veja por autor</span></a>
