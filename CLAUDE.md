@@ -380,6 +380,24 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   item, sem mexer em mais nada; o menu foi a 36 itens em 4 linhas). A proposta de consolidação 35 → 29, já enviada
   por imagem, continua esperando o sim dele.
 
+## Indústria — seção de Desenvolvimento (29/10/2026)
+- Pergunta do dono: "estamos industrializando ou perdendo indústrias nos últimos 50 anos?". `etl/industria/extract.py`
+  → `industria.json`, seção em `/desenvolvimento/`, mensal dia 17. Sem painel novo (o dono quer menos abas).
+- **A armadilha, e foi ela que definiu o painel**: `NV.IND.MANF.ZS` existe desde 1960, mas é a **preços correntes** —
+  dá **46,1% em 1979 e 22,0% em 1980**. Sob hiperinflação a participação setorial mede preço relativo, não produção.
+  Gráfico começa em **1995** (`ANO_CONFIAVEL`), a série inteira fica no JSON e a página explica por quê. Não dá para
+  atender os "50 anos" com esse indicador, e a página diz isso em vez de publicar o número bonito de 46%.
+- Quatro medidas de propósito: participação (WB), **manufaturados nas exportações** (`TX.VAL.MANF.ZS.UN`, 1962→, é
+  razão em dólar e sofre menos com inflação interna — é ela que dá o arco longo), emprego (`SL.IND.EMPL.ZS`, OIT) e
+  **produção física** (IBGE PIM-PF, SIDRA **8888**, índice 2022=100, sem preço na conta).
+- **O resultado contraria o senso comum**: pela participação no PIB o Brasil caiu **menos** que os países de renda alta
+  desde 2000 (−1,0 p.p. contra −5,2). A perda aparece na **produção física** (pico 2013 = 119,9; hoje 102,3, −14,6%, e
+  só +9,3% sobre 2002), nas **exportações** (manufaturados 58,7% em 1993 → 23,8%) e na **tecnologia**
+  (`NV.MNF.TECH.ZS.UN` 51,0% em 1995 → 31,9%). O indicador mais citado é o mais fraco dos quatro.
+- Armadilhas no código, com teste: o Banco Mundial publica **0,00** onde não há dado (zero não é participação) e o
+  agregado de renda alta vem com `countryiso3code` vazio (casa por `country.id` = XD). Produção física: só ano com
+  12 meses entra na média; o ano em curso vai para `parcial`.
+
 ## Endividamento de risco — seção de Inadimplência (29/10/2026)
 - O dono mandou uma notícia do g1 ("endividamento de risco cresce 75%") e perguntou se os nossos dados iam na contramão.
   **Não iam**: a nossa inadimplência de PF subiu de 3,97% (jan/2025) para 6,19% (ago/2026), mesma direção. Virou seção.

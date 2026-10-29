@@ -246,6 +246,14 @@ export const DATASETS: Dataset[] = [
              { nome: "Banco Mundial — International Comparison Program (ICP) 2021", url: "https://www.worldbank.org/en/programs/icp" }],
     periodo: "2001/2026", atualizacao: "mensal",
   },
+  {
+    slug: "/desenvolvimento/", nome: "Indústria: participação, produção física e pauta de exportação",
+    descricao: "Participação da indústria de transformação no valor adicionado (Brasil e grupos de países), manufaturados nas exportações desde 1962, emprego industrial, conteúdo tecnológico e índice de produção física do IBGE.",
+    arquivos: ["industria.json", "desenvolvimento.json"],
+    fontes: [{ nome: "Banco Mundial — World Development Indicators", url: "https://data.worldbank.org/" },
+             { nome: "IBGE — Pesquisa Industrial Mensal, Produção Física (SIDRA 8888)", url: "https://sidra.ibge.gov.br/tabela/8888" }],
+    periodo: "1962/2026", atualizacao: "mensal",
+  },
 ];
 
 export const porSlug = (slug: string) => DATASETS.find((d) => d.slug === slug);

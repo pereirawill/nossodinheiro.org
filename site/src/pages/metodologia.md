@@ -331,6 +331,30 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Sugestões:** a caixa de sugestões (`/sugestoes/`) grava texto, contato opcional e página de origem; **nunca** IP, cookie ou
   navegador. O site mostra só a contagem de 24 horas — publicar texto de terceiro exigiria moderação, e isso está dito na página.
 
+## Indústria — seção de Desenvolvimento
+
+- **O que é:** quatro medidas de industrialização, que não respondem a mesma pergunta: participação da indústria de
+  transformação no valor adicionado (Brasil e grupos de países), participação dos manufaturados nas exportações desde 1962,
+  emprego na indústria, conteúdo de média e alta tecnologia, e o índice de produção física do IBGE.
+- **Fonte:** Banco Mundial, World Development Indicators (`NV.IND.MANF.ZS`, `NV.IND.TOTL.ZS`, `NV.AGR.TOTL.ZS`,
+  `NV.SRV.TOTL.ZS`, `TX.VAL.MANF.ZS.UN`, `SL.IND.EMPL.ZS`, `NV.MNF.TECH.ZS.UN`) e IBGE, Pesquisa Industrial Mensal —
+  Produção Física (SIDRA **8888**, número-índice 2022 = 100).
+- **Por que o gráfico de participação começa em 1995, e não há 50 anos dela:** a participação setorial é medida a **preços
+  correntes**. Sob inflação alta ela oscila com o preço relativo em vez da produção — a mesma série dá 46,1% em 1979 e 22,0%
+  em 1980. Isso não é indústria aparecendo e sumindo em um ano, é ruído de preço. A série inteira fica no JSON, marcada, e o
+  gráfico usa só o trecho que mede o que diz medir. A série de exportações, que é razão entre valores em dólar, sofre muito
+  menos com isso e por isso é ela que dá o arco de 1962 em diante.
+- **Zeros:** nos primeiros anos o Banco Mundial publica 0,00 onde não há dado. Participação setorial zero não existe, então o
+  extrator os descarta — com teste.
+- **Produção física:** só anos com doze meses entram na média anual; o ano em curso fica num campo `parcial`, para não
+  comparar oito meses com doze.
+- **O que os dados dizem, e que contraria o senso comum:** pela participação no PIB a queda brasileira desde 2000 foi **menor**
+  que a dos países de renda alta — o indicador mais citado é o que menos mostra o problema. A perda aparece na **produção
+  física** (abaixo do pico de 2013 e quase igual à de 2002), na **pauta de exportação** (manufaturados caíram de 58,7% em 1993
+  para 23,8%) e no **conteúdo tecnológico** (de 51,0% para 31,9% do valor adicionado industrial).
+- **O que não dizemos:** se desindustrializar é bom ou ruim, e por que aconteceu. Câmbio, juro, carga, energia e acordos
+  comerciais são apontados como causa por quem estuda o tema; medir o peso de cada um é pesquisa, não dado público.
+
 ## Endividamento de risco — seção de Inadimplência
 
 - **O que é:** quantas pessoas o Banco Central classifica em endividamento de risco (20,3 milhões, ou 17% dos devedores do

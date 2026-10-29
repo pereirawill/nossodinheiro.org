@@ -29,6 +29,11 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+industria: ## indústria: participação (Banco Mundial) e produção física (IBGE PIM-PF)
+	python -m etl.industria.extract
+	cp data/public/industria.json site/public/data/
+.PHONY: industria
+
 precos: ## poder de compra: combustível (ANP) em minutos de trabalho e nível de preços (ICP)
 	python -m etl.precos.extract
 	cp data/public/precos.json site/public/data/

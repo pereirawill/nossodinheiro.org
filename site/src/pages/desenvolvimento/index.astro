@@ -10,6 +10,7 @@ import despesaEstados from "../../../public/data/estados_2025.json";
 import obras from "../../../public/data/obras.json";
 import { JUDICIARIO_BR } from "../../lib/comparacao";
 import MapaBrasil from "../../components/MapaBrasil.astro";
+import ind from "../../../public/data/industria.json";
 
 const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -157,6 +158,44 @@ const anoMin = Math.min(...curvas.flatMap((c) => c.pts.map((p: any) => p.ano)));
 const anoMax = Math.max(...curvas.flatMap((c) => c.pts.map((p: any) => p.ano)));
 const x = (ano: number) => L + ((ano - anoMin) / (anoMax - anoMin)) * (W - L - R);
 const y = (p: number) => T + (p / 100) * (H - T - B);
+// Indústria: quatro medidas que não respondem a mesma pergunta
+const indSerie = (ind as any).indicadores ?? {};
+const anoOk = String((ind as any).ano_confiavel ?? 1995);
+const pim = (ind as any).producao_fisica ?? {};
+const nI = (v: number, c = 1) => v.toLocaleString("pt-BR", { minimumFractionDigits: c, maximumFractionDigits: c });
+const serieDe = (k: string) => {
+  const s = indSerie[k]; if (!s) return null;
+  const anos = Object.keys(s.brasil).sort();
+  const util = s.precos_correntes ? anos.filter((a) => a >= anoOk) : anos;
+  const pico = util.reduce((m, a) => (s.brasil[a] > s.brasil[m] ? a : m), util[0]);
+  const picoTudo = anos.reduce((m, a) => (s.brasil[a] > s.brasil[m] ? a : m), anos[0]);
+  return { ...s, anos, util, ini: util[0], fim: util[util.length - 1], pico, picoTudo,
+           vIni: s.brasil[util[0]], vFim: s.brasil[util[util.length - 1]], vPico: s.brasil[pico] };
+};
+const transf = serieDe("transformacao_pct_va");
+const expManuf = serieDe("manufaturados_pct_exp");
+const empIndustria = serieDe("emprego_industria_pct");
+const tecnologia = serieDe("tecnologia_pct_va_ind");
+const pimTransf = pim["129316"] ?? null;
+const pimAnos = pimTransf ? Object.keys(pimTransf.anual).sort() : [];
+const pimPico = pimAnos.length ? pimAnos.reduce((m, a) => (pimTransf.anual[a] > pimTransf.anual[m] ? a : m), pimAnos[0]) : null;
+// gráfico da participação, Brasil contra os agregados do próprio Banco Mundial
+const CORES_AGG: Record<string, string> = { "Mundo": "var(--ink-2)", "Países de renda alta": "var(--s2)", "América Latina e Caribe": "var(--s5)" };
+const IW = 920, IH = 250, iPadL = 44, iPadB = 26;
+const anosG = transf ? transf.util : [];
+const todosV = transf ? [...anosG.map((a: string) => transf.brasil[a]),
+  ...Object.entries(transf.agregados).flatMap(([n, s]: [string, any]) => (n in CORES_AGG ? Object.values(s) as number[] : []))] : [1];
+const maxI = Math.max(...todosV as number[]) * 1.1;
+const ix = (a: string) => iPadL + ((+a - +anosG[0]) / Math.max(1, +anosG[anosG.length - 1] - +anosG[0])) * (IW - iPadL - 12);
+const iy = (v: number) => 10 + (IH - iPadB - 10) * (1 - v / maxI);
+const caminhoI = (pontos: Record<string, number>) => Object.keys(pontos).filter((a) => a >= anosG[0])
+  .sort().map((a, i) => `${i ? "L" : "M"}${ix(a).toFixed(1)} ${iy(pontos[a]).toFixed(1)}`).join(" ");
+// gráfico da produção física
+const PW2 = 920, PH2 = 200, pPad2 = 44;
+const pimMax = pimAnos.length ? Math.max(...pimAnos.map((a) => pimTransf.anual[a])) * 1.12 : 120;
+const pxx = (i: number) => pPad2 + (i * (PW2 - pPad2 - 12)) / Math.max(1, pimAnos.length - 1);
+const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
+
 ---
 <Base title="O Brasil está se desenvolvendo? — Nosso Dinheiro" accent="var(--s1)"
   description="Doze indicadores de desenvolvimento, da mortalidade infantil à produtividade, com a trajetória do Brasil desde 1960 e a posição do país no mundo ao longo do tempo.">
@@ -316,6 +355,102 @@ const y = (p: number) => T + (p / 100) * (H - T - B);
   </div>
 
 
+
+
+  <h2>Indústria: estamos industrializando ou perdendo indústria?</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      A resposta depende de qual pergunta se faz, e as quatro medidas abaixo dão respostas diferentes — por isso
+      estão todas aqui. Começando pela que mais se cita e que, justamente, é a que <b>menos</b> mostra o problema.
+    </p>
+    <div class="legend"><span><i style="background:var(--accent)"></i>Brasil</span>{Object.keys(CORES_AGG).map((n) => <span><i style={`background:${CORES_AGG[n]}`}></i>{n}</span>)}</div>
+    {transf && <svg viewBox={`0 0 ${IW} ${IH}`} width="100%" role="img" aria-label={`Participação da indústria de transformação no valor adicionado, Brasil e grupos de países, de ${transf.ini} a ${transf.fim}`}>
+      {[5, 10, 15, 20].filter((v) => v < maxI).map((v) => (<g><line x1={iPadL} x2={IW - 12} y1={iy(v)} y2={iy(v)} stroke="var(--line)" /><text x={iPadL - 6} y={iy(v) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{v}%</text></g>))}
+      {anosG.filter((a: string) => +a % 5 === 0).map((a: string) => <text x={ix(a)} y={IH - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text>)}
+      {Object.entries(transf.agregados).filter(([n]) => n in CORES_AGG).map(([n, s]: [string, any]) =>
+        <path d={caminhoI(s)} fill="none" stroke={CORES_AGG[n]} stroke-width="1.8" opacity="0.8" />)}
+      <path d={caminhoI(transf.brasil)} fill="none" stroke="var(--accent)" stroke-width="3" />
+    </svg>}
+    {transf && <p class="src">
+      A indústria de transformação era <b>{nI(transf.vIni)}%</b> do valor adicionado em {transf.ini} e é
+      {" "}<b>{nI(transf.vFim)}%</b> em {transf.fim}. <b>Mas o mundo inteiro andou na mesma direção</b>: no mesmo
+      período os países de renda alta caíram de {nI(transf.agregados["Países de renda alta"]?.["2000"] ?? 0)}% (2000)
+      para {nI(transf.agregados["Países de renda alta"]?.["2024"] ?? 0)}% (2024) e a média mundial, de
+      {" "}{nI(transf.agregados["Mundo"]?.["2000"] ?? 0)}% para {nI(transf.agregados["Mundo"]?.["2024"] ?? 0)}%.
+      A queda brasileira nesse trecho foi <b>menor</b> que a deles — o grosso da perda de participação aconteceu
+      <b> antes</b> desta série.
+      <b>Por que o gráfico começa em {anoOk} e não há 50 anos aqui:</b> a participação é medida a preços correntes,
+      e sob inflação alta ela oscila com o preço relativo em vez da produção. A mesma fonte dá
+      {" "}{nI(transf.brasil[transf.picoTudo])}% em {transf.picoTudo} e {nI(transf.brasil["1980"] ?? 0)}% no ano
+      seguinte — isso não é indústria aparecendo e sumindo, é ruído. O arquivo guarda a série inteira; o gráfico usa
+      a parte que mede o que diz medir.
+    </p>}
+  </div>
+
+  {pimTransf && pimPico && <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">A medida sem preço nenhum: quanta coisa sai da fábrica</h3>
+    <svg viewBox={`0 0 ${PW2} ${PH2}`} width="100%" role="img" aria-label="Índice de produção física da indústria de transformação, média anual, 2022 = 100">
+      {[80, 100, 120].map((v) => (<g><line x1={pPad2} x2={PW2 - 12} y1={pyy(v)} y2={pyy(v)} stroke="var(--line)" /><text x={pPad2 - 6} y={pyy(v) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{v}</text></g>))}
+      <path d={pimAnos.map((a, i) => `${i ? "L" : "M"}${pxx(i).toFixed(1)} ${pyy(pimTransf.anual[a]).toFixed(1)}`).join(" ")} fill="none" stroke="var(--accent)" stroke-width="3" />
+      {pimAnos.map((a, i) => (+a % 3 === 0 || a === pimPico) && (<g>
+        <circle cx={pxx(i)} cy={pyy(pimTransf.anual[a])} r={a === pimPico ? 4 : 2.5} fill={a === pimPico ? "#a3302a" : "var(--accent)"}>
+          <title>{a}: índice {nI(pimTransf.anual[a])}</title></circle>
+        <text x={pxx(i)} y={PH2 - 6} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text></g>))}
+    </svg>
+    <p class="src">
+      Este índice conta <b>volume produzido</b>, não valor: não tem preço nem inflação na conta. A indústria de
+      transformação chegou ao topo em <b>{pimPico}</b> (índice {nI(pimTransf.anual[pimPico])}) e está em
+      {" "}{nI(pimTransf.anual[pimAnos[pimAnos.length - 1]])} em {pimAnos[pimAnos.length - 1]} — ou seja,
+      <b> {nI(100 * (1 - pimTransf.anual[pimAnos[pimAnos.length - 1]] / pimTransf.anual[pimPico]))}% abaixo do pico</b>,
+      e apenas {nI(100 * (pimTransf.anual[pimAnos[pimAnos.length - 1]] / pimTransf.anual[pimAnos[0]] - 1))}% acima de
+      {" "}{pimAnos[0]}. <b>É aqui que a perda aparece</b>: em mais de vinte anos, o volume produzido praticamente não
+      cresceu. Fonte: IBGE, Pesquisa Industrial Mensal — Produção Física (2022 = 100), média dos doze meses de cada ano.
+    </p>
+  </div>}
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">O que o Brasil vende, e quem trabalha nisso</h3>
+    <table>
+      <thead><tr><th>Medida</th><th class="num">No começo da série</th><th class="num">No melhor momento</th><th class="num">Hoje</th><th class="num">Do pico até hoje</th></tr></thead>
+      <tbody>
+        {[expManuf, empIndustria, tecnologia].filter(Boolean).map((s: any) => (<tr>
+          <td>{s.nome} <span class="un">{s.unidade}</span></td>
+          <td class="num">{nI(s.vIni)}% <span class="un">{s.ini}</span></td>
+          <td class="num">{nI(s.vPico)}% <span class="un">{s.pico}</span></td>
+          <td class="num">{nI(s.vFim)}% <span class="un">{s.fim}</span></td>
+          <td class="num"><b>−{nI(100 * (1 - s.vFim / s.vPico))}%</b></td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      {expManuf && <span>Os <b>manufaturados</b> eram {nI(expManuf.vPico)}% de tudo que o Brasil exportava em
+      {" "}{expManuf.pico} e são {nI(expManuf.vFim)}% em {expManuf.fim}: voltamos a vender sobretudo produto
+      primário. </span>}
+      {tecnologia && <span>Dentro da própria indústria, a fatia de <b>média e alta tecnologia</b> caiu de
+      {" "}{nI(tecnologia.vPico)}% em {tecnologia.pico} para {nI(tecnologia.vFim)}% em {tecnologia.fim} — a indústria
+      que restou é menos sofisticada que a de trinta anos atrás. </span>}
+      {empIndustria && <span>E a indústria emprega {nI(empIndustria.vFim)}% dos ocupados, contra
+      {" "}{nI(empIndustria.vPico)}% em {empIndustria.pico}.</span>}
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Juntando as quatro: a resposta honesta</h3>
+    <ul class="limites">
+      <li><b>Pela participação no PIB, a resposta é "quase não mudou" desde {anoOk}</b> — e a queda brasileira foi
+        menor que a do mundo rico. Quem usa só esse número para falar em desindustrialização está usando o indicador
+        mais fraco dos quatro.</li>
+      <li><b>Pela produção física, a resposta é "paramos"</b>: o volume produzido está abaixo do que era em
+        {" "}{pimPico} e mal passa do de {pimAnos[0] ?? "2002"}. Não é que a indústria encolheu de repente — é que ela
+        deixou de crescer enquanto o resto da economia cresceu.</li>
+      <li><b>Pela pauta de exportação e pelo conteúdo tecnológico, a resposta é "retrocedemos"</b>: vendemos menos
+        manufaturado e, dentro da indústria, menos tecnologia.</li>
+      <li><b>O que este site não diz:</b> se isso é bom ou ruim, e por que aconteceu. Câmbio, juro, carga tributária,
+        energia, infraestrutura e acordos comerciais são citados como causa por quem estuda o assunto; separar o peso
+        de cada um não é dado público, é pesquisa. Os preços relativos entre indústria e serviços estão em
+        {" "}<a href="/economia/poder-de-compra/">Poder de compra</a>, e a carga sobre bens e serviços, em
+        {" "}<a href="/impostos/">Impostos</a>.</li>
+    </ul>
+  </div>
 
   <h2>Quanto custa e o que entrega</h2>
   <div class="card">
