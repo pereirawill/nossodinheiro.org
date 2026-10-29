@@ -237,6 +237,7 @@ export const REGRAS: { titulo: string; texto: string }[] = [
 
 /** O que nenhuma conferência nossa alcança — dito nas páginas, repetido aqui. */
 export const LIMITES: string[] = [
+  "O preço em reais de alimento (pão, arroz, feijão, leite): o IBGE publica a variação desses preços, nunca o valor. Quem publica preço de alimento é instituto privado, que não usamos como número principal.",
   "Quantas pessoas estão em endividamento de risco por estado ou por cidade: o Banco Central calcula isso com a renda de cada devedor, que não está nos arquivos abertos do SCR — só publica o total do país.",
   "Quantas horas de trabalho custa uma TV ou um carro em cada país: exigiria o preço do mesmo modelo em cada lugar, que nenhum órgão público publica. O que existe é o nível de preços por categoria, do ICP.",
   "O preço da bomba comparado entre países: o indicador do Banco Mundial que trazia isso (EP.PMP.SGAS.CD) foi arquivado e não responde mais.",
@@ -251,6 +252,16 @@ export const LIMITES: string[] = [
 
 /** Correções que já fizemos no próprio site, com a data e como apareceram. */
 export const CORRECOES: { data: string; painel: string; oQue: string; como: string }[] = [
+  {
+    data: "29/10/2026", painel: "Inflação",
+    oQue: "A explicação do poder de compra usava um pão de R$ 0,10 em 1999 como âncora e concluía que ele custaria " +
+      "R$ 0,68 hoje. O preço de 1999 era suposição nossa, não dado publicado — e o resultado, R$ 0,68, não bate com " +
+      "a padaria de ninguém. O dono apontou.",
+    como: "O exemplo passou a usar a gasolina, cujo preço a ANP publica em reais nos dois extremos da série: " +
+      "R$ 180 ÷ R$ 1,68 = 107 litros em julho de 2001; R$ 1.621 ÷ R$ 6,54 = 248 litros hoje. Nenhum número estimado. " +
+      "A página passou a dizer, onde cabe, que o IBGE publica a variação do preço do pão e nunca o preço — por isso " +
+      "a tabela parte de uma coisa que custava R$ 1,00, e não de um preço inventado.",
+  },
   {
     data: "28/10/2026", painel: "Estatais",
     oQue: "O lucro das estatais federais incluía R$ 30,9 bi de subvenção do Tesouro, que entra como receita na " +

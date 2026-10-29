@@ -69,12 +69,16 @@ const quantasAntes = smIni ?? 0;
 const brl0 = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const inteiro = (v: number) => Math.round(v).toLocaleString("pt-BR");
 const pao = linhasLongo.find((l) => /Pão francês/.test(l.nome));
-// a conta feita devagar, com o pão: salário ÷ preço em cada ponta, sem deflator nenhum
-const PAO_1999 = 0.10;                      // preço de referência, declarado como suposição na página
-const paoMult = pao ? pao.mult : null;
-const paoHoje = paoMult ? PAO_1999 * paoMult : null;
-const paesAntes = smIni && paoMult ? smIni / PAO_1999 : null;
-const paesHoje = smFim && paoHoje ? smFim / paoHoje : null;
+// A conta feita devagar precisa de PREÇO PUBLICADO nas duas pontas, senão a âncora é chute: o IBGE publica a
+// variação do pão, nunca o preço dele. Quem publica preço em reais, mês a mês, é a ANP — então a conta é com
+// combustível, onde as duas pontas são medidas, não supostas.
+const serieGas = (precos as any).combustiveis?.gasolina?.serie ?? [];
+const gasIni = serieGas.find((x: any) => x.mes === "2001-07") ?? serieGas[0];
+const gasFim = serieGas[serieGas.length - 1];
+const smGasIni = gasIni ? smLongo[gasIni.mes] : null;
+const smGasFim = gasFim ? smLongo[gasFim.mes] : null;
+const litrosAntes = gasIni && smGasIni ? smGasIni / gasIni.preco : null;
+const litrosHoje = gasFim && smGasFim ? smGasFim / gasFim.preco : null;
 const linhasPeso = Object.entries(pesosCestas).map(([k, v]: [string, any]) => ({
   codigo: k, nome: v.nome, ipca: v.ipca, inpc: v.inpc, dif: (v.inpc ?? 0) - (v.ipca ?? 0),
   mult: longo[k] ? longo[k].indice[fimLongo] / 100 : null,
@@ -243,8 +247,9 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
   <div class="card">
     <p style="margin:0 0 10px">
       <b>Pense numa coisa que custava R$ 1,00 em {mesPtBr(baseLongo)}.</b> Se ela acompanhou a média dos preços,
-      hoje custa {brl0(multGeral)}. Mas quase nada acompanha a média: se era um pão, hoje custa
-      {" "}{pao ? brl0(pao.mult) : "—"}; se era um carro novo, {brl0((linhasLongo.find((l) => /Automóvel/.test(l.nome))?.mult) ?? 0)}.
+      hoje custa {brl0(multGeral)}. Mas quase nada acompanha a média: se ela subiu
+      como o pão, hoje custa {pao ? brl0(pao.mult) : "—"}; se subiu como um carro novo,
+      {" "}{brl0((linhasLongo.find((l) => /Automóvel/.test(l.nome))?.mult) ?? 0)}.
       É essa diferença, item por item, que a palavra "inflação" esconde — e é por isso que a conta do índice nunca
       bate com a lembrança de ninguém.
     </p>
@@ -274,33 +279,37 @@ const pesoTotal = grupos.reduce((s, g) => s + (g.peso ?? 0), 0);
       {" "}{inteiro(quantasAntes)} naquela época — o mínimo era de {brl0(smIni ?? 0)} e é de {brl0(smFim ?? 0)}.
       <b> Nem o feijão, que foi o que mais subiu, subiu mais que o salário mínimo</b>; mas quem não ganha o mínimo não
       teve esse aumento, e para essa pessoa as duas últimas colunas são piores.
+      <b>Por que a tabela parte de R$ 1,00 e não do preço real:</b> o IBGE publica a <b>variação</b> do preço de
+      cada item, nunca o preço em reais. Sabemos o quanto o pão subiu; não sabemos quanto ele custava. Partir de
+      R$ 1,00 é a forma de usar só o que é medido.
       Variação mensal do IPCA por item, encadeada das tabelas 655, 2938, 1419 e 7060 do SIDRA.
     </p>
   </div>
 
 
-  {paoMult && paesAntes && paesHoje && <div class="card" style="margin-top:14px">
+  {litrosAntes && litrosHoje && <div class="card" style="margin-top:14px">
     <h3 style="margin:0 0 8px">A conta feita devagar: por que “o salário subiu 4 vezes” não se anula com “a moeda perdeu 3 vezes”</h3>
     <p style="margin:0 0 10px">
       As duas coisas são verdade ao mesmo tempo, e a tentação é subtrair uma da outra. Mas a desvalorização da moeda
-      <b> é</b> a multiplicação dos preços — ela já está do outro lado da conta. O que resolve é <b>dividir</b>:
+      <b> é</b> a multiplicação dos preços — ela já está do outro lado da conta. O que resolve é <b>dividir</b>.
+      Abaixo, com o <b>preço que a ANP publicou</b> em cada ponta, sem índice e sem suposição nenhuma:
     </p>
     <div class="conta">
-      <div><span>Em {mesPtBr(baseLongo)}</span><b>{brl0(smIni ?? 0)} ÷ {brl0(PAO_1999)}</b><i>= {inteiro(paesAntes)} pães</i></div>
+      <div><span>{mesPtBr(gasIni.mes)}</span><b>{brl0(smGasIni)} ÷ {brl0(gasIni.preco)}</b><i>= {inteiro(litrosAntes)} litros de gasolina</i></div>
       <div class="seta" aria-hidden="true">→</div>
-      <div><span>Hoje</span><b>{brl0(smFim ?? 0)} ÷ {brl0(paoHoje ?? 0)}</b><i>= {inteiro(paesHoje)} pães</i></div>
+      <div><span>{mesPtBr(gasFim.mes)}</span><b>{brl0(smGasFim)} ÷ {brl0(gasFim.preco)}</b><i>= {inteiro(litrosHoje)} litros</i></div>
       <div class="seta" aria-hidden="true">=</div>
-      <div class="res"><span>Dá para comprar</span><b>+{n1l(100 * (paesHoje / paesAntes - 1))}%</b><i>de pão com um salário mínimo</i></div>
+      <div class="res"><span>Dá para comprar</span><b>+{n1l(100 * (litrosHoje / litrosAntes - 1))}%</b><i>com um salário mínimo</i></div>
     </div>
     <p class="src">
-      <b>Não há índice de inflação nessa conta.</b> De um lado o salário mínimo, que é lei; do outro o preço do pão.
-      O R$ 0,10 é uma suposição, para a conta ficar legível — e <b>o resultado não depende dela</b>: se o pão custava
-      R$ 0,20 em 1999, hoje custaria R$ {n2l(0.20 * paoMult)}, e a diferença continuaria sendo os mesmos
-      {" "}{n1l(100 * (paesHoje / paesAntes - 1))}%, porque o que importa é a razão entre o salário e o preço, não o
-      valor de partida. O preço de hoje sai do índice <b>do próprio pão</b>, que subiu
-      {" "}{n1l(100 * (paoMult / multGeral - 1))}% mais que a média.
-      <b> A mesma conta com o salário médio dá outro número</b>, porque o rendimento médio de quem trabalha subiu
-      bem menos que o mínimo — e é aí que a sensação de ter perdido poder de compra encontra o dado.
+      De um lado o salário mínimo, que é lei; do outro o preço médio de revenda da gasolina, que a ANP publica todo
+      mês desde 2001. <b>Nenhum número aqui é estimado.</b> A mesma conta com o botijão de 13 kg dá +35% e com o
+      diesel, +11%: o resultado muda de item para item, mas o sinal não.
+      <b>Por que não com pão, arroz ou feijão:</b> o IBGE publica <b>a variação</b> do preço desses itens, nunca o
+      preço em reais. Dá para dizer que o pão subiu {n1l(100 * ((pao?.mult ?? multGeral) / multGeral - 1))}% acima da média —
+      e está na tabela acima —, mas não dá para dizer quanto ele custava sem inventar o número, e aqui não se
+      inventa número. Quem publica preço de alimento em reais é instituto privado, que este site não usa como fonte
+      principal. Detalhe em <a href="/economia/poder-de-compra/">Poder de compra</a>.
     </p>
   </div>}
 
