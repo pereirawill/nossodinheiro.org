@@ -57,6 +57,13 @@ INDICADORES_WB = [
     ("beneficios_pct_despesa", "GC.XPN.TRFT.ZS", "Transferências e subsídios", "Benefícios, aposentadorias e subsídios como % da despesa do governo central", "% da despesa", True),
     ("carga_governo_central", "GC.TAX.TOTL.GD.ZS", "Receita tributária do governo central", "Impostos arrecadados pelo governo CENTRAL como % do PIB — no Brasil, só a União", "% do PIB", True),
     ("homicidios", "VC.IHR.PSRC.P5", "Homicídios", "Homicídios intencionais por 100 mil habitantes (dado da UNODC, via Banco Mundial)", "por 100 mil hab. (menor é melhor)", False),
+    # Desenvolvimento: investimento, infraestrutura e abertura, para o painel /desenvolvimento/ (pedido de 29/10/2026).
+    ("investimento_pct_pib", "NE.GDI.TOTL.ZS", "Investimento (formação bruta de capital)", "Quanto do PIB vira máquina, obra e equipamento em vez de consumo — o motor do crescimento de longo prazo", "% do PIB", True),
+    ("comercio_pct_pib", "NE.TRD.GNFS.ZS", "Abertura comercial", "Exportações mais importações como % do PIB: o quanto a economia troca com o resto do mundo", "% do PIB", True),
+    ("internet_pct", "IT.NET.USER.ZS", "Pessoas usando internet", "Percentual da população que usa internet", "% da população", True),
+    ("eletricidade_pct", "EG.ELC.ACCS.ZS", "Acesso a energia elétrica", "Percentual da população com energia elétrica em casa", "% da população", True),
+    ("mortalidade_infantil", "SP.DYN.IMRT.IN", "Mortalidade infantil", "Mortes de menores de 1 ano por mil nascidos vivos", "por mil nascidos vivos (menor é melhor)", False),
+    ("medio_completo_pct", "SE.SEC.CUAT.UP.ZS", "Adultos com ensino médio completo", "Percentual das pessoas de 25 anos ou mais que concluíram o ensino médio", "% dos adultos", True),
     # Mortes no trânsito, para o painel /transito/ e a comparação internacional (pedido de 29/10/2026). É estimativa
     # da OMS, que corrige o sub-registro de cada país — por isso não bate com a contagem nacional.
     ("transito_100k", "SH.STA.TRAF.P5", "Mortes no trânsito", "Mortes por acidente de trânsito por 100 mil habitantes (estimativa da OMS, via Banco Mundial)", "por 100 mil hab. (menor é melhor)", False),

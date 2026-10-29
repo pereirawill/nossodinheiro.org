@@ -287,6 +287,19 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   nenhuma causa.
 - Completo: `docs/metodologia/painel-transito.md`.
 
+## Desenvolvimento — o Brasil está se desenvolvendo?
+
+- **O que é:** doze indicadores com a série do Brasil desde os anos 1980 e a posição do país no mundo ano a ano, separados pelo que
+  o próprio dado diz: o que melhorou, o que parou ou piorou, e onde o Brasil perdeu posição mesmo melhorando.
+- **Fonte:** Banco Mundial (indicadores de desenvolvimento), PNUD (IDH), Transparência Internacional (percepção da corrupção), mais
+  as séries próprias de educação e saneamento deste site.
+- **Atenção:** a página **não diz por quê** — atribuir causa à queda do investimento ou à estagnação da produtividade é disputa entre
+  economistas, não dado. Posição bruta não compara épocas, porque o número de países com dado muda; por isso usamos o **percentil**,
+  e mesmo ele tem limite (no acesso a energia elétrica a lista vai de 98 países em 1990 a 215 em 2024). "Melhorou" e "piorou" são
+  decididos pelo próprio indicador, que traz se é melhor quando sobe ou quando desce. O ano de referência muda de indicador para
+  indicador e está sempre na tabela.
+- Completo: nesta página; os números por país estão em `/rankings/`.
+
 ## Imposto de Renda — o que os brasileiros declaram ganhar
 
 - **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem

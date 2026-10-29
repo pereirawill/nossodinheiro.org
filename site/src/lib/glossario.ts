@@ -149,6 +149,10 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   sim_obito: { rotulo: "SIM (atestado de óbito)", texto: "Sistema de Informações sobre Mortalidade, do Ministério da Saúde: reúne os atestados de óbito do país inteiro, com a causa declarada pelo médico. É a contagem mais completa de mortes, e independe de a polícia ter registrado o caso." },
   registro_policial: { rotulo: "Registro policial", texto: "A ocorrência anotada pela polícia. Chega rápido, mas depende de alguém registrar: quem morre dias depois no hospital em geral não volta para o registro." },
   estimativa_oms: { rotulo: "Estimativa da OMS", texto: "Para comparar países, a Organização Mundial da Saúde corrige o sub-registro de cada um com um modelo próprio. O número estimado não é o que o país contou — e por isso não bate com a estatística nacional." },
+  percentil_pais: { rotulo: "Percentil", texto: "Quantos por cento dos países estão à frente do Brasil num indicador. Serve para comparar épocas, porque a posição bruta depende de quantos países tinham dado naquele ano." },
+  investimento: { rotulo: "Investimento (formação bruta de capital)", texto: "A parte do que o país produz que vira máquina, obra, equipamento e construção em vez de consumo. É o que determina quanto se poderá produzir no futuro." },
+  produtividade_trabalho: { rotulo: "Produtividade do trabalho", texto: "Quanto cada pessoa ocupada produz por ano, em dólares ajustados pelo poder de compra. Cresce quando há mais máquina, mais escolaridade ou melhor organização — e é o limite de quanto o salário pode subir sem inflação." },
+  idh_indice: { rotulo: "IDH", texto: "Índice de Desenvolvimento Humano, do PNUD: junta renda, expectativa de vida e escolaridade num número de 0 a 1. Por juntar três coisas, esconde qual delas mudou." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

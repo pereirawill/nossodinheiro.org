@@ -217,6 +217,15 @@ export const DATASETS: Dataset[] = [
              { nome: "Banco Mundial / OMS — mortes no trânsito por 100 mil", url: "https://data.worldbank.org/indicator/SH.STA.TRAF.P5" }],
     periodo: "2000/2024", atualizacao: "anual",
   },
+  {
+    slug: "/desenvolvimento/", nome: "Desenvolvimento: a trajetória do Brasil",
+    descricao: "Doze indicadores de desenvolvimento com a série do Brasil desde os anos 1980 e a posição do país no mundo ano a ano: mortalidade infantil, expectativa de vida, escolaridade, internet, energia, desigualdade, renda por pessoa, produtividade, investimento, abertura comercial, IDH e percepção da corrupção.",
+    arquivos: ["rankings.json"],
+    fontes: [{ nome: "Banco Mundial — indicadores de desenvolvimento", url: "https://data.worldbank.org/" },
+             { nome: "PNUD — Relatório de Desenvolvimento Humano", url: "https://hdr.undp.org/" },
+             { nome: "Transparência Internacional — Índice de Percepção da Corrupção", url: "https://www.transparency.org/en/cpi" }],
+    periodo: "1985/2025", atualizacao: "mensal",
+  },
 ];
 
 export const porSlug = (slug: string) => DATASETS.find((d) => d.slug === slug);

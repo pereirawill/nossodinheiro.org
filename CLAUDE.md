@@ -345,6 +345,18 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/comparacao/`: os 20 países de referência passaram a ser **nomeados** no próprio gráfico, com o critério e o aviso de que a
   lista é editorial (pedido do dono).
 
+## Painel Desenvolvimento (NO AR; feito 29/10/2026)
+- Pergunta do dono: "o país está se desenvolvendo ou estagnado?". `/desenvolvimento/` (menu antes de Comparação), **sem ETL
+  próprio**: lê `rankings.json` + educação e saneamento. Sete indicadores novos entraram no `etl/rankings`: investimento
+  (NE.GDI.TOTL.ZS), abertura comercial (NE.TRD.GNFS.ZS), internet (IT.NET.USER.ZS), energia elétrica (EG.ELC.ACCS.ZS),
+  mortalidade infantil (SP.DYN.IMRT.IN), médio completo (SE.SEC.CUAT.UP.ZS) e trânsito (SH.STA.TRAF.P5).
+- **A resposta que os dados dão**: melhorou quase tudo que se mede por pessoa (mortalidade infantil −80,3% desde 1985; médio
+  completo 22,8%→61,7%; expectativa 64→76) e parou no que se mede por produção (produtividade **+30,6% em 34 anos**; investimento
+  20,3%→**17,1% do PIB**, 143º de 174). **Perdeu posição relativa em 5 dos 12** indicadores com série comparável.
+- Método: "melhorou/piorou" é decidido pelo campo `maior_melhor` do indicador, não por nós. Posição bruta não compara épocas →
+  **percentil**; e o limite do percentil também está declarado (energia elétrica: 98 países em 1990 → 215 em 2024). A página diz
+  explicitamente que **não atribui causa**.
+
 ## Painel Trânsito (NO AR, sem chave, mensal dia 9; feito 29/10/2026)
 - Pergunta do dono: "mortes no trânsito seria em segurança ou transporte?" → **painel próprio** `/transito/` (menu depois de
   Segurança), porque morte no trânsito **não é intencional** e somá-la ao MVI inflaria a violência; as duas aparecem lado a lado.
