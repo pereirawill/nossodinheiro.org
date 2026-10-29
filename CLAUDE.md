@@ -378,7 +378,8 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   nominal −R$ 950,6 bi. A página é também porta de entrada (cartões) para Impostos, IR, Inflação, Dívida, Trabalho, Renda,
   Inadimplência, Estatais e Desenvolvimento. 29/10, o dono: "não estou vendo a aba economia" → **Economia entrou no menu**, depois de Estatais (só o
   item, sem mexer em mais nada; o menu foi a 36 itens em 4 linhas). A proposta de consolidação 35 → 29, já enviada
-  por imagem, continua esperando o sim dele.
+  por imagem, foi **recusada em 29/10/2026 ("manter como está")** — menu fica com os 36 itens. Não propor
+  consolidação de novo sem pedido explícito do dono.
 
 ## IVA em /impostos/ e a nota do carro em /inflacao/ (29/10/2026)
 - Pergunta do dono: "o que é IVA e por que o Brasil é o maior do mundo?". Bloco em `/impostos/` (antes do mapa por UF),
