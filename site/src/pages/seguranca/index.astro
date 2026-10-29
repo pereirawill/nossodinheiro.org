@@ -105,8 +105,8 @@ const ufSerie = (uf: string, k: string) => anos.map((a) => serie[a]?.[uf]?.[k] ?
 
   <h2>Capitais ({d.ano})</h2>
   <div class="card">
-    <table>
-      <thead><tr><th>Capital</th><th class="num">População</th><th class="num">Mortes violentas /100 mil</th><th class="num">Total</th><th class="num">Homicídio doloso</th><th class="num">Latrocínio</th><th class="num">Feminicídios</th><th class="num">Mortes no trânsito</th></tr></thead>
+    <table class="capitais">
+      <thead><tr><th>Capital</th><th class="num">População</th><th class="num">Mortes violentas<br />por 100 mil</th><th class="num">Total</th><th class="num">Homicídio<br />doloso</th><th class="num">Latrocínio</th><th class="num">Feminicídios</th><th class="num">Mortes no<br />trânsito</th></tr></thead>
       <tbody>{capitais.map((m) => (<tr><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{num(m.populacao)}</td><td class="num"><b>{t1(m.taxa_mvi)}</b></td><td class="num">{num(m.mvi)}</td>
         <td class="num">{num(m.homicidio_doloso)}</td><td class="num">{num(m.latrocinio)}</td><td class="num">{num(m.feminicidio)}</td><td class="num">{num(m.transito)}</td></tr>))}</tbody>
     </table>
@@ -164,6 +164,10 @@ const ufSerie = (uf: string, k: string) => anos.map((a) => serie[a]?.[uf]?.[k] ?
   <Glossario termos={["mvi", "homicidio_doloso", "intervencao_policial", "taxa_100k", "registro_policial"]} />
 </Base>
 <style>
+  /* o nome da capital não pode quebrar em três linhas ("Belo Horizonte", "Rio de Janeiro"): o resto da tabela se ajusta */
+  .capitais td:first-child, .capitais th:first-child { white-space: nowrap; }
+  .capitais th { white-space: normal; vertical-align: bottom; line-height: 1.25; }
+  .capitais td.num, .capitais th.num { white-space: nowrap; }
   .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .duas h3 { margin: 0 0 8px; font-size: 15px; }
   @media (max-width: 900px) { .duas { grid-template-columns: 1fr; } }
   .largo { overflow-x: auto; }

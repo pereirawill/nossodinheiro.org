@@ -9,6 +9,10 @@ const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curre
 const bi = (v: number) => `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi`;
 const mi = (v: number) => `${(v / 1e6).toFixed(1).replace(".", ",")} mi`;
 const num = (v: number) => v.toLocaleString("pt-BR");
+const pct2 = (a: number, b: number) => {
+  const v = (100 * a) / b;
+  return `${(v < 0.1 ? v.toFixed(2) : v.toFixed(1)).replace(".", ",")}%`;   // 0,03% não pode virar 0,0%
+};
 const pct1 = (a: number, b: number) => `${((100 * a) / b).toFixed(1).replace(".", ",")}%`;
 const quando = new Date(d.gerado_em_utc);
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -141,6 +145,34 @@ const maxQtd = Math.max(...BLOCOS.map((b) => b.quantidade));
       <li>{ufs[0].nome} concentra o maior número de benefícios ({num(ufs[0].quantidade)}) e {ufs[ufs.length - 1].nome} o menor ({num(ufs[ufs.length - 1].quantidade)}). O valor médio vai de {brl0(Math.min(...ufs.map((u) => u.valor_medio)))} a {brl0(Math.max(...ufs.map((u) => u.valor_medio)))}.</li>
     </ul>
     <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>
+  </div>
+
+  <h2>Auxílio-reclusão, em números</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      É o benefício sobre o qual mais se pergunta, e o que menos pesa na conta. O INSS pagou
+      <b>{num(esp.auxilio_reclusao.quantidade)}</b> auxílios-reclusão em {competencia}, somando
+      <b>{brl0(esp.auxilio_reclusao.valor)}</b> no mês — <b>{pct2(esp.auxilio_reclusao.quantidade, esp.total.quantidade)}</b> dos
+      benefícios e <b>{pct2(esp.auxilio_reclusao.valor, esp.total.valor)}</b> do dinheiro. É um benefício a cada{" "}
+      {Math.round(esp.total.quantidade / esp.auxilio_reclusao.quantidade).toLocaleString("pt-BR")} pagos pelo instituto.
+    </p>
+    <table>
+      <thead><tr><th>Benefício</th><th class="num">Quantidade</th><th class="num">Valor no mês</th><th class="num">Valor médio</th><th class="num">% do INSS</th></tr></thead>
+      <tbody>
+        <tr><td>Auxílio-reclusão</td><td class="num">{num(esp.auxilio_reclusao.quantidade)}</td><td class="num">{brl0(esp.auxilio_reclusao.valor)}</td><td class="num">{brl0(esp.auxilio_reclusao.valor_medio)}</td><td class="num">{pct2(esp.auxilio_reclusao.valor, esp.total.valor)}</td></tr>
+        <tr><td>Todos os benefícios do INSS</td><td class="num">{num(esp.total.quantidade)}</td><td class="num">{brl0(esp.total.valor)}</td><td class="num">{brl0(esp.total.valor_medio)}</td><td class="num">100%</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      <b>Quem recebe e por quê.</b> Não é o preso que recebe: são os <b>dependentes</b> dele (cônjuge, filhos), e só quando
+      o preso era <b>segurado do INSS</b> — tinha contribuído — estava em <b>regime fechado</b> e tinha <b>baixa renda</b>
+      pelo limite que a lei fixa. É benefício previdenciário, pago do mesmo fundo das aposentadorias, e não assistência
+      social. Regra: Lei 8.213/1991, art. 80, com a redação da EC 103/2019.
+      <b>O que não existe.</b> Nenhuma base pública cruza outros benefícios (Bolsa Família, BPC, seguro-desemprego) com
+      antecedentes criminais — logo, qualquer número sobre "quanto vai para família de criminoso" além deste seria
+      invenção, e este site não publica estimativa sem fonte. O custo do sistema prisional em si está na função
+      Segurança Pública dos <a href="/estados/">estados</a>, que não se abre por presídio nos dados abertos de hoje.
+    </p>
   </div>
 
   <Glossario termos={["rgps", "bpc", "pensao_morte", "beneficio_x_pessoa"]} />

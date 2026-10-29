@@ -56,6 +56,9 @@ const outros = fTop.slice(9).reduce((s, f) => s + f.pago, 0);
 const fatias = [...topN.map((f) => ({ nome: f.funcao_nome, v: f.pago })), { nome: "Demais funções", v: outros }];
 // Cores bem distintas entre si (a pizza tem 10 fatias; tons parecidos confundem)
 const CORES = ["#1d5a8a", "#e07b00", "#1f9d55", "#c2185b", "#6a1b9a", "#8d6e63", "#00a3c4", "#f1c232", "#d32f2f", "#9e9e9e"];
+// A pizza cabe em 10 fatias, mas a tabela lista TODAS as funções: senão Segurança Pública, Transporte e Cultura
+// somem dentro de "Demais funções" e parece que não existem (a pergunta veio do dono em 29/10/2026).
+const todasFuncoes = fTop.map((f, i) => ({ nome: f.funcao_nome, v: f.pago, cor: i < 9 ? CORES[i] : "#9e9e9e" }));
 const R = 86, C = 100; let ang = -Math.PI / 2;
 const arcos = fatias.map((f, i) => { const fr = f.v / uniaoSemEncargos; const a0 = ang; ang += fr * 2 * Math.PI;
   const x0 = C + R * Math.cos(a0), y0 = C + R * Math.sin(a0), x1 = C + R * Math.cos(ang), y1 = C + R * Math.sin(ang);
@@ -153,10 +156,13 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
     </svg>
     <table>
       <thead><tr><th>Função</th><th class="num"><Termo t="pago">Pago</Termo></th><th class="num">% do total</th><th class="num"><Termo t="per_capita">Por habitante</Termo></th></tr></thead>
-      <tbody>{arcos.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{compact(a.v)}</td><td class="num">{pct(a.v, uniaoSemEncargos)}</td><td class="num">{brl0(a.v / POP)}</td></tr>))}</tbody>
+      <tbody>{todasFuncoes.map((f) => (<tr><td><i class="sw" style={`background:${f.cor}`}></i>{f.nome}</td><td class="num">{compact(f.v)}</td><td class="num">{pct(f.v, uniaoSemEncargos)}</td><td class="num">{brl0(f.v / POP)}</td></tr>))}</tbody>
     </table>
     <p class="src" style="grid-column:1/-1"><b>Pago</b> = dinheiro que saiu do caixa no ano (não o orçado). <b>Por habitante</b> = pago ÷ 212,6 milhões de brasileiros (IBGE): só dá escala, não é quanto cada um recebeu.
-      Função é a classificação oficial da Lei Orçamentária. "Encargos especiais" ({compact(encargos)}: juros, amortização e refinanciamento da dívida, transferências constitucionais a estados e municípios) ficam fora da pizza porque não são um serviço prestado; estão no total da União acima. Fonte: SIOP.</p>
+      Função é a classificação oficial da Lei Orçamentária. "Encargos especiais" ({compact(encargos)}: juros, amortização e refinanciamento da dívida, transferências constitucionais a estados e municípios) ficam fora da pizza porque não são um serviço prestado; estão no total da União acima.
+      <b>A pizza mostra as 9 maiores funções e junta o resto em "Demais"; a tabela lista todas as {todasFuncoes.length}.</b>
+      É por isso que <b>Segurança Pública</b> parece ausente: a União pagou {compact(uf("06"))} nela em {ANO}, a {todasFuncoes.findIndex((f) => f.nome === "Segurança Pública") + 1}ª função —
+      segurança é atribuição sobretudo dos estados, que gastaram {compact(somaF("pago_seguranca"))} no mesmo ano (veja a comparação entre os três níveis, logo abaixo). Fonte: SIOP.</p>
   </div>
 
   <h2>A mesma despesa, agora <strong>com</strong> dívida e transferências ({ANO})</h2>

@@ -57,6 +57,9 @@ INDICADORES_WB = [
     ("beneficios_pct_despesa", "GC.XPN.TRFT.ZS", "Transferências e subsídios", "Benefícios, aposentadorias e subsídios como % da despesa do governo central", "% da despesa", True),
     ("carga_governo_central", "GC.TAX.TOTL.GD.ZS", "Receita tributária do governo central", "Impostos arrecadados pelo governo CENTRAL como % do PIB — no Brasil, só a União", "% do PIB", True),
     ("homicidios", "VC.IHR.PSRC.P5", "Homicídios", "Homicídios intencionais por 100 mil habitantes (dado da UNODC, via Banco Mundial)", "por 100 mil hab. (menor é melhor)", False),
+    # Mortes no trânsito, para o painel /transito/ e a comparação internacional (pedido de 29/10/2026). É estimativa
+    # da OMS, que corrige o sub-registro de cada país — por isso não bate com a contagem nacional.
+    ("transito_100k", "SH.STA.TRAF.P5", "Mortes no trânsito", "Mortes por acidente de trânsito por 100 mil habitantes (estimativa da OMS, via Banco Mundial)", "por 100 mil hab. (menor é melhor)", False),
 ]
 HDR_CSV = "https://hdr.undp.org/sites/default/files/2025_HDR/HDR25_Composite_indices_complete_time_series.csv"
 CPI_XLSX = "https://files.transparencycdn.org/images/CPI2025_Results.xlsx"
