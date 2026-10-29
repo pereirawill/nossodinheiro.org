@@ -150,6 +150,18 @@ export const CHECAGENS: Checagem[] = [
     fonte: "IBGE/ODS 3.6.1 (SIM) e MJSP (Sinesp VDE)",
     url: "https://sidra.ibge.gov.br/tabela/4408",
   },
+  {
+    painel: "Educação", slug: "/educacao/",
+    oQue: "Adultos sem o ensino fundamental completo em 2022, medidos pelo Censo e pela PNAD Contínua",
+    nosso: "35,2% pelo Censo",
+    outro: "34,2% pela PNAD Contínua",
+    status: "explicada",
+    explicacao: "Um ponto de diferença entre recenseamento e amostra no mesmo ano, para a mesma pergunta. É a " +
+      "ordem de grandeza do desencontro entre os dois instrumentos do IBGE, e aparece ao lado do gráfico que " +
+      "junta os Censos desde 1991 com a pesquisa anual.",
+    fonte: "IBGE — Censo 2022 (tabela 10141) e PNAD Contínua 2022 (tabela 7189)",
+    url: "https://sidra.ibge.gov.br/tabela/10141",
+  },
 ];
 
 /** As regras que valem para todas as páginas, e que é possível checar olhando o site. */

@@ -69,6 +69,20 @@ const pizza = (fatias: { nome: string; v: number; cor: string }[], total: number
 };
 const arcosEsc = pizza(FATIAS_ESC, FATIAS_ESC.reduce((t, f) => t + f.v, 0));
 
+// Escolaridade desde 1991: Censos (1991, 2000, 2010, 2022) e PNAD Contínua (2016→), em quatro faixas comparáveis.
+// Cada pesquisa aparece separada, como no gráfico do analfabetismo — não há série única e não emendamos nenhuma.
+const escLongo = (esc as any).longo;   // bloco 'longo' do educacao.json
+const faixasLongo = (escLongo?.faixas ?? []) as string[];
+const CORES_LONGO = ["#c2185b", "#e07b00", "#1f9d55", "#1d5a8a"];
+const pontos = escLongo ? [
+  ...escLongo.censos.map((x: any) => ({ ...x, pesquisa: "Censo", rotulo: String(x.ano) })),
+  ...escLongo.pnadc.map((x: any) => ({ ...x, pesquisa: "PNAD Contínua", rotulo: String(x.ano) })),
+] : [];
+const censo91 = escLongo?.censos?.[0], censo22 = escLongo?.censos?.[escLongo.censos.length - 1];
+const pnadcUlt = escLongo?.pnadc?.[escLongo.pnadc.length - 1];
+const pnadc22 = escLongo?.pnadc?.find((x: any) => x.ano === 2022);
+const LW = 920, LL = 40, LR = 12, LH = 300, LT = 14, LB = 46;
+
 // evolução 2016 → último ano, uma linha por nível de instrução
 const NIVEIS_EVOL = ["superior_completo", "medio_completo", "fundamental_incompleto", "sem_instrucao"];
 const maxEvol = Math.max(...NIVEIS_EVOL.flatMap((k) => anosEsc.map((a) => pct(k, a))));
@@ -206,6 +220,48 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
       Pessoas de <b>25 anos ou mais</b> em {anoEsc}, idade em que a maioria já terminou os estudos. As faixas são
       acumulativas de baixo para cima: quem tem superior completo também concluiu o médio e o fundamental, e é por isso
       que os três destaques somam mais que 100%. Fonte: IBGE, PNAD Contínua anual, tabela 7189.
+    </p>
+  </div>
+
+
+  <h2>Até onde estudaram, desde 1991</h2>
+  <div class="card">
+    <div class="legend">{faixasLongo.map((k, i) => <span><i style={`background:${CORES_LONGO[i]}`}></i>{escLongo.rotulos[k]}</span>)}</div>
+    <svg viewBox={`0 0 ${LW} ${LH}`} width="100%" role="img" aria-label="Distribuição da população de 25 anos ou mais por escolaridade, nos Censos desde 1991 e na PNAD Contínua">
+      {[0, 25, 50, 75, 100].map((t) => <g>
+        <line x1={LL} x2={LW - LR} y1={LT + (1 - t / 100) * (LH - LT - LB)} y2={LT + (1 - t / 100) * (LH - LT - LB)} stroke="var(--line)" />
+        <text x={LL - 6} y={LT + (1 - t / 100) * (LH - LT - LB) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{t}%</text></g>)}
+      {pontos.map((p: any, i: number) => {
+        const passo = (LW - LL - LR) / pontos.length, largura = passo - 6;
+        const x0 = LL + i * passo + 3;
+        let acum = 0;
+        return (<g>
+          {faixasLongo.map((k, j) => {
+            const h = (p[k] / 100) * (LH - LT - LB);
+            const y0 = LT + (LH - LT - LB) - acum - h;
+            acum += h;
+            return <rect x={x0} y={y0} width={largura} height={h} fill={CORES_LONGO[j]} opacity={p.pesquisa === "Censo" ? 1 : 0.6}>
+              <title>{p.pesquisa} {p.ano} · {escLongo.rotulos[k]}: {n1(p[k])}%</title></rect>;
+          })}
+          <text x={x0 + largura / 2} y={LH - 28} text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{p.rotulo}</text>
+          <text x={x0 + largura / 2} y={LH - 15} text-anchor="middle" font-size="9" fill="var(--ink-2)">{p.pesquisa === "Censo" ? "Censo" : "PNAD"}</text>
+        </g>);
+      })}
+    </svg>
+    <p class="src">
+      <b>Barras cheias são Censo; as mais claras, PNAD Contínua</b> — duas pesquisas diferentes, lado a lado e nunca
+      emendadas numa linha só. Sempre pessoas de <b>25 anos ou mais</b>, o mesmo corte das duas.
+      Em {censo91?.ano}, <b>{n1(censo91?.ate_fundamental_incompleto)}%</b> dos adultos não tinham terminado o ensino
+      fundamental e <b>{n1(censo91?.superior_completo)}%</b> tinham diploma de curso superior. Em {pnadcUlt?.ano} são
+      {" "}<b>{n1(pnadcUlt?.ate_fundamental_incompleto)}%</b> e <b>{n1(pnadcUlt?.superior_completo)}%</b>.
+    </p>
+    <p class="src">
+      <b>A régua muda no meio do caminho, e isso importa.</b> Os Censos de 1991 e 2000 publicam <i>anos de estudo</i>;
+      os de 2010 e 2022, <i>nível de instrução</i>. Para pôr os quatro no mesmo gráfico usamos a equivalência da época
+      — fundamental = 8 anos, médio = 11, superior = 15 ou mais —, que é <b>decisão nossa e não do IBGE</b>. Quem não
+      declarou fica fora da base. {pnadc22 && censo22 ? `Dá para medir o tamanho do desencontro: em 2022 o Censo e a PNAD mediram o mesmo ano, e a diferença na faixa "sem o fundamental" foi de ${n1(Math.abs(censo22.ate_fundamental_incompleto - pnadc22.ate_fundamental_incompleto))} ponto${Math.abs(censo22.ate_fundamental_incompleto - pnadc22.ate_fundamental_incompleto) >= 2 ? "s" : ""} — ${n1(censo22.ate_fundamental_incompleto)}% contra ${n1(pnadc22.ate_fundamental_incompleto)}%.` : ""}
+      {" "}<b>Não existe 1988</b>: o Censo mais próximo da Constituição é o de 1991, como no gráfico do analfabetismo.
+      Fonte: {escLongo?.fonte}.
     </p>
   </div>
 

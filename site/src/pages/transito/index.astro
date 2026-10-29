@@ -48,14 +48,16 @@ const y = (v: number) => T + (1 - v / maxO) * (H - T - B);
     Em {ult}, <strong>{num(serie[ult].obitos)} pessoas</strong> morreram em acidente de trânsito no Brasil pelos
     atestados de óbito — <strong>{num(porDia)} por dia</strong>, {n1(serie[ult].taxa)} para cada 100 mil habitantes.
     É quase o mesmo número das {num((seg as any).brasil.mvi)} mortes violentas intencionais de {anoSinesp} — que entram
-    em outra conta, porque a morte no trânsito não é intencional. {pct(homens, homens + mulheres)} das vítimas são homens.
+    em outra conta, porque a morte no trânsito não é intencional. {pct(homens, homens + mulheres)} das vítimas são homens. O ano é {ult}, e não {anoSinesp},
+    porque o atestado de óbito leva cerca de um ano para ser consolidado — logo abaixo está a contagem mais recente,
+    que é a da polícia.
   </p>
   <p class="meta">atualizado em {fmt.format(quando)} · fonte: IBGE/ODS 3.6.1, do Sistema de Informações sobre Mortalidade (Ministério da Saúde) · <a href="/metodologia/">metodologia</a> · <a href="/conferir/">como conferir</a></p>
 
   <div class="hero">
     <div class="stat big"><b>{num(serie[ult].obitos)}</b><span>mortes no trânsito em {ult} — {num(porDia)} por dia, ou uma a cada {n1(24 * 60 / porDia)} minutos</span></div>
     <div class="stat"><b>{n1(serie[ult].taxa)}</b><span>mortes por 100 mil habitantes; o pico foi em {pico}, com {num(serie[pico].obitos)} mortes ({n1(serie[pico].taxa)} por 100 mil)</span></div>
-    <div class="stat"><b>{pct(homens, homens + mulheres)}</b><span>das vítimas são homens; a faixa mais atingida é a de {maiorIdade[0].toLowerCase()}, com {num(maiorIdade[1])} mortes</span></div>
+    <div class="stat"><b>{num(sinesp)}</b><span>o número mais recente que existe, de {anoSinesp}, mas pela outra régua: o registro das polícias, que conta menos</span></div>
   </div>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
@@ -63,8 +65,12 @@ const y = (v: number) => T + (1 - v / maxO) * (H - T - B);
     intencionais</Termo> — alguém quis matar. No trânsito a morte é, na definição legal, não intencional, e misturar
     as duas contas inflaria o número da violência. São painéis separados de propósito, e os dois estão nesta página
     para quem quiser comparar a ordem de grandeza.
-    <b>Há duas contagens oficiais e elas não batem</b>: o atestado de óbito (Ministério da Saúde) e o registro
-    policial (Sinesp). A diferença está mais abaixo, com o que sabemos sobre ela.</div>
+    <b>Por que o número principal é de {ult} e não de {anoSinesp}.</b> Ele vem do atestado de óbito, que o Ministério
+    da Saúde leva cerca de um ano para consolidar — é o preço de uma contagem que confere cada registro. O dado mais
+    recente que existe é o do registro policial ({num(sinesp)} em {anoSinesp}), que chega rápido e conta menos: fica{" "}
+    {pct(difContagem, serie[ult].obitos)} abaixo do atestado de óbito. Esta página usa o atestado como número
+    principal, mostra o policial ao lado e <b>nunca mistura os dois na mesma série</b>; a seção das duas contagens
+    explica a diferença.</div>
   </div>
 
   <h2>Desde 2000</h2>

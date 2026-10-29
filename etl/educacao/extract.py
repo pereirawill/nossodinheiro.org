@@ -167,6 +167,101 @@ def _num(v) -> float | None:
         return None
 
 
+
+# --- Escolaridade desde 1991, pelos Censos (pedido do dono em 29/10/2026) ------------------------------------------
+# A PNAD Contínua só começa em 2016. Para ir mais atrás existem os Censos, mas eles mudam de régua no meio do caminho:
+#   1991 e 2000 publicam **anos de estudo**; 2010 e 2022 publicam **nível de instrução**.
+# As duas réguas são colocadas nas mesmas quatro faixas, pela equivalência da época (fundamental = 8 anos,
+# médio = 11 anos, superior = 15 anos ou mais). A equivalência é nossa e está declarada no JSON e na página.
+# Sempre 25 anos ou mais, o mesmo corte da PNAD Contínua — com 10 anos ou mais, quem ainda estuda entraria como
+# "sem instrução" e a comparação com hoje ficaria falsa.
+FAIXAS_LONGO = ["ate_fundamental_incompleto", "fundamental_completo", "medio_completo", "superior_completo"]
+ROTULOS_LONGO = {
+    "ate_fundamental_incompleto": "Sem instrução ou fundamental incompleto",
+    "fundamental_completo": "Fundamental completo e médio incompleto",
+    "medio_completo": "Médio completo e superior incompleto",
+    "superior_completo": "Superior completo",
+}
+IDADES_25_MAIS = {
+    "1991": "1145,1146,1147,1148,1149,1150,1151,1152,1153,1154,1155,2503",
+    "2000": "1145,3299,3300,3301,3302",
+}
+ANOS_ESTUDO = {        # classificação 71, as duas edições que publicam anos de estudo
+    "2799": "ate_fundamental_incompleto",   # curso de alfabetização de adultos (só 1991)
+    "1122": "ate_fundamental_incompleto",   # sem instrução e menos de 1 ano (1991)
+    "3319": "ate_fundamental_incompleto",   # idem, id diferente em 2000
+    "1123": "ate_fundamental_incompleto",   # 1 a 3 anos
+    "1126": "ate_fundamental_incompleto",   # 4 a 7 anos
+    "1130": "fundamental_completo",         # 8 a 10 anos
+    "1133": "medio_completo",               # 11 a 14 anos
+    "1137": "superior_completo",            # 15 anos ou mais
+}
+NIVEL_INSTRUCAO_CENSO = {                   # classificação 1568, 2010 e 2022
+    "9493": "ate_fundamental_incompleto",
+    "9494": "fundamental_completo",
+    "9495": "medio_completo",
+    "99713": "superior_completo",
+}
+CENSOS_ESCOLARIDADE = [
+    {"ano": "1991", "tabela": 142, "var": 138, "regua": "anos de estudo",
+     "filtro": lambda: f"/c58/{IDADES_25_MAIS['1991']}/c71/all", "mapa": ANOS_ESTUDO},
+    {"ano": "2000", "tabela": 1974, "var": 138, "regua": "anos de estudo",
+     "filtro": lambda: f"/c58/{IDADES_25_MAIS['2000']}/c71/all", "mapa": ANOS_ESTUDO},
+    {"ano": "2010", "tabela": 3547, "var": 1643, "regua": "nível de instrução",
+     "filtro": lambda: "/c2/0/c1568/all", "mapa": NIVEL_INSTRUCAO_CENSO},
+    {"ano": "2022", "tabela": 10141, "var": 1643, "regua": "nível de instrução",
+     "filtro": lambda: "/c2/6794/c839/46583/c1568/all", "mapa": NIVEL_INSTRUCAO_CENSO},
+]
+# a PNAD Contínua tem sete níveis; aqui eles viram as mesmas quatro faixas dos Censos
+PNADC_PARA_FAIXA = {
+    "sem_instrucao": "ate_fundamental_incompleto", "fundamental_incompleto": "ate_fundamental_incompleto",
+    "fundamental_completo": "fundamental_completo", "medio_incompleto": "fundamental_completo",
+    "medio_completo": "medio_completo", "superior_incompleto": "medio_completo",
+    "superior_completo": "superior_completo",
+}
+
+
+def escolaridade_longa(c: httpx.Client, serie_pnadc: dict[str, dict[str, float]]) -> dict:
+    """Até onde a população de 25 anos ou mais estudou, por Censo (1991→2022) e pela PNAD Contínua (2016→)."""
+    censos = []
+    for conf in CENSOS_ESCOLARIDADE:
+        faixas = dict.fromkeys(FAIXAS_LONGO, 0.0)
+        for linha in _sidra(c, conf["tabela"], "n1", conf["var"], conf["ano"], conf["filtro"]()):
+            cod = next((v for k, v in linha.items() if k.startswith("D") and k.endswith("C")
+                        and str(v) in conf["mapa"]), None)
+            valor = _num(linha.get("V"))
+            if cod and valor is not None:
+                faixas[conf["mapa"][str(cod)]] += valor
+        total = sum(faixas.values())
+        if total <= 0:
+            log.warning("Censo %s: escolaridade não veio da tabela %s", conf["ano"], conf["tabela"])
+            continue
+        censos.append({"ano": int(conf["ano"]), "regua": conf["regua"], "tabela": conf["tabela"],
+                       "pessoas": round(total, 0),
+                       **{k: round(100 * v / total, 2) for k, v in faixas.items()}})
+        log.info("Censo %s (%s): %s", conf["ano"], conf["regua"],
+                 {k: censos[-1][k] for k in FAIXAS_LONGO})
+
+    anos_pnadc = sorted({a for v in serie_pnadc.values() for a in v})
+    pnadc = []
+    for ano in anos_pnadc:
+        faixas = dict.fromkeys(FAIXAS_LONGO, 0.0)
+        for chave, faixa in PNADC_PARA_FAIXA.items():
+            faixas[faixa] += (serie_pnadc.get(chave) or {}).get(ano, 0.0)
+        total = sum(faixas.values())
+        if total > 0:
+            pnadc.append({"ano": int(ano), **{k: round(100 * v / total, 2) for k, v in faixas.items()}})
+
+    return {
+        "faixas": FAIXAS_LONGO, "rotulos": ROTULOS_LONGO, "censos": censos, "pnadc": pnadc,
+        "nota": "Sempre pessoas de 25 anos ou mais. Os Censos de 1991 e 2000 publicam anos de estudo e os de 2010 e "
+                "2022, nível de instrução; a equivalência usada é a da época (fundamental = 8 anos, médio = 11, "
+                "superior = 15 ou mais) e é uma decisão nossa, não do IBGE. Quem não declarou fica fora da base.",
+        "fonte": "IBGE, Censo Demográfico: tabelas 142 (1991), 1974 (2000), 3547 (2010) e 10141 (2022); e PNAD "
+                 "Contínua anual, tabela 7189 (2016 em diante)",
+    }
+
+
 def escolaridade(c: httpx.Client) -> dict:
     """Até onde a população adulta estudou e quantos não sabem ler, por ano e por estado."""
     from etl.ufs import NOME_PARA_UF
@@ -278,6 +373,7 @@ def run(ano: int) -> Path:
             log.info("%s: %d municípios com IDEB público", nome, sum(1 for m in municipios.values() if etapa in m))
         esc = escolaridade(c)
         esc["analfabetismo_longo"] = analfabetismo_longo(c)
+        esc["longo"] = escolaridade_longa(c, esc["distribuicao"])
     dados = {"gerado_em_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"), "ano": ano,
              "brasil": brasil, "regioes": list(regioes.values()), "estados": sorted(estados.values(), key=lambda e: e["uf"]),
              "municipios": sorted(municipios.values(), key=lambda m: m["cod_ibge"]),
