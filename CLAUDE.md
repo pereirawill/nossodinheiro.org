@@ -353,9 +353,16 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - **A resposta que os dados dão**: melhorou quase tudo que se mede por pessoa (mortalidade infantil −80,3% desde 1985; médio
   completo 22,8%→61,7%; expectativa 64→76) e parou no que se mede por produção (produtividade **+30,6% em 34 anos**; investimento
   20,3%→**17,1% do PIB**, 143º de 174). **Perdeu posição relativa em 5 dos 12** indicadores com série comparável.
-- Método: "melhorou/piorou" é decidido pelo campo `maior_melhor` do indicador, não por nós. Posição bruta não compara épocas →
-  **percentil**; e o limite do percentil também está declarado (energia elétrica: 98 países em 1990 → 215 em 2024). A página diz
-  explicitamente que **não atribui causa**.
+- Método: "melhorou/piorou" é decidido pelo campo `maior_melhor` do indicador, não por nós. A página diz explicitamente que
+  **não atribui causa**.
+- 29/10 (correção, achada ao fazer o gráfico): **percentil solto engana**. A lista de países cresce (energia elétrica: 98 em 1990
+  → 215 em 2024) e o Brasil "subia 36 pontos" sem ter feito nada. `serie_de()` passou a calcular também `posicao_fixa`/
+  `total_fixo` — posição dentro do **mesmo grupo de países** (os que têm dado no primeiro e no último ano da série). Com grupo
+  fixo a melhora da energia elétrica é de 3 pontos, não 36. Os gráficos usam a fixa; a tabela mostra as duas.
+- 29/10: `ANO_INICIO` do rankings foi de 1985 para **1960** (o dono pediu "desde 1988 ou até antes"); PIB, expectativa de vida,
+  mortalidade infantil, investimento, abertura e defesa passam a ter série desde 1960. Gráfico **"Subiu ou caiu?"**: 7 indicadores
+  ganharam posição (mortalidade infantil +18 pts, médio completo +16, expectativa +11) e 5 perderam (investimento −26, internet
+  −23, CPI −20, produtividade −11, PIB por pessoa −6).
 
 ## Painel Trânsito (NO AR, sem chave, mensal dia 9; feito 29/10/2026)
 - Pergunta do dono: "mortes no trânsito seria em segurança ou transporte?" → **painel próprio** `/transito/` (menu depois de

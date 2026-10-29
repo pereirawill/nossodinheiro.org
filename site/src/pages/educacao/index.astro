@@ -132,61 +132,6 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
     vale 0,1 ponto de diferença a mais ou a menos por arredondamento; décimos não são "ranking".</div>
   </div>
 
-  <h2>Por estado: IDEB {ano} por etapa e rede</h2>
-  <div class="card">
-    <MapaBrasil valores={Object.fromEntries(estados.map((e) => [e.uf, val(e.ai, "total")]))} formato={(v) => n1(v)}
-      titulo={`IDEB dos anos iniciais em cada estado, ${ano}`} legenda={`IDEB dos anos iniciais (todas as redes), ${ano}`} />
-  </div>
-  <div class="card" style="margin-top:14px">
-    <table>
-      <thead><tr><th>Estado</th>
-        <th class="num">Anos iniciais</th><th class="num">pública</th><th class="num">privada</th><th class="num">Δ vs. edição anterior</th>
-        <th class="num">Anos finais</th><th class="num">pública</th><th class="num">privada</th>
-        <th class="num">Ensino médio</th><th class="num">estadual</th><th class="num">privada</th></tr></thead>
-      <tbody>{estados.map((e) => (<tr><td>{e.nome}</td>
-        <td class="num"><b>{n1(val(e.ai, "total"))}</b></td><td class="num">{n1(val(e.ai, "publica"))}</td><td class="num">{n1(val(e.ai, "privada"))}</td><td class="num">{fmtDelta(delta(e.ai, "total"))}</td>
-        <td class="num"><b>{n1(val(e.af, "total"))}</b></td><td class="num">{n1(val(e.af, "publica"))}</td><td class="num">{n1(val(e.af, "privada"))}</td>
-        <td class="num"><b>{n1(val(e.em, "total"))}</b></td><td class="num">{n1(val(e.em, "estadual"))}</td><td class="num">{n1(val(e.em, "privada"))}</td></tr>))}
-        {regioes.map((r) => (<tr class="regiao"><td>{r.nome}</td>
-        <td class="num">{n1(val(r.ai, "total"))}</td><td class="num">{n1(val(r.ai, "publica"))}</td><td class="num">{n1(val(r.ai, "privada"))}</td><td class="num">{fmtDelta(delta(r.ai, "total"))}</td>
-        <td class="num">{n1(val(r.af, "total"))}</td><td class="num">{n1(val(r.af, "publica"))}</td><td class="num">{n1(val(r.af, "privada"))}</td>
-        <td class="num">{n1(val(r.em, "total"))}</td><td class="num">{n1(val(r.em, "estadual"))}</td><td class="num">{n1(val(r.em, "privada"))}</td></tr>))}
-      </tbody>
-    </table>
-    <p class="src">Fonte: INEP, IDEB {ano}, planilha "regiões e UFs". Ordenado pelos anos iniciais; clique no cabeçalho para reordenar. Δ = diferença para a edição anterior ({Object.keys(br.ai.total).filter((a) => a < ano).pop()}). No ensino médio o INEP não publica "pública" por UF, só estadual.</p>
-  </div>
-
-  <h2>Brasil desde 2005 (todas as redes)</h2>
-  <div class="card">
-    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="IDEB do Brasil por etapa desde 2005">
-      {[2, 4, 6, 8].map((v) => (<g><line x1={padL} x2={SW - 10} y1={sy(v)} y2={sy(v)} stroke="var(--line)" /><text x={padL - 6} y={sy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}</text></g>))}
-      {ETAPAS.map(([k, , cor]) => <polyline points={anosSerie.filter((a) => br[k].total[a] != null).map((a) => `${sx(anosSerie.indexOf(a)).toFixed(1)},${sy(br[k].total[a]).toFixed(1)}`).join(" ")} fill="none" stroke={cor} stroke-width="2.5" />)}
-      {ETAPAS.map(([k, , cor]) => anosSerie.filter((a) => br[k].total[a] != null).map((a) => <circle cx={sx(anosSerie.indexOf(a))} cy={sy(br[k].total[a])} r="3" fill={cor}><title>{a}: {n1(br[k].total[a])}</title></circle>))}
-      {anosSerie.map((a, i) => <text x={sx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
-    </svg>
-    <div class="legend">{ETAPAS.map(([k, nome, cor]) => <span><i style={`background:${cor}`}></i>{nome}: {n1(br[k].total[anosSerie[0]])} → {n1(val(br[k], "total"))}</span>)}</div>
-    <p class="src">Fonte: INEP. Em 2021 a coleta foi afetada pela pandemia (nota informativa do INEP).</p>
-  </div>
-
-  <h2>Capitais: rede pública, IDEB {ano}</h2>
-  <div class="card">
-    <table>
-      <thead><tr><th>Capital</th><th class="num">Anos iniciais</th><th class="num">Anos finais</th><th class="num">Ensino médio</th></tr></thead>
-      <tbody>{caps.map((m) => (<tr><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{n1(m.ai)}</td><td class="num">{n1(m.af)}</td><td class="num">{n1(m.em)}</td></tr>))}</tbody>
-    </table>
-    <p class="src">Fonte: INEP, IDEB {ano} por município, rede pública (estadual + municipal). Nos anos iniciais quase todas as escolas públicas são municipais; no ensino médio, estaduais.</p>
-  </div>
-
-  <h2>Os 25 municípios com maior IDEB na rede pública ({ano})</h2>
-  <div class="card tres">
-    {ETAPAS.map(([k, nome]) => (<div>
-      <h3>{nome}</h3>
-      <table><thead><tr><th>#</th><th>Município</th><th class="num">IDEB</th></tr></thead>
-        <tbody>{topo(k as any).map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{n1((m as any)[k])}</td></tr>))}</tbody></table>
-    </div>))}
-    <p class="src" style="grid-column:1/-1">Fonte: INEP, IDEB {ano}, rede pública. Municípios com IDEB publicado: {comIdeb.ai.toLocaleString("pt-BR")} nos anos iniciais, {comIdeb.af.toLocaleString("pt-BR")} nos anos finais e {comIdeb.em.toLocaleString("pt-BR")} no ensino médio (de 5.570). Em municípios pequenos a nota depende de poucas turmas e varia muito entre edições.</p>
-  </div>
-
   <h2>Até onde os brasileiros estudaram</h2>
   <div class="card">
     <div class="hero" style="margin:0 0 14px">
@@ -263,6 +208,61 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
       {" "}<b>Não existe 1988</b>: o Censo mais próximo da Constituição é o de 1991, como no gráfico do analfabetismo.
       Fonte: {escLongo?.fonte}.
     </p>
+  </div>
+
+  <h2>Por estado: IDEB {ano} por etapa e rede</h2>
+  <div class="card">
+    <MapaBrasil valores={Object.fromEntries(estados.map((e) => [e.uf, val(e.ai, "total")]))} formato={(v) => n1(v)}
+      titulo={`IDEB dos anos iniciais em cada estado, ${ano}`} legenda={`IDEB dos anos iniciais (todas as redes), ${ano}`} />
+  </div>
+  <div class="card" style="margin-top:14px">
+    <table>
+      <thead><tr><th>Estado</th>
+        <th class="num">Anos iniciais</th><th class="num">pública</th><th class="num">privada</th><th class="num">Δ vs. edição anterior</th>
+        <th class="num">Anos finais</th><th class="num">pública</th><th class="num">privada</th>
+        <th class="num">Ensino médio</th><th class="num">estadual</th><th class="num">privada</th></tr></thead>
+      <tbody>{estados.map((e) => (<tr><td>{e.nome}</td>
+        <td class="num"><b>{n1(val(e.ai, "total"))}</b></td><td class="num">{n1(val(e.ai, "publica"))}</td><td class="num">{n1(val(e.ai, "privada"))}</td><td class="num">{fmtDelta(delta(e.ai, "total"))}</td>
+        <td class="num"><b>{n1(val(e.af, "total"))}</b></td><td class="num">{n1(val(e.af, "publica"))}</td><td class="num">{n1(val(e.af, "privada"))}</td>
+        <td class="num"><b>{n1(val(e.em, "total"))}</b></td><td class="num">{n1(val(e.em, "estadual"))}</td><td class="num">{n1(val(e.em, "privada"))}</td></tr>))}
+        {regioes.map((r) => (<tr class="regiao"><td>{r.nome}</td>
+        <td class="num">{n1(val(r.ai, "total"))}</td><td class="num">{n1(val(r.ai, "publica"))}</td><td class="num">{n1(val(r.ai, "privada"))}</td><td class="num">{fmtDelta(delta(r.ai, "total"))}</td>
+        <td class="num">{n1(val(r.af, "total"))}</td><td class="num">{n1(val(r.af, "publica"))}</td><td class="num">{n1(val(r.af, "privada"))}</td>
+        <td class="num">{n1(val(r.em, "total"))}</td><td class="num">{n1(val(r.em, "estadual"))}</td><td class="num">{n1(val(r.em, "privada"))}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">Fonte: INEP, IDEB {ano}, planilha "regiões e UFs". Ordenado pelos anos iniciais; clique no cabeçalho para reordenar. Δ = diferença para a edição anterior ({Object.keys(br.ai.total).filter((a) => a < ano).pop()}). No ensino médio o INEP não publica "pública" por UF, só estadual.</p>
+  </div>
+
+  <h2>Brasil desde 2005 (todas as redes)</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${SW} ${SH}`} width="100%" role="img" aria-label="IDEB do Brasil por etapa desde 2005">
+      {[2, 4, 6, 8].map((v) => (<g><line x1={padL} x2={SW - 10} y1={sy(v)} y2={sy(v)} stroke="var(--line)" /><text x={padL - 6} y={sy(v) + 4} text-anchor="end" font-size="11" fill="var(--ink-2)">{v}</text></g>))}
+      {ETAPAS.map(([k, , cor]) => <polyline points={anosSerie.filter((a) => br[k].total[a] != null).map((a) => `${sx(anosSerie.indexOf(a)).toFixed(1)},${sy(br[k].total[a]).toFixed(1)}`).join(" ")} fill="none" stroke={cor} stroke-width="2.5" />)}
+      {ETAPAS.map(([k, , cor]) => anosSerie.filter((a) => br[k].total[a] != null).map((a) => <circle cx={sx(anosSerie.indexOf(a))} cy={sy(br[k].total[a])} r="3" fill={cor}><title>{a}: {n1(br[k].total[a])}</title></circle>))}
+      {anosSerie.map((a, i) => <text x={sx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
+    </svg>
+    <div class="legend">{ETAPAS.map(([k, nome, cor]) => <span><i style={`background:${cor}`}></i>{nome}: {n1(br[k].total[anosSerie[0]])} → {n1(val(br[k], "total"))}</span>)}</div>
+    <p class="src">Fonte: INEP. Em 2021 a coleta foi afetada pela pandemia (nota informativa do INEP).</p>
+  </div>
+
+  <h2>Capitais: rede pública, IDEB {ano}</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Capital</th><th class="num">Anos iniciais</th><th class="num">Anos finais</th><th class="num">Ensino médio</th></tr></thead>
+      <tbody>{caps.map((m) => (<tr><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{n1(m.ai)}</td><td class="num">{n1(m.af)}</td><td class="num">{n1(m.em)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">Fonte: INEP, IDEB {ano} por município, rede pública (estadual + municipal). Nos anos iniciais quase todas as escolas públicas são municipais; no ensino médio, estaduais.</p>
+  </div>
+
+  <h2>Os 25 municípios com maior IDEB na rede pública ({ano})</h2>
+  <div class="card tres">
+    {ETAPAS.map(([k, nome]) => (<div>
+      <h3>{nome}</h3>
+      <table><thead><tr><th>#</th><th>Município</th><th class="num">IDEB</th></tr></thead>
+        <tbody>{topo(k as any).map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{n1((m as any)[k])}</td></tr>))}</tbody></table>
+    </div>))}
+    <p class="src" style="grid-column:1/-1">Fonte: INEP, IDEB {ano}, rede pública. Municípios com IDEB publicado: {comIdeb.ai.toLocaleString("pt-BR")} nos anos iniciais, {comIdeb.af.toLocaleString("pt-BR")} nos anos finais e {comIdeb.em.toLocaleString("pt-BR")} no ensino médio (de 5.570). Em municípios pequenos a nota depende de poucas turmas e varia muito entre edições.</p>
   </div>
 
   <h2>Quem não sabe ler e escrever</h2>

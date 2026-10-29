@@ -140,7 +140,10 @@ def _serie_por_ano(c: httpx.Client, codigo: str, paises: dict[str, str]) -> dict
     return saida
 
 
-ANO_INICIO = 1985
+# O Banco Mundial tem série desde 1960 em vários indicadores (PIB, expectativa de vida, mortalidade infantil).
+# Começar em 1960 responde ao "e antes de 1988?" — os anos em que poucos países informaram caem sozinhos pelo
+# MIN_PAISES_SERIE, então nenhuma série passa a existir onde não havia dado. (Pedido do dono em 29/10/2026.)
+ANO_INICIO = 1960
 
 
 MIN_PAISES_SERIE = 50   # ano só entra na série se houver pelo menos tantos países com dado
@@ -149,19 +152,37 @@ JANELA_ANOS = 3         # indicadores esparsos (Gini, homicídios): usa o dado m
 
 def serie_de(valores_por_ano: dict[int, dict[str, float]], maior_melhor: bool, iso: str = "BRA",
              janela: int = 1, minimo: int = MIN_PAISES_SERIE) -> list[dict]:
-    """{ano: {iso3: valor}} → série do país: [{ano, valor, posicao, total}], posição calculada entre os países com
-    dado no ano (ou, com `janela` > 1, com o dado mais recente dentro da janela que termina no ano)."""
+    """{ano: {iso3: valor}} → série do país: [{ano, valor, posicao, total, posicao_fixa, total_fixo}].
+
+    `posicao` é entre todos os países com dado naquele ano. Isso **não compara épocas**: a lista cresce com o tempo
+    (no acesso a energia elétrica, de 98 países em 1990 para 215 em 2024), e países que entram depois mudam a posição
+    sozinhos — o Brasil "subia" sem ter feito nada. Por isso vai junto a `posicao_fixa`, calculada sempre dentro do
+    **mesmo grupo de países**: os que têm dado no primeiro e no último ano da série. Essa é a única das duas que
+    responde "subiu ou caiu". (Correção de 29/10/2026.)
+    """
     out = []
     anos = sorted(valores_por_ano)
-    for ano in anos:
-        vals: dict[str, float] = {}
+
+    def _vals(ano: int) -> dict[str, float]:
+        v: dict[str, float] = {}
         for a in range(ano - janela + 1, ano + 1):
-            vals.update(valores_por_ano.get(a, {}))      # ano mais recente sobrescreve
-        if iso not in vals or len(vals) < minimo:
-            continue
+            v.update(valores_por_ano.get(a, {}))         # ano mais recente sobrescreve
+        return v
+
+    validos = [a for a in anos if iso in _vals(a) and len(_vals(a)) >= minimo]
+    painel = set(_vals(validos[0])) & set(_vals(validos[-1])) if validos else set()
+
+    for ano in validos:
+        vals = _vals(ano)
         ordem = sorted(vals.items(), key=lambda kv: -kv[1] if maior_melhor else kv[1])
         pos = next(i for i, (k, _) in enumerate(ordem, 1) if k == iso)
-        out.append({"ano": ano, "valor": round(vals[iso], 4), "posicao": pos, "total": len(vals)})
+        fixos = {k: v for k, v in vals.items() if k in painel}
+        ponto = {"ano": ano, "valor": round(vals[iso], 4), "posicao": pos, "total": len(vals)}
+        if iso in fixos:
+            ordem_fixa = sorted(fixos.items(), key=lambda kv: -kv[1] if maior_melhor else kv[1])
+            ponto["posicao_fixa"] = next(i for i, (k, _) in enumerate(ordem_fixa, 1) if k == iso)
+            ponto["total_fixo"] = len(fixos)
+        out.append(ponto)
     return out
 
 

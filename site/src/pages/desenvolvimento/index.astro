@@ -29,11 +29,15 @@ const linhas = ESCOLHIDOS.map((id) => {
   const dezAnos = s.find((x) => x.ano >= b.ano - 10) ?? a;
   const variacao = a.valor ? ((b.valor - a.valor) / Math.abs(a.valor)) * 100 : 0;
   const var10 = dezAnos.valor ? ((b.valor - dezAnos.valor) / Math.abs(dezAnos.valor)) * 100 : 0;
-  const pctl = (x: any) => (x.posicao && x.total ? (x.posicao / x.total) * 100 : null);
+  // percentil dentro do MESMO grupo de países (os que têm dado no primeiro e no último ano): é o único que
+  // compara épocas. O percentil solto cresce ou encolhe só porque a lista de países muda.
+  const pctl = (x: any) => (x.posicao_fixa && x.total_fixo ? (x.posicao_fixa / x.total_fixo) * 100 : null);
+  const pctlSolto = (x: any) => (x.posicao && x.total ? (x.posicao / x.total) * 100 : null);
   // "melhorou" é o dado que decide, não nós: depende de o indicador ser melhor quando sobe ou quando desce
   const melhorou = i.maior_melhor ? variacao > 0 : variacao < 0;
   const melhorou10 = i.maior_melhor ? var10 > 0 : var10 < 0;
-  return { ...i, a, b, variacao, var10, melhorou, melhorou10, pctlDe: pctl(a), pctlPara: pctl(b), serie: s };
+  return { ...i, a, b, variacao, var10, melhorou, melhorou10, pctlDe: pctl(a), pctlPara: pctl(b),
+           soltoDe: pctlSolto(a), soltoPara: pctlSolto(b), serie: s };
 }).filter(Boolean) as any[];
 
 const melhoraram = linhas.filter((l) => l.melhorou).sort((a, b) => Math.abs(b.variacao) - Math.abs(a.variacao));
@@ -53,6 +57,15 @@ const semFundHoje = escLongo?.pnadc?.[escLongo.pnadc.length - 1]?.ate_fundamenta
 const esgoto91 = (saneamento as any).censo["1991"].esgoto.pct;
 const esgoto22 = (saneamento as any).censo["2022"].esgoto.pct;
 
+// Gráfico de trajetória: onde o Brasil estava no primeiro ano da série e onde está hoje, em percentil.
+// Uma linha por indicador, com a seta apontando o sentido — responde "subiu ou caiu" sem precisar ler tabela.
+const TW = 920, TL = 250, TR = 120;
+const trajeto = linhas.filter((l) => l.pctlDe != null && l.pctlPara != null)
+  .map((l) => ({ ...l, delta: (l.pctlPara as number) - (l.pctlDe as number) }))
+  .sort((a, b) => a.delta - b.delta);
+const tx = (p: number) => TL + (p / 100) * (TW - TL - TR);
+const anoMaisAntigo = Math.min(...trajeto.map((l) => l.a.ano));
+
 // gráfico do percentil ao longo do tempo (quanto menor, melhor colocado)
 const W = 920, L = 44, R = 170, H = 300, T = 16, B = 30;
 const NO_GRAFICO = ["pib_per_capita_ppp", "produtividade", "investimento_pct_pib", "idh", "mortalidade_infantil"];
@@ -60,7 +73,8 @@ const CORES = ["#1d5a8a", "#c2185b", "#e07b00", "#1f9d55", "#6a1b9a"];
 const curvas = NO_GRAFICO.map((id, i) => {
   const l = linhas.find((x) => x.id === id);
   if (!l) return null;
-  const pts = l.serie.filter((x: any) => x.posicao && x.total).map((x: any) => ({ ano: x.ano, p: (x.posicao / x.total) * 100 }));
+  const pts = l.serie.filter((x: any) => x.posicao_fixa && x.total_fixo)
+    .map((x: any) => ({ ano: x.ano, p: (x.posicao_fixa / x.total_fixo) * 100 }));
   return pts.length ? { id, titulo: l.titulo, cor: CORES[i], pts } : null;
 }).filter(Boolean) as any[];
 const anoMin = Math.min(...curvas.flatMap((c) => c.pts.map((p: any) => p.ano)));
@@ -69,7 +83,7 @@ const x = (ano: number) => L + ((ano - anoMin) / (anoMax - anoMin)) * (W - L - R
 const y = (p: number) => T + (p / 100) * (H - T - B);
 ---
 <Base title="O Brasil está se desenvolvendo? — Nosso Dinheiro" accent="var(--s1)"
-  description="Doze indicadores de desenvolvimento, da mortalidade infantil à produtividade, com a trajetória do Brasil desde os anos 1980 e a posição do país no mundo ao longo do tempo.">
+  description="Doze indicadores de desenvolvimento, da mortalidade infantil à produtividade, com a trajetória do Brasil desde 1960 e a posição do país no mundo ao longo do tempo.">
   <h1>O Brasil está se desenvolvendo?</h1>
   <p class="lede">
     Desenvolvimento não é um número, e é por isso que a resposta parece contraditória: o Brasil <strong>melhorou muito
@@ -92,10 +106,11 @@ const y = (p: number) => T + (p / 100) * (H - T - B);
     <div><b>Esta página não diz por quê.</b> Explicar <i>por que</i> a produtividade parou ou por que o investimento
     caiu é disputa entre economistas, não dado — e aqui só entra o que está medido, com a fonte ao lado.
     <b>Posição bruta não compara épocas</b>: o número de países com dado muda de um ano para outro. Por isso usamos o
-    <Termo t="percentil_pais">percentil</Termo> — quantos por cento dos países estão à frente do Brasil —, que não
-    depende do tamanho da lista. Ainda assim <b>o percentil também tem limite</b>: a lista de países com dado cresce
-    com o tempo (no acesso a energia elétrica, de 98 países em 1990 para 215 em 2024), e países que entram depois
-    mudam a conta sozinhos. Por isso a tabela traz sempre a posição bruta ao lado.</div>
+    <Termo t="percentil_pais">percentil</Termo> dentro de um <b>grupo fixo de países</b>: os que têm dado no primeiro
+    e no último ano de cada série. Sem isso a conta engana — no acesso a energia elétrica a lista do Banco Mundial vai
+    de 98 países em 1990 a 215 em 2024, e o Brasil "subiria" 36 pontos sem ter feito nada, só porque países mais pobres
+    entraram na lista depois. Com o grupo fixo, a melhora real é de 3 pontos. A tabela traz sempre a posição bruta ao
+    lado, para quem quiser conferir.</div>
   </div>
 
   <h2>O que melhorou</h2>
@@ -150,7 +165,7 @@ const y = (p: number) => T + (p / 100) * (H - T - B);
       {curvas.map((c) => (<g>
         <polyline points={c.pts.map((p: any) => `${x(p.ano).toFixed(1)},${y(p.p).toFixed(1)}`).join(" ")} fill="none" stroke={c.cor} stroke-width="2" />
         <text x={W - R + 8} y={y(c.pts[c.pts.length - 1].p) + 4} font-size="11" fill={c.cor}>{c.titulo}</text>
-        {c.pts.filter((_: any, i: number) => i % 5 === 0).map((p: any) => <circle cx={x(p.ano)} cy={y(p.p)} r="2.5" fill={c.cor}><title>{c.titulo} · {p.ano}: o Brasil estava à frente de {n1(100 - p.p)}% dos países</title></circle>)}
+        {c.pts.filter((_: any, i: number) => i % 5 === 0).map((p: any) => <circle cx={x(p.ano)} cy={y(p.p)} r="2.5" fill={c.cor}><title>{c.titulo} · {p.ano}: o Brasil estava à frente de {n1(100 - p.p)}% dos países do grupo fixo</title></circle>)}
       </g>))}
       {[anoMin, Math.round((anoMin + anoMax) / 2), anoMax].map((a) => <text x={x(a)} y={H - 10} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text>)}
     </svg>
@@ -162,23 +177,58 @@ const y = (p: number) => T + (p / 100) * (H - T - B);
     </p>
   </div>
 
-  <h2>Onde o Brasil está hoje</h2>
+  <h2>Subiu ou caiu? A posição do Brasil, do começo da série até hoje</h2>
   <div class="card">
+    <svg viewBox={`0 0 ${TW} ${trajeto.length * 30 + 44}`} width="100%" role="img" aria-label="Posição do Brasil no mundo, do primeiro ano de cada série até hoje">
+      {[0, 25, 50, 75, 100].map((t) => (<g>
+        <line x1={tx(t)} x2={tx(t)} y1="20" y2={trajeto.length * 30 + 14} stroke="var(--line)" />
+        <text x={tx(t)} y="13" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{t === 0 ? "1º do mundo" : t === 100 ? "último" : `${t}%`}</text>
+      </g>))}
+      {trajeto.map((l, i) => {
+        const y0 = i * 30 + 36;
+        const de = tx(l.pctlDe as number), para = tx(l.pctlPara as number);
+        const melhorou = (l.delta as number) < 0;
+        const cor = melhorou ? "var(--s2)" : "#a3302a";
+        return (<g>
+          <text x={TL - 10} y={y0 + 4} text-anchor="end" font-size="12" fill="var(--ink)">{l.titulo}</text>
+          <text x={TL - 10} y={y0 + 15} text-anchor="end" font-size="9.5" fill="var(--ink-2)">{l.a.ano} → {l.b.ano}</text>
+          <line x1={de} x2={para} y1={y0} y2={y0} stroke={cor} stroke-width="3" opacity="0.5" />
+          <circle cx={de} cy={y0} r="5" fill="var(--card)" stroke="var(--ink-2)" stroke-width="1.5">
+            <title>{l.titulo} em {l.a.ano}: melhor que {n1(100 - (l.pctlDe as number))}% do grupo fixo de {l.a.total_fixo} países · no total daquele ano era {l.a.posicao}º de {l.a.total}</title></circle>
+          <circle cx={para} cy={y0} r="6" fill={cor}>
+            <title>{l.titulo} em {l.b.ano}: melhor que {n1(100 - (l.pctlPara as number))}% do grupo fixo de {l.b.total_fixo} países · no total de hoje é {l.b.posicao}º de {l.b.total}</title></circle>
+          <text x={TW - TR + 10} y={y0 + 4} font-size="11" font-family="IBM Plex Mono, monospace" fill={cor}>
+            {melhorou ? "subiu" : "caiu"} {n0(Math.abs(l.delta as number))} pts
+          </text>
+        </g>);
+      })}
+    </svg>
+    <p class="src">
+      Cada linha é um indicador. O <b>círculo vazio</b> é onde o Brasil estava no primeiro ano com dado comparável; o
+      <b>círculo cheio</b>, onde está hoje. Quanto mais à <b>esquerda</b>, melhor colocado. Verde = o país ganhou
+      posição; vermelho = perdeu. A série mais antiga começa em {anoMaisAntigo}, antes da Constituição, porque o Banco
+      Mundial publica alguns indicadores desde 1960 — e não existe nada comparável entre países antes disso.
+      A posição é medida <b>sempre dentro do mesmo grupo de países</b> (os que têm dado nas duas pontas da série), e
+      não entre todos os que existem em cada ano: é o que impede que o Brasil pareça subir só porque a lista mudou.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
     <table>
-      <thead><tr><th>Indicador</th><th class="num">Brasil</th><th class="num">Posição</th><th class="num">À frente de</th><th class="num">Ano</th></tr></thead>
-      <tbody>{linhas.map((l) => (<tr>
+      <thead><tr><th>Indicador</th><th class="num">No começo</th><th class="num">Era melhor que</th><th class="num">Hoje</th><th class="num">Posição hoje</th><th class="num">É melhor que</th></tr></thead>
+      <tbody>{trajeto.map((l) => (<tr>
         <td>{l.titulo}<br /><span class="sub">{l.unidade}</span></td>
-        <td class="num">{n1(l.b.valor)}</td>
+        <td class="num">{n1(l.a.valor)}<br /><span class="sub">{l.a.posicao}º de {l.a.total} · {l.a.ano}</span></td>
+        <td class="num">{l.pctlDe != null ? pct(100 - (l.pctlDe as number)) : "—"}<br /><span class="sub">do grupo fixo</span></td>
+        <td class="num">{n1(l.b.valor)}<br /><span class="sub">{l.b.ano}</span></td>
         <td class="num">{l.b.posicao}º de {l.b.total}</td>
-        <td class="num">{l.pctlPara != null ? pct(100 - l.pctlPara) : "—"}</td>
-        <td class="num">{l.b.ano}</td></tr>))}
+        <td class="num">{l.pctlPara != null ? pct(100 - (l.pctlPara as number)) : "—"}</td></tr>))}
       </tbody>
     </table>
     <p class="src">
-      "À frente de" é quantos por cento dos países o Brasil supera naquele indicador. Em alguns, posição alta é ruim:
-      ser o {idx("homicidios")?.brasil?.total - (idx("homicidios")?.brasil?.posicao ?? 0) + 1}º em homicídios não é
-      bom lugar. O ranking completo, com todos os países, está em <a href="/rankings/">Rankings</a>, e a comparação
-      de gasto público por área em <a href="/comparacao/">Comparação</a>.
+      "À frente de" é quantos por cento dos países o Brasil supera naquele indicador. Em alguns, estar bem colocado é
+      ruim: a lista ordena pelo que o indicador considera melhor, e isso está na própria fonte. O ranking completo,
+      com todos os países, está em <a href="/rankings/">Rankings</a>.
     </p>
   </div>
 
