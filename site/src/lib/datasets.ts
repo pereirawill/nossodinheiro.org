@@ -193,6 +193,15 @@ export const DATASETS: Dataset[] = [
     periodo: "1997/2025", atualizacao: "mensal",
   },
   {
+    slug: "/bancos/", nome: "Lucro dos bancos no Brasil",
+    descricao: "Lucro líquido, patrimônio líquido, ativo e carteira de crédito de cada conglomerado financeiro que opera no Brasil, por ano, desde 2000, com o total por segmento (bancos, cooperativas e instituições não bancárias), o ranking dos maiores grupos pelo lucro somado e a conferência contra o conglomerado prudencial e contra o balanço entregue à CVM.",
+    arquivos: ["bancos.json"],
+    fontes: [{ nome: "Banco Central — IF.data (API Olinda)", url: "https://www3.bcb.gov.br/ifdata/" },
+             { nome: "CVM — Dados abertos: DFP", url: "https://dados.cvm.gov.br/dataset/cia_aberta-doc-dfp" },
+             { nome: "IBGE — IPCA (SIDRA 1737)", url: "https://sidra.ibge.gov.br/tabela/1737" }],
+    periodo: "2000/2026", atualizacao: "trimestral",
+  },
+  {
     slug: "/saneamento/", nome: "Saneamento: água, esgoto e lixo",
     descricao: "Percentual de domicílios com água da rede geral, esgoto ligado à rede e lixo coletado, nos Censos de 1991, 2000, 2010 e 2022 e na PNAD Contínua anual, no Brasil e por estado, com a categoria exata somada em cada pesquisa.",
     arquivos: ["saneamento.json"],

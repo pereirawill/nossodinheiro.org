@@ -1,0 +1,122 @@
+# Painel Bancos — quanto os bancos lucraram
+
+Página: `/bancos/` · dados: `site/public/data/bancos.json` · ETL: `etl/bancos/extract.py` · workflow: `.github/workflows/etl-bancos.yml` (dia 21 de cada mês)
+
+## 1. A pergunta e o que a fonte permite responder
+
+A pergunta foi "quanto os bancos lucraram no Brasil desde 1988, os principais 10–15". **Desde 1988 não é possível.**
+A única base aberta que publica o resultado de cada instituição financeira é o **IF.data** do Banco Central, e ela
+começa em **março de 2000** — pedimos todos os períodos de dezembro de 1993 a dezembro de 1999 pela API e a resposta
+vem com zero linhas. Os arquivos CSV do Cosif (`bcb.gov.br/content/estabilidadefinanceira/cosif/Bancos/AAAAMMBANCOS.csv.zip`)
+existem apenas para anos recentes: 2024 responde 200, e 2010, 2005, 2001, 2000 e 1999 respondem 404.
+
+Além da indisponibilidade, antes do Plano Real o lucro nominal não significaria nada: foram cinco trocas de moeda e
+inflação de três dígitos. A página declara isso em vez de emendar séries — mesma regra do painel da indústria, onde a
+participação a preços correntes dava 46% em 1979.
+
+## 2. Fonte
+
+- **Banco Central, IF.data**, API Olinda, sem chave:
+  `https://olinda.bcb.gov.br/olinda/servico/IFDATA/versao/v1/odata/IfDataValores(AnoMes=@AnoMes,TipoInstituicao=@TipoInstituicao,Relatorio=@Relatorio)`
+  com `Relatorio='1'` (**Resumo**), que traz por instituição Lucro Líquido, Patrimônio Líquido, Ativo Total,
+  Captações e Carteira de Crédito. `IfDataCadastro(AnoMes=…)` dá nome, UF, tipo de consolidado bancário (`Tcb`) e o
+  código do conglomerado prudencial de cada instituição **naquele período**.
+- **IBGE, IPCA** (SIDRA 1737, variável 2266), índice de dezembro de cada ano, para a série em reais do último ano fechado.
+- **CVM, DFP** (`dados.cvm.gov.br`), DRE consolidada, para conferir o lucro dos bancos de capital aberto.
+
+`TipoInstituicao` vem documentado pelo próprio Olinda (endpoint `/aplicacao`): **1** = conglomerados prudenciais e
+instituições independentes, **2** = conglomerados financeiros e instituições independentes, **3** = instituições
+individuais, **4** = instituições com operações de câmbio. Os valores do `Saldo` estão **em reais**.
+
+## 3. As três decisões que definem o painel
+
+### 3.1 O lucro acumula no semestre
+
+Foi o achado que mudou tudo. O Lucro Líquido do IF.data **não** é do trimestre nem acumulado no ano: acumula dentro
+do **semestre**. Março = jan–mar, junho = jan–jun, setembro = jul–set, dezembro = jul–dez. Em 2025 o Itaú aparece com
+R$ 10,9 bi em março, R$ 22,3 bi em junho e R$ 12,0 bi em setembro.
+
+**Lucro do ano = junho + dezembro.** Somar os quatro trimestres contaria o primeiro semestre duas vezes e inflaria o
+painel em cerca de 50%.
+
+A regra é verificada por invariante (`_conferir_semestre`): a **mediana** da razão junho/março e dezembro/setembro
+entre as 40 maiores por ativo tem de ficar em torno de 2. Medimos ano a ano de 2000 a 2026: a mediana fica entre
+**1,65 e 2,50** em todos eles. O ETL falha se sair da faixa [1,5; 2,6] — é assim que a mudança de critério do BC
+apareceria em vez de passar em silêncio.
+
+### 3.2 Universo: conglomerado financeiro, com o prudencial como conferência
+
+A série usa `TipoInstituicao=2` porque é o único recorte que alcança 2000. O conglomerado **prudencial**, que reúne
+também as empresas não financeiras do grupo, só existe a partir de 2014 e é usado para conferir o último ano fechado:
+em 2025, R$ 209,0 bi contra os R$ 209,7 bi desta página (0,3%).
+
+### 3.3 Grupo, e o grupo **do ano**
+
+Cada linha do ranking é o grupo econômico: o conglomerado financeiro mais as instituições do mesmo dono que o BC
+publica à parte no universo financeiro — Redecard no Itaú, Getnet no Santander, Bitz no Bradesco, "NUBANK" e
+"NU PAGAMENTOS" no Nubank. As linhas são **disjuntas** (conferido instituição por instituição em 2025), então somá-las
+não duplica nada.
+
+A chave do grupo é o **código do maior membro do conglomerado prudencial**, e vale **só nos anos em que a instituição
+estava no grupo**. As duas partes importam:
+
+- apelidar o grupo pelo maior membro mantém a série inteira: o conglomerado financeiro do Itaú (`C0010069`) é o mesmo
+  código desde 2000, e usar o código do prudencial partiria cada banco em duas séries, uma até 2013 e outra de 2014 em diante;
+- valer por ano impede atribuição retroativa: a Easynvest (`62169875`, "Título Corretora" até 2013) aparece desde 2000,
+  mas só entra na conta do Nubank a partir de **2021**, quando o BC passa a publicá-la no conglomerado prudencial dele.
+
+Para os anos **anteriores** à estreia de uma instituição em qualquer conglomerado prudencial (isto é, antes de 2014,
+quando o conceito não existia), o grupo é o mesmo da estreia. É o que mantém inteira a série da Caixa, publicada como
+instituição (`00360305`) até 2021 e como conglomerado financeiro (`C0051626`) depois — as duas metades de 2021 são o
+primeiro e o segundo semestre do mesmo ano.
+
+**Banco comprado tem a série encerrada**, e o lucro dele **não** é somado ao do comprador em anos anteriores: Unibanco
+até 2008, ABN Amro até 2008, HSBC até 2016. Logo, o Itaú da série não inclui o Unibanco antes de 2009.
+
+## 4. O que está publicado
+
+- `anos`: por ano, o lucro e o patrimônio de cada segmento (bancos, cooperativas, não bancárias), o total do sistema,
+  os períodos usados e se o ano é parcial.
+- `maiores`: os 15 grupos de maior lucro somado em reais do ano-base, com a série ano a ano (lucro, patrimônio, ativo,
+  carteira de crédito).
+- `concentracao`: fatia dos cinco maiores no lucro do segmento bancário.
+- `conferencia_prudencial` e `conferencia_cvm`.
+- `deflator`: fator do IPCA por ano, para reais do último ano fechado. Os valores do JSON são **nominais**.
+
+Segmento = campo `Tcb` do cadastro do BC: B1 (comercial, múltiplo com carteira comercial, caixa econômica), B2
+(múltiplo sem carteira comercial, investimento, câmbio) e B4 (desenvolvimento) são **bancos**; B3S e B3C são
+cooperativas; N1 a N4 são não bancárias. A classificação do grupo é a do seu maior membro no ano.
+
+## 5. Armadilhas registradas
+
+- **Instituições sem código.** Em 2000 e 2001 o Resumo traz duas linhas com `CodInst` nulo (R$ 14,7 mi e R$ 128,7 mi
+  de lucro no 1º semestre de 2000). Não há como identificá-las; ficam fora, com aviso no log.
+- **Linhas repetidas.** O trimestre mais recente volta com cada valor três vezes. O ETL deduplica por
+  (instituição, conta, campo) e **falha** se duas cópias discordarem — repetição é dedupe, divergência é erro de leitura.
+- **Concentração em ano de prejuízo.** Em 2001 o setor somou quase zero e a fatia dos cinco maiores dá 10.651%. A
+  conta é uma divisão, não uma medida de mercado: esses anos são marcados com `sem_sentido` e a página não os mostra.
+- **Nome que desaparece.** O Unibanco tem resultado em dezembro de 2008 mas já não está no cadastro daquele mês
+  (fusão com o Itaú). O último nome conhecido é preservado.
+- **Olinda instável.** Como o SGS, devolve 502/504 e HTML com status 200; há quatro tentativas e checagem de
+  content-type. O retorno bruto é guardado em `data/raw/ifdata/` (não versionado) para que uma reexecução não repita
+  as ~110 requisições.
+
+## 6. O que o painel não responde
+
+- **De onde vem o lucro.** O relatório Resumo traz o resultado, não a decomposição entre juros de crédito, tarifa,
+  seguro e tesouraria. A decomposição do custo do crédito e do spread que o BC publica (hoje dentro do REF) é
+  agregada para o sistema e não abre por banco.
+- **Se o lucro é alto ou baixo.** A página publica o valor e o retorno sobre o patrimônio ao lado, e não dá nota.
+  Comparação internacional exigiria igualar regra contábil, carga tributária e exigência de capital.
+- **Tarifa por serviço e juro por modalidade.** São outras coletas do BC; o juro e a inadimplência por modalidade
+  estão em `/inadimplencia/`.
+- **Lucro antes de 2000** (§1).
+
+## 7. Lucro e imposto, lado a lado
+
+A página mostra, no mesmo ano, o lucro dos bancos e as quatro linhas que a Receita Federal publica separadamente para
+**entidades financeiras** (IRPJ, CSLL, Cofins e PIS/Pasep) — R$ 101,9 bi em 2025, lidas de `impostos.json`. **Os dois
+números não são divisíveis um pelo outro**: "entidades financeiras" na Receita inclui seguradoras e outras empresas que
+não estão no nosso total de bancos, e de fora ficam o IOF pago pelo cliente, a contribuição sobre a folha e os tributos
+estaduais e municipais. Estão lado a lado porque são o mesmo ano e as duas fontes são oficiais; a conta de quanto o
+setor paga sobre o próprio lucro exigiria a base de cálculo de cada banco, que não é pública.

@@ -5,6 +5,7 @@ import saneamento from "../../../public/data/saneamento.json";
 import estatais from "../../../public/data/estatais.json";
 import impostos from "../../../public/data/impostos.json";
 import poderes from "../../../public/data/poderes_2026.json";
+import bancos from "../../../public/data/bancos.json";
 import { DATASETS } from "../../lib/datasets";
 
 const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -15,6 +16,11 @@ const san = (saneamento as any).comparacao_2022.esgoto;
 const sest = (estatais as any).sest;
 const mar26 = ((impostos as any).mensal as any[]).find((m) => m.ano === 2026 && m.mes === 3);
 const dotacao26 = (poderes as any[]).reduce((t, l) => t + l.dotacao, 0);
+const bAno = ((bancos as any).anos as any[]).filter((a) => !a.parcial).slice(-1)[0];
+const bPrud = (bancos as any).conferencia_prudencial;
+const bCvm = ((bancos as any).conferencia_cvm?.bancos ?? []) as any[];
+const bMenor = bCvm.length ? bCvm.reduce((m, b) => (Math.abs(b.dif_pct) < Math.abs(m.dif_pct) ? b : m), bCvm[0]) : null;
+const bMaior = bCvm.length ? bCvm.reduce((m, b) => (Math.abs(b.dif_pct) > Math.abs(m.dif_pct) ? b : m), bCvm[0]) : null;
 const pago26 = (poderes as any[]).reduce((t, l) => t + l.pago, 0);
 
 const vivos: Record<string, { nosso: string; outro?: string; diferenca: string }> = {
@@ -23,12 +29,18 @@ const vivos: Record<string, { nosso: string; outro?: string; diferenca: string }
   Estatais: { nosso: `R$ ${n1(sest.agregado["2025"] / 1e9)} bi`, outro: `R$ ${n1(sest.oficial["2025"] / 1e9)} bi`,
               diferenca: `${n1(100 * Math.abs(sest.agregado["2025"] / sest.oficial["2025"] - 1))}%` },
   Impostos: { nosso: mar26 ? `R$ ${n1(mar26.total / 1e9)} bi` : "—", diferenca: "2,0%" },
+  bancos_prudencial: { nosso: `R$ ${n1(bAno.segmentos.bancos.lucro / 1e9)} bi`,
+                       outro: `R$ ${n1(bPrud.lucro_bancos / 1e9)} bi`,
+                       diferenca: `${n1(100 * Math.abs(bAno.segmentos.bancos.lucro / bPrud.lucro_bancos - 1))}%` },
+  bancos_cvm: { nosso: bCvm.length ? `${bCvm[0].nome.split(" ")[0]} R$ ${n1(bCvm[0].ifdata / 1e9)} bi` : "—",
+                outro: bCvm.length ? `R$ ${n1(bCvm[0].cvm / 1e9)} bi no balanço da holding` : "—",
+                diferenca: bMenor && bMaior ? `de ${n1(Math.abs(bMenor.dif_pct))}% a ${n1(Math.abs(bMaior.dif_pct))}% nos cinco bancos` : "—" },
   Poderes: { nosso: `${tri(dotacao26 / 1e12)} de orçamento e ${tri(pago26 / 1e12)} pagos`, diferenca: "1,6% e 3,8%" },
 };
 const ROTULO: Record<Status, string> = {
   bate: "confere", explicada: "diferença explicada", nao_explicada: "diferença sem explicação", em_aberto: "em aberto",
 };
-const linhas = CHECAGENS.map((c) => ({ ...c, vivo: vivos[c.painel] }));
+const linhas = CHECAGENS.map((c) => ({ ...c, vivo: vivos[c.vivoId ?? c.painel] }));
 const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
 ---
 <Base title="Como conferir os números deste site — Nosso Dinheiro" accent="var(--s4)"

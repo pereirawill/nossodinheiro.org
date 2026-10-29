@@ -1,0 +1,285 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import d from "../../../public/data/bancos.json";
+import impostos from "../../../public/data/impostos.json";
+
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const num = (v: number) => Math.round(v).toLocaleString("pt-BR");
+const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const bi = (v: number) => `${n1(v / 1e9)} bi`;
+const tri = (v: number) => `${n1(v / 1e12)} tri`;
+const grande = (v: number) => (Math.abs(v) >= 1e12 ? tri(v) : bi(v));
+const pct = (a: number, b: number) => `${n1((100 * a) / b)}%`;
+
+const anos = d.anos as any[];
+const fechados = anos.filter((a) => !a.parcial);
+const base = d.ano_base as number;
+const deflator = d.deflator as Record<string, number>;
+const real = (v: number, ano: number | string) => v * (deflator[String(ano)] ?? 1);
+const ultimo = fechados[fechados.length - 1];
+const parcial = anos.find((a) => a.parcial);
+const MES_PARCIAL: Record<number, string> = { 3: "o primeiro trimestre", 6: "o primeiro semestre", 9: "os nove primeiros meses" };
+const rotuloParcial = parcial ? (MES_PARCIAL[parcial.periodos[parcial.periodos.length - 1] % 100] ?? "parte do ano") : "";
+const seg = (a: any, k: string) => a.segmentos[k];
+
+const acumulado = fechados.reduce((s, a) => s + real(seg(a, "bancos").lucro, a.ano), 0);
+const roe = (l: number, p: number) => (p > 0 ? (100 * l) / p : 0);
+const pior = fechados.reduce((m, a) => (real(seg(a, "bancos").lucro, a.ano) < real(seg(m, "bancos").lucro, m.ano) ? a : m), fechados[0]);
+const maiores = d.maiores as any[];
+const cinco = maiores.slice(0, 5);
+const conc = (d.concentracao as any[]).filter((c) => !c.sem_sentido);
+const semSentido = (d.concentracao as any[]).filter((c) => c.sem_sentido).map((c) => c.ano);
+const concUlt = conc.filter((c) => c.ano <= base).slice(-1)[0];
+const concMax = conc.reduce((m, c) => (c.pct_cinco_maiores > m.pct_cinco_maiores ? c : m), conc[0]);
+
+// Imposto federal das entidades financeiras: as quatro linhas que a Receita publica separadamente.
+const trib = (impostos.anual as any[]).find((a) => a.ano === base)?.tributos ?? {};
+const LINHAS_FIN = ["IRPJ - ENTIDADES FINANCEIRAS", "CSLL - FINANCEIRAS", "COFINS - FINANCEIRAS",
+  "CONTRIBUIÇÃO PARA O PIS/PASEP - FINANCEIRAS"];
+const impostoFin = LINHAS_FIN.reduce((s, k) => s + (trib[k] ?? 0), 0);
+const populacao = impostos.populacao as number;
+
+// gráfico de barras: lucro do segmento bancário por ano, em reais do ano-base
+const W = 920, L = 58, R = 14, H = 250, T = 16, B = 28;
+const serieBar = anos.map((a) => ({ ano: a.ano, v: real(seg(a, "bancos").lucro, a.ano), parcial: a.parcial }));
+const maxB = Math.max(...serieBar.map((s) => s.v));
+const minB = Math.min(0, ...serieBar.map((s) => s.v));
+const passo = (W - L - R) / serieBar.length, larg = passo - 3;
+const yB = (v: number) => T + (1 - (v - minB) / (maxB - minB)) * (H - T - B);
+
+// gráfico de linhas: os cinco maiores, em reais do ano-base
+const LW = 920, LL = 58, LR = 110, LH = 260, LT = 14, LB = 26;
+const anosLinha = fechados.map((a) => a.ano);
+const maxL = Math.max(...cinco.flatMap((m) => anosLinha.map((a) => real(m.serie[String(a)]?.lucro ?? 0, a))));
+const minL = Math.min(0, ...cinco.flatMap((m) => anosLinha.map((a) => real(m.serie[String(a)]?.lucro ?? 0, a))));
+const xL = (i: number) => LL + (i * (LW - LL - LR)) / (anosLinha.length - 1);
+const yL = (v: number) => LT + (1 - (v - minL) / (maxL - minL)) * (LH - LT - LB);
+const CORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)"];
+const CURTO: Record<string, string> = { "BANCO NACIONAL DE DESENVOLVIMENTO ECONOMICO E SOCIAL": "BNDES",
+  "CAIXA ECONÔMICA FEDERAL": "Caixa", "CAIXA ECONOMICA FEDERAL": "Caixa", ITAU: "Itaú", BRADESCO: "Bradesco",
+  SANTANDER: "Santander", BB: "BB", "BTG PACTUAL": "BTG", NUBANK: "Nubank" };
+const curto = (nome: string) => CURTO[nome] ?? nome.split(" ")[0];
+// rótulos do fim da linha: empurra para baixo quando dois ficam a menos de 13px um do outro (BNDES e Bradesco)
+const rotulos = cinco.map((m, k) => ({ nome: curto(m.nome), cor: CORES[k],
+  y: yL(real(m.serie[String(base)]?.lucro ?? 0, base)) }))
+  .sort((a, b) => a.y - b.y)
+  .map((r, i, todos) => (i > 0 && r.y - todos[i - 1].y < 13 ? { ...r, y: todos[i - 1].y + 13 } : r));
+const caminho = (m: any) => anosLinha.map((a, i) => `${i ? "L" : "M"}${xL(i).toFixed(1)} ${yL(real(m.serie[String(a)]?.lucro ?? 0, a)).toFixed(1)}`).join(" ");
+
+const cvm = (d.conferencia_cvm as any)?.bancos ?? [];
+const prud = d.conferencia_prudencial as any;
+const difPrud = prud?.lucro_bancos ? (100 * (seg(ultimo, "bancos").lucro - prud.lucro_bancos)) / prud.lucro_bancos : 0;
+const nubank = maiores.find((m) => m.segmento === "nao_bancarias");
+const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
+---
+<Base title="Quanto os bancos lucraram — Nosso Dinheiro" accent="var(--s3)"
+  description="O lucro dos bancos no Brasil ano a ano desde 2000, corrigido pela inflação, com o ranking dos maiores grupos, a concentração, o retorno sobre o patrimônio e as duas fontes oficiais que medem a mesma coisa de formas diferentes.">
+  <h1>Quanto os bancos lucraram</h1>
+  <p class="lede">
+    Em {ultimo.ano}, os bancos que operam no Brasil tiveram <strong>R$ {bi(seg(ultimo, "bancos").lucro)}</strong> de
+    <Termo t="lucro_liquido">lucro líquido</Termo> — {n1(roe(seg(ultimo, "bancos").lucro, seg(ultimo, "bancos").pl))}%
+    sobre o <Termo t="patrimonio_liquido">patrimônio</Termo> deles, o que o Banco Central chama de
+    <Termo t="roe">ROE</Termo>. Somando ano a ano desde 2000, sempre em reais de {base},
+    são <strong>R$ {tri(acumulado)}</strong>. Os números são os que cada instituição declara ao Banco Central;
+    esta página não calcula quanto disso veio de juros, de tarifa ou de título público, porque o
+    <Termo t="ifdata">IF.data</Termo> não abre o resultado por origem.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fonte: Banco Central, IF.data (relatório Resumo) · <a href="/metodologia/">metodologia</a> · <a href="/conferir/">como conferir</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>R$ {bi(seg(ultimo, "bancos").lucro)}</b><span>lucro dos bancos em {ultimo.ano} — R$ {num(seg(ultimo, "bancos").lucro / populacao)} por habitante, {seg(ultimo, "bancos").n} grupos</span></div>
+    <div class="stat"><b>R$ {tri(acumulado)}</b><span>somado de 2000 a {base}, em reais de {base}</span></div>
+    <div class="stat"><b>{n1(roe(seg(ultimo, "bancos").lucro, seg(ultimo, "bancos").pl))}%</b><span>de retorno sobre o patrimônio em {ultimo.ano}; em {pior.ano} o setor fechou o ano com R$ {bi(real(seg(pior, "bancos").lucro, pior.ano))}</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Não existe 1988.</b> A base do Banco Central que publica o resultado de cada instituição, o IF.data,
+    começa em <b>março de 2000</b> — pedimos períodos de 1993 a 1999 e a resposta vem vazia. Antes do Plano Real o
+    lucro nominal também não diria nada: foram cinco trocas de moeda e inflação de três dígitos. Então a série
+    desta página vai de 2000 a {base}, e é isso que a fonte alcança.
+    <b>O que este número é.</b> É o lucro contábil declarado por cada conglomerado ao BC, pelas regras do
+    <Termo t="cosif">Cosif</Termo>, somando o primeiro e o segundo semestre do ano. <b>Não é</b> imposto que o banco
+    pagou, <b>não é</b> o <Termo t="spread_bancario">spread</Termo> e <b>não é</b> o que o cliente pagou de tarifa:
+    é o que sobrou no fim da conta. Lucro grande pode ser só banco grande — por isso o retorno sobre o patrimônio
+    aparece ao lado em todas as tabelas.</div>
+  </div>
+
+  <h2>Ano a ano, em reais de {base}</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Lucro dos bancos no Brasil por ano, de 2000 a ${base}, em reais de ${base}`}>
+      {[1, 0.75, 0.5, 0.25, 0].map((t) => { const v = minB + (maxB - minB) * t; return (<g>
+        <line x1={L} x2={W - R} y1={yB(v)} y2={yB(v)} stroke="var(--line)" />
+        <text x={L - 6} y={yB(v) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n1(v / 1e9)}</text></g>); })}
+      {serieBar.map((s, i) => (<g>
+        <rect x={L + i * passo + 1} y={Math.min(yB(s.v), yB(0))} width={larg} height={Math.max(1, Math.abs(yB(s.v) - yB(0)))}
+          fill={s.parcial ? "var(--ink-3, #9aa39a)" : s.v === maxB ? "var(--s3)" : s.v < 0 ? "#a3302a" : "color-mix(in srgb, var(--s3) 70%, var(--card))"}>
+          <title>{s.ano}{s.parcial ? " (parcial)" : ""}: R$ {bi(s.v)} em reais de {base}</title></rect>
+        {s.ano % 4 === 0 && <text x={L + i * passo + larg / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{s.ano}</text>}
+      </g>))}
+    </svg>
+    <p class="src">
+      Valores em bilhões de reais de {base}, corrigidos pelo <Termo t="ipca">IPCA</Termo> de dezembro de cada ano.
+      O lucro do setor em {ultimo.ano} é <b>{n1(real(seg(ultimo, "bancos").lucro, ultimo.ano) / real(seg(fechados[0], "bancos").lucro, fechados[0].ano))} vezes</b>
+      {" "}o de 2000. A barra de {pior.ano} é a exceção: naquele ano a Caixa e o então Banespa fecharam com prejuízo
+      no primeiro semestre, no meio da reestruturação dos bancos federais e da compra do Banespa pelo Santander, e o
+      setor inteiro terminou o ano em R$ {bi(real(seg(pior, "bancos").lucro, pior.ano))}. A última barra, mais clara, é
+      {" "}{parcial ? `${parcial.ano} com apenas ${rotuloParcial}` : "parcial"} —
+      não é um ano fechado e não entra em nenhuma soma desta página.
+    </p>
+  </div>
+
+  <h2>Os {maiores.length} maiores desde 2000</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Grupo</th><th class="num">Lucro somado 2000–{base}</th><th class="num">{ultimo.ano}</th><th class="num">Patrimônio em {ultimo.ano}</th><th class="num">Retorno sobre o patrimônio</th><th>Período com dado</th></tr></thead>
+      <tbody>
+        {maiores.map((m) => { const s = m.serie[String(ultimo.ano)]; return (<tr>
+          <td>{m.nome}<small>{m.tipo}</small></td>
+          <td class="num">R$ {grande(m.lucro_real_acumulado)}</td>
+          <td class="num">{s ? `R$ ${bi(s.lucro)}` : "—"}</td>
+          <td class="num">{s && s.pl > 0 ? `R$ ${bi(s.pl)}` : "—"}</td>
+          <td class="num">{s && s.pl > 0 ? `${n1(roe(s.lucro, s.pl))}%` : "—"}</td>
+          <td class="per">{m.anos[0]}–{m.anos[m.anos.length - 1]}{m.anos[m.anos.length - 1] < base ? " (saiu)" : ""}</td>
+        </tr>); })}
+      </tbody>
+    </table>
+    <p class="src">
+      Ordenado pelo lucro somado de 2000 a {base}, em reais de {base}. Cada linha é o <b>grupo</b>: o
+      <Termo t="conglomerado_financeiro">conglomerado financeiro</Termo> mais as instituições do mesmo dono que o BC
+      publica à parte — a Redecard no Itaú, a Getnet no Santander, as duas metades do Nubank. Quando um banco é
+      comprado, a série dele <b>termina</b> ali e não é somada à do comprador: {sumiram.map((m) => `${m.nome} (até ${m.anos[m.anos.length - 1]})`).join(", ")}.
+      Por isso o Itaú aparece sem o Unibanco antes de 2009 e o Bradesco sem o HSBC antes de 2016.
+      {nubank && <> O {nubank.nome[0] + nubank.nome.slice(1).toLowerCase()} entra na lista pelo lucro, mas na
+      classificação do Banco Central ele não é banco: o grupo tem licença de financeira e de instituição de
+      pagamento, e por isso <b>não está</b> no total do setor bancário mostrado acima.</>}
+    </p>
+  </div>
+
+  <h2>Os cinco maiores ao longo do tempo</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${LW} ${LH}`} width="100%" role="img" aria-label="Lucro anual dos cinco maiores grupos, em reais do último ano fechado">
+      {[1, 0.75, 0.5, 0.25, 0].map((t) => { const v = minL + (maxL - minL) * t; return (<g>
+        <line x1={LL} x2={LW - LR} y1={yL(v)} y2={yL(v)} stroke="var(--line)" />
+        <text x={LL - 6} y={yL(v) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{n1(v / 1e9)}</text></g>); })}
+      {anosLinha.map((a, i) => a % 4 === 0 && <text x={xL(i)} y={LH - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text>)}
+      {cinco.map((m, k) => <path d={caminho(m)} fill="none" stroke={CORES[k]} stroke-width="2" />)}
+      {rotulos.map((r) => <text x={LW - LR + 6} y={r.y + 4} font-size="11" fill={r.cor}>{r.nome}</text>)}
+    </svg>
+    <p class="src">
+      Em bilhões de reais de {base}. O BNDES aparece entre os maiores porque é <b>banco de desenvolvimento</b>: o
+      resultado dele vem de juros de empréstimo de longo prazo e de participações em empresas, e o dono é a União —
+      o que ele devolve ao Tesouro está em <a href="/estatais/">Estatais</a>. Caixa e Banco do Brasil também são
+      públicos.
+    </p>
+  </div>
+
+  <h2>Concentração</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Ano</th><th class="num">Fatia dos cinco maiores no lucro do setor</th></tr></thead>
+      <tbody>{conc.filter((c) => c.ano % 5 === 0 || c.ano === base).map((c) => (<tr><td>{c.ano}</td><td class="num">{n1(c.pct_cinco_maiores)}%</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Os cinco bancos de maior lucro de cada ano ficaram com <b>{n1(concUlt.pct_cinco_maiores)}%</b> do lucro do
+      setor em {concUlt.ano}, contra {n1(conc[0].pct_cinco_maiores)}% em {conc[0].ano}; o pico foi
+      {" "}{n1(concMax.pct_cinco_maiores)}% em {concMax.ano}. É concentração <b>do lucro</b>, não do mercado: a fatia
+      de cada banco no crédito e nos depósitos é outra medida, que o BC publica à parte e esta página não usa.
+      Nos anos em que algum banco grande tem prejuízo, a fatia dos cinco maiores sobe sem que nada tenha se
+      concentrado — a conta é uma divisão{semSentido.length > 0 ? `, e por isso ${semSentido.join(", ")} fica fora da tabela: o setor somou quase zero naquele ano e a fatia passa de 100%` : ""}.
+    </p>
+  </div>
+
+  <h2>Banco, cooperativa e instituição de pagamento</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Segmento</th><th class="num">Lucro em {ultimo.ano}</th><th class="num">Grupos</th><th class="num">Retorno sobre o patrimônio</th></tr></thead>
+      <tbody>
+        {[["bancos", "Bancos (comerciais, múltiplos, de investimento e de desenvolvimento)"],
+          ["cooperativas", "Cooperativas de crédito"],
+          ["nao_bancarias", "Financeiras, corretoras e instituições de pagamento"]].map(([k, rot]) => { const s = seg(ultimo, k as string); return (<tr>
+          <td>{rot}</td><td class="num">R$ {bi(s.lucro)}</td><td class="num">{num(s.n)}</td>
+          <td class="num">{s.pl > 0 ? `${n1(roe(s.lucro, s.pl))}%` : "—"}</td></tr>); })}
+        <tr class="destaque"><td><b>Todo o sistema financeiro</b></td><td class="num"><b>R$ {bi(ultimo.total.lucro)}</b></td>
+          <td class="num">{num(ultimo.total.n)}</td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      A classificação é do Banco Central (campo "tipo de consolidado bancário"), não nossa. O destaque desta página
+      é a primeira linha, porque a pergunta era sobre bancos; as outras estão aqui para que a soma feche e para
+      mostrar onde entram as fintechs. O total do sistema inclui cerca de {num(ultimo.total.n - seg(ultimo, "bancos").n)}
+      {" "}grupos que não são bancos, a maioria cooperativa pequena.
+    </p>
+  </div>
+
+  <h2>Lucro e imposto, no mesmo ano</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Em {base}</th><th class="num">R$</th></tr></thead>
+      <tbody>
+        <tr><td>Lucro dos bancos (Banco Central)</td><td class="num">{bi(seg(ultimo, "bancos").lucro)}</td></tr>
+        {LINHAS_FIN.map((k) => (<tr><td class="sub">{k.replace("CONTRIBUIÇÃO PARA O ", "")}</td><td class="num">{bi(trib[k] ?? 0)}</td></tr>))}
+        <tr class="destaque"><td><b>Imposto federal das entidades financeiras (Receita Federal)</b></td><td class="num"><b>{bi(impostoFin)}</b></td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      A Receita Federal publica quatro linhas de arrecadação só de <b>entidades financeiras</b>: IRPJ, CSLL, Cofins e
+      PIS/Pasep. Em {base} somaram R$ {bi(impostoFin)}, ou {pct(impostoFin, (impostos.anual as any[]).find((a) => a.ano === base)?.total ?? 1)}
+      {" "}de toda a arrecadação federal do ano. <b>Os dois números não são divisíveis um pelo outro</b>: "entidades
+      financeiras" na Receita inclui seguradora e outras empresas que não estão no nosso total de bancos, e de fora
+      ficam o <Termo t="arrecadacao">IOF</Termo> que o cliente paga, a contribuição sobre a folha e os tributos
+      estaduais e municipais. Estão lado a lado porque são o mesmo ano e as duas fontes são oficiais — a conta de
+      quanto o setor paga sobre o próprio lucro exigiria a base de cálculo de cada banco, que não é pública.
+      Arrecadação completa em <a href="/impostos/">Impostos</a>.
+    </p>
+  </div>
+
+  <h2>Duas fontes oficiais para o mesmo lucro</h2>
+  <div class="card">
+    {cvm.length > 0 && <table>
+      <thead><tr><th>Grupo</th><th class="num">Banco Central (IF.data)</th><th class="num">CVM (balanço da holding)</th><th class="num">Diferença</th></tr></thead>
+      <tbody>{cvm.map((b: any) => (<tr>
+        <td>{b.nome}</td><td class="num">{bi(b.ifdata)}</td><td class="num">{bi(b.cvm)}</td>
+        <td class="num">{n1(b.dif_pct)}%</td></tr>))}</tbody>
+    </table>}
+    <p class="src">
+      Em {base}, as duas fontes dão números diferentes para os mesmos bancos, e <b>é assim que tem de ser</b>: o
+      IF.data mede o conglomerado financeiro <b>no Brasil</b> pelas regras do Cosif; o balanço entregue à CVM é da
+      <b> holding</b> inteira, com as empresas não financeiras do grupo e as operações no exterior, em outro padrão
+      contábil. Publicamos os dois em vez de escolher um. Dentro do próprio Banco Central a conta fecha: pelo
+      <Termo t="conglomerado_prudencial">conglomerado prudencial</Termo>, que existe desde 2014 e reúne também as
+      não financeiras do grupo, o lucro dos bancos em {ultimo.ano} é R$ {bi(prud.lucro_bancos)} — {n1(Math.abs(difPrud))}%
+      de diferença para o número desta página. Essa conferência está registrada em <a href="/conferir/">Como conferir</a>.
+    </p>
+  </div>
+
+  <h2>O que esta página não responde</h2>
+  <div class="card">
+    <ul>
+      <li><b>De onde vem o lucro.</b> O relatório Resumo do IF.data traz o resultado, não a decomposição entre
+        juros de crédito, tarifa, seguro e título público. O Banco Central publica a decomposição do custo do
+        crédito e do <Termo t="spread_bancario">spread</Termo> em outro relatório, agregada para o sistema, sem
+        abrir por banco.</li>
+      <li><b>Se o lucro é alto ou baixo.</b> Esta página publica o valor e o retorno sobre o patrimônio ao lado, e
+        não dá nota. Comparar com banco de outro país exige igualar regra contábil, imposto e exigência de capital —
+        o que não está em nenhuma base aberta que a gente possa conferir.</li>
+      <li><b>Quanto cada cliente pagou.</b> Tarifa por serviço existe por banco na base de tarifas do BC, que é
+        outra coleta; juro médio por modalidade está em <a href="/inadimplencia/">Inadimplência</a> e o peso da
+        dívida na renda das famílias também.</li>
+      <li><b>O lucro antes de 2000</b> — pelos motivos do primeiro aviso.</li>
+    </ul>
+  </div>
+
+  <Glossario termos={["lucro_liquido", "patrimonio_liquido", "roe", "ifdata", "conglomerado_financeiro", "conglomerado_prudencial", "cosif", "spread_bancario", "ipca"]} />
+</Base>
+<style>
+  td small { display: block; font-size: 11px; color: var(--ink-2); font-weight: 400; }
+  td.num, th.num { white-space: nowrap; }
+  td.per { white-space: nowrap; font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-2); }
+  td.sub { padding-left: 18px; color: var(--ink-2); font-size: 13px; }
+  tr.destaque td { background: color-mix(in srgb, var(--s3) 12%, var(--card)); }
+  ul { margin: 0; padding-left: 20px; }
+  li + li { margin-top: 8px; }
+</style>

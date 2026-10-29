@@ -12,6 +12,7 @@ export type Status = "bate" | "explicada" | "nao_explicada" | "em_aberto";
 export type Checagem = {
   painel: string;
   slug: string;
+  vivoId?: string;              // quando dois painéis têm o mesmo nome, identifica qual número vivo é desta linha
   oQue: string;                 // o que foi comparado
   nosso?: string;               // preenchido pela página quando vem do JSON
   outro?: string;
@@ -24,6 +25,30 @@ export type Checagem = {
 };
 
 export const CHECAGENS: Checagem[] = [
+  {
+    painel: "Bancos", slug: "/bancos/", vivoId: "bancos_prudencial",
+    oQue: "O lucro dos bancos em 2025 pelo conglomerado financeiro, que é o recorte do IF.data que alcança o ano 2000, contra o mesmo ano pelo conglomerado prudencial, recorte que o Banco Central criou em 2014 e que inclui também as empresas não financeiras de cada grupo",
+    status: "bate",
+    explicacao: "São dois recortes do mesmo Banco Central, montados por critérios diferentes, e param a menos de meio ponto percentual um " +
+      "do outro. Usamos o financeiro na série porque é o único publicado desde 2000; o prudencial serve de " +
+      "conferência do último ano fechado e está no próprio bancos.json.",
+    fonte: "Banco Central — IF.data, relatório Resumo, dezembro de 2025 (TipoInstituicao 1 e 2)",
+    url: "https://www3.bcb.gov.br/ifdata/",
+    lido: "29/10/2026",
+  },
+  {
+    painel: "Bancos", slug: "/bancos/", vivoId: "bancos_cvm",
+    oQue: "O lucro de 2025 de cinco bancos de capital aberto no IF.data do Banco Central contra o lucro consolidado que as mesmas empresas entregaram à CVM na demonstração financeira padronizada",
+    status: "explicada",
+    explicacao: "Os dois números não deviam bater: o IF.data mede o conglomerado financeiro no Brasil pelo plano " +
+      "de contas do Banco Central (Cosif), e o balanço da CVM é da holding inteira, com as empresas não " +
+      "financeiras do grupo e as operações no exterior, em outro padrão contábil. A conferência serve para " +
+      "mostrar a ordem de grandeza e o sinal da diferença — o IF.data é maior nos cinco casos. A página publica " +
+      "as duas colunas em vez de escolher uma.",
+    fonte: "CVM — Dados abertos, DFP 2025 (DRE consolidada) e Banco Central, IF.data",
+    url: "https://dados.cvm.gov.br/dataset/cia_aberta-doc-dfp",
+    lido: "29/10/2026",
+  },
   {
     painel: "Inadimplência", slug: "/inadimplencia/",
     oQue: "Nossa inadimplência de pessoa física, calculada do SCR.data aberto, contra o endividamento de risco que o próprio Banco Central calcula com a renda de cada devedor (dado que ele não publica aberto)",

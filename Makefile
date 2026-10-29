@@ -73,6 +73,11 @@ saneamento: ## saneamento: Censo (1991-2022) e PNAD Contínua, pelo SIDRA
 	cp data/public/saneamento.json site/public/data/
 .PHONY: saneamento
 
+bancos: ## lucro dos bancos: IF.data do Banco Central (cache em data/raw/ifdata) + conferência na CVM
+	python -m etl.bancos.extract
+	cp data/public/bancos.json site/public/data/
+.PHONY: bancos
+
 estatais: ## lucro das estatais: CVM (DFP + formulário de referência) + SEST + dividendos do Tesouro
 	python -m etl.estatais.extract
 	cp data/public/estatais.json site/public/data/

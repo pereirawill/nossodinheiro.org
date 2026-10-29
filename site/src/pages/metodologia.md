@@ -282,6 +282,25 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   se fosse despesa. Dívida bruta em % do PIB não entra aqui porque depende de um PIB que é revisado.
 - Completo: `docs/metodologia/painel-divida.md`.
 
+## Bancos — quanto lucraram, ano a ano
+
+- **O que é:** o lucro líquido de cada conglomerado financeiro que opera no Brasil, somado por ano desde 2000, com o total do
+  segmento bancário (R$ 209,7 bi em 2025), o retorno sobre o patrimônio, o ranking dos quinze maiores pelo lucro somado em
+  reais de 2025 (Itaú R$ 696,7 bi, BB R$ 523,9 bi, Bradesco R$ 522,3 bi) e a fatia dos cinco maiores no lucro do setor.
+- **Fonte:** Banco Central, **IF.data** (API Olinda), relatório 1 — Resumo, recorte *conglomerado financeiro e instituições
+  independentes*; IPCA (SIDRA 1737) para corrigir a série; CVM (DFP) e o recorte *conglomerado prudencial* para conferir.
+- **Atenção:** **o lucro do IF.data acumula no semestre**, não no ano — junho é jan–jun e dezembro é jul–dez, então o ano é a
+  soma dos dois; somar os quatro trimestres contaria o primeiro semestre duas vezes (há invariante no ETL, conferido em todos
+  os 27 anos). **Não existe 1988**: o IF.data começa em março de 2000 e os períodos anteriores voltam vazios. Cada linha do
+  ranking é o **grupo** — o conglomerado financeiro mais as instituições do mesmo dono que o BC publica à parte (Redecard no
+  Itaú, Getnet no Santander, as duas metades do Nubank) —, e o critério é o conglomerado prudencial **do ano**, para que a
+  compra de uma corretora não jogue para o comprador o lucro que ela teve antes de ser comprada. **Banco comprado tem a série
+  encerrada** e não é somado ao comprador: Unibanco até 2008, ABN Amro até 2008, HSBC até 2016. O Nubank aparece no ranking
+  pelo valor, mas na classificação do BC não é banco (licença de financeira e de instituição de pagamento) e por isso **não
+  está** no total do segmento bancário. A página não decompõe o lucro entre juros, tarifa e título público, porque o relatório
+  Resumo não abre isso, e não dá nota de "alto" ou "baixo".
+- Completo: `docs/metodologia/painel-bancos.md`.
+
 ## Mortes no trânsito
 
 - **O que é:** quantas pessoas morrem em acidente de trânsito por ano desde 2000, por estado, sexo e faixa de idade, com a
@@ -608,6 +627,7 @@ sempre só PDF ou metodologia diferente.
 | Água e esgoto ano a ano | IBGE — PNAD Contínua | 2016 (esgoto, 2019) | PNAD antiga com outra pergunta; sem 2020 e 2021 |
 | Juros nominais do Governo Central | Tesouro Nacional (RTN, tabela 2.1) | 1997 | o RTN começa em 1997 |
 | Estoque da Dívida Pública Federal | Tesouro Transparente (CSV por título) | set/2017 | relatórios mensais em PDF |
+| Lucro de cada banco | Banco Central — IF.data | mar/2000 | balanços em papel e boletins em PDF; os CSV do Cosif só cobrem anos recentes |
 | Mortes no trânsito | IBGE/ODS 3.6.1, do SIM (Ministério da Saúde) | 2000 | o SIM existe desde 1979, sem indicador calculado |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 
