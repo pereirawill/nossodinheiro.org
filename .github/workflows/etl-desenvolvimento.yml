@@ -1,0 +1,39 @@
+name: ETL Desenvolvimento — educação e homicídios por estado (IBGE)
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/etl-desenvolvimento.yml", "etl/desenvolvimento/**", "etl/ufs.py"]
+  schedule:
+    - cron: "27 10 11 * *"     # dia 11 de cada mês, 07:27 BRT
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: etl-desenvolvimento
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+
+      - name: "Extrair (SIDRA: Censos 1991–2022 por UF e ODS 16.1.1) — sem chave"
+        run: |
+          python -m etl.desenvolvimento.extract
+          mkdir -p site/public/data && cp data/public/desenvolvimento.json site/public/data/
+
+      - name: Commitar dados agregados
+        run: |
+          git config user.name "etl-bot"; git config user.email "etl-bot@users.noreply.github.com"
+          git add data/public site/public/data
+          git diff --cached --quiet && echo "sem mudanças" && exit 0
+          git commit -m "data: desenvolvimento por estado ($(date -u +%F))"
+          git pull --rebase origin main && git push

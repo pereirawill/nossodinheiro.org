@@ -220,8 +220,9 @@ export const DATASETS: Dataset[] = [
   {
     slug: "/desenvolvimento/", nome: "Desenvolvimento: a trajetória do Brasil",
     descricao: "Doze indicadores de desenvolvimento com a série do Brasil desde os anos 1980 e a posição do país no mundo ano a ano: mortalidade infantil, expectativa de vida, escolaridade, internet, energia, desigualdade, renda por pessoa, produtividade, investimento, abertura comercial, IDH e percepção da corrupção.",
-    arquivos: ["rankings.json"],
-    fontes: [{ nome: "Banco Mundial — indicadores de desenvolvimento", url: "https://data.worldbank.org/" },
+    arquivos: ["rankings.json", "desenvolvimento.json"],
+    fontes: [{ nome: "IBGE — Censo Demográfico por UF (tabelas 142, 1974, 3547 e 10141) e indicador ODS 16.1.1 (tabela 6606)", url: "https://sidra.ibge.gov.br/" },
+             { nome: "Banco Mundial — indicadores de desenvolvimento", url: "https://data.worldbank.org/" },
              { nome: "PNUD — Relatório de Desenvolvimento Humano", url: "https://hdr.undp.org/" },
              { nome: "Transparência Internacional — Índice de Percepção da Corrupção", url: "https://www.transparency.org/en/cpi" }],
     periodo: "1985/2025", atualizacao: "mensal",

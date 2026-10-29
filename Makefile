@@ -29,6 +29,11 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+desenvolvimento: ## desenvolvimento por estado: Censos (educação) e ODS 16.1.1 (homicídios)
+	python -m etl.desenvolvimento.extract
+	cp data/public/desenvolvimento.json site/public/data/
+.PHONY: desenvolvimento
+
 transito: ## mortes no trânsito: ODS 3.6.1 (SIM/Ministério da Saúde) pelo SIDRA
 	python -m etl.transito.extract
 	cp data/public/transito.json site/public/data/

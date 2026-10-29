@@ -5,6 +5,8 @@ import Glossario from "../../components/Glossario.astro";
 import rankings from "../../../public/data/rankings.json";
 import educacao from "../../../public/data/educacao.json";
 import saneamento from "../../../public/data/saneamento.json";
+import uf from "../../../public/data/desenvolvimento.json";
+import MapaBrasil from "../../components/MapaBrasil.astro";
 
 const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const n0 = (v: number) => Math.round(v).toLocaleString("pt-BR");
@@ -65,6 +67,30 @@ const trajeto = linhas.filter((l) => l.pctlDe != null && l.pctlPara != null)
   .sort((a, b) => a.delta - b.delta);
 const tx = (p: number) => TL + (p / 100) * (TW - TL - TR);
 const anoMaisAntigo = Math.min(...trajeto.map((l) => l.a.ano));
+
+// ── Por estado: quem mudou mais, e desde quando dá para medir ────────────────────────────────────────────────────
+const edu = (uf as any).educacao, hom = (uf as any).homicidios;
+const eduDe = edu.anos[0], eduPara = edu.anos[edu.anos.length - 1];
+const homDe = hom.anos?.[0], homPara = hom.anos?.[hom.anos.length - 1];
+const sanUf = (saneamento as any).censo_uf as Record<string, any[]>;
+const sanDe = "1991", sanPara = "2022";
+const mapaSan = (ano: string) => Object.fromEntries((sanUf[ano] ?? []).map((x: any) => [x.uf, x.esgoto]));
+const sanA = mapaSan(sanDe), sanB = mapaSan(sanPara);
+
+const estados = Object.keys(edu.por_uf[eduPara] ?? {}).sort();
+const porEstado = estados.map((u) => {
+  const eduVar = edu.por_uf[eduPara][u] - (edu.por_uf[eduDe]?.[u] ?? 0);
+  const sanVar = sanB[u] != null && sanA[u] != null ? sanB[u] - sanA[u] : null;
+  const homVar = hom.por_uf?.[homPara]?.[u] != null && hom.por_uf?.[homDe]?.[u] != null
+    ? hom.por_uf[homPara][u] - hom.por_uf[homDe][u] : null;
+  return { uf: u, eduDe: edu.por_uf[eduDe]?.[u], eduPara: edu.por_uf[eduPara][u], eduVar,
+           sanDe: sanA[u], sanPara: sanB[u], sanVar,
+           homDe: hom.por_uf?.[homDe]?.[u], homPara: hom.por_uf?.[homPara]?.[u], homVar };
+});
+const nomeUf = Object.fromEntries((sanUf[sanPara] ?? []).map((x: any) => [x.uf, x.nome]));
+const topEdu = [...porEstado].sort((a, b) => b.eduVar - a.eduVar);
+const topHom = porEstado.filter((e) => e.homVar != null).sort((a, b) => (a.homVar as number) - (b.homVar as number));
+const topSan = porEstado.filter((e) => e.sanVar != null).sort((a, b) => (b.sanVar as number) - (a.sanVar as number));
 
 // gráfico do percentil ao longo do tempo (quanto menor, melhor colocado)
 const W = 920, L = 44, R = 170, H = 300, T = 16, B = 30;
@@ -230,6 +256,84 @@ const y = (p: number) => T + (p / 100) * (H - T - B);
       ruim: a lista ordena pelo que o indicador considera melhor, e isso está na própria fonte. O ranking completo,
       com todos os países, está em <a href="/rankings/">Rankings</a>.
     </p>
+  </div>
+
+
+  <h2>Por estado: quem mudou mais</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      Três dimensões têm série estadual comparável ao longo do tempo. Os mapas mostram a <b>mudança</b>, não o nível
+      de hoje: quanto mais forte a cor, maior o avanço do estado no período.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 2px">Educação — adultos com ensino médio completo ou mais</h3>
+    <p class="sub" style="margin:0 0 10px">variação em pontos percentuais, Censo de {eduDe} a {eduPara}</p>
+    <MapaBrasil valores={Object.fromEntries(porEstado.map((e) => [e.uf, Number(e.eduVar.toFixed(1))]))}
+      formato={(v) => `+${n1(v)} p.p.`} titulo={`Avanço na escolaridade por estado, de ${eduDe} a ${eduPara}`}
+      legenda={`pontos percentuais a mais de adultos com médio completo (${eduDe}→${eduPara})`} cor="var(--s1)" />
+    <p class="src">
+      Todos os 27 estados avançaram. O maior avanço é {nomeUf[topEdu[0].uf] ?? topEdu[0].uf}
+      ({n1(topEdu[0].eduDe)}% → {n1(topEdu[0].eduPara)}%, +{n1(topEdu[0].eduVar)} pontos) e o menor é
+      {" "}{nomeUf[topEdu[topEdu.length - 1].uf] ?? topEdu[topEdu.length - 1].uf}
+      ({n1(topEdu[topEdu.length - 1].eduDe)}% → {n1(topEdu[topEdu.length - 1].eduPara)}%).
+      {" "}{edu.ressalva} Fonte: {edu.fonte}.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 2px">Saneamento — domicílios com esgoto ligado à rede</h3>
+    <p class="sub" style="margin:0 0 10px">variação em pontos percentuais, Censo de {sanDe} a {sanPara}</p>
+    <MapaBrasil valores={Object.fromEntries(porEstado.filter((e) => e.sanVar != null).map((e) => [e.uf, Number((e.sanVar as number).toFixed(1))]))}
+      formato={(v) => `${v > 0 ? "+" : ""}${n1(v)} p.p.`} titulo={`Avanço no esgoto ligado à rede por estado, de ${sanDe} a ${sanPara}`}
+      legenda={`pontos percentuais a mais de domicílios com esgoto na rede (${sanDe}→${sanPara})`} cor="var(--s5)" />
+    <p class="src">
+      Maior avanço: {nomeUf[topSan[0].uf] ?? topSan[0].uf} ({n1(topSan[0].sanDe)}% → {n1(topSan[0].sanPara)}%).
+      Menor: {nomeUf[topSan[topSan.length - 1].uf] ?? topSan[topSan.length - 1].uf}
+      ({n1(topSan[topSan.length - 1].sanDe)}% → {n1(topSan[topSan.length - 1].sanPara)}%). Detalhe em
+      {" "}<a href="/saneamento/">Saneamento</a>.
+    </p>
+  </div>
+
+  {topHom.length > 0 && <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 2px">Segurança — homicídios por 100 mil habitantes</h3>
+    <p class="sub" style="margin:0 0 10px">queda da taxa, de {homDe} a {homPara} (cor mais forte = caiu mais; valor negativo = subiu)</p>
+    <MapaBrasil valores={Object.fromEntries(topHom.map((e) => [e.uf, Number((-(e.homVar as number)).toFixed(1))]))}
+      formato={(v) => `${v > 0 ? "−" : "+"}${n1(Math.abs(v))}`} titulo={`Queda da taxa de homicídios por estado, de ${homDe} a ${homPara}`}
+      legenda={`queda da taxa de homicídios por 100 mil (${homDe}→${homPara})`} cor="var(--s2)" />
+    <p class="src">
+      {nomeUf[topHom[0].uf] ?? topHom[0].uf} teve a maior queda: de {n1(topHom[0].homDe as number)} para
+      {" "}{n1(topHom[0].homPara as number)} por 100 mil. Na outra ponta,
+      {" "}{nomeUf[topHom[topHom.length - 1].uf] ?? topHom[topHom.length - 1].uf} foi de
+      {" "}{n1(topHom[topHom.length - 1].homDe as number)} para {n1(topHom[topHom.length - 1].homPara as number)}.
+      {" "}{hom.ressalva} Fonte: {hom.fonte}. As mortes violentas registradas pelas polícias, com recorte mais recente
+      e por município, estão em <a href="/seguranca/">Segurança</a>.
+    </p>
+  </div>}
+
+  <div class="card" style="margin-top:14px">
+    <table>
+      <thead><tr><th>Estado</th>
+        <th class="num">Médio completo {eduDe}</th><th class="num">{eduPara}</th><th class="num">Variação</th>
+        <th class="num">Esgoto {sanDe}</th><th class="num">{sanPara}</th><th class="num">Variação</th>
+        <th class="num">Homicídios {homDe}</th><th class="num">{homPara}</th><th class="num">Variação</th></tr></thead>
+      <tbody>{[...porEstado].sort((a, b) => b.eduVar - a.eduVar).map((e) => (<tr>
+        <td>{nomeUf[e.uf] ?? e.uf}</td>
+        <td class="num">{n1(e.eduDe)}%</td><td class="num">{n1(e.eduPara)}%</td><td class="num">+{n1(e.eduVar)}</td>
+        <td class="num">{e.sanDe != null ? `${n1(e.sanDe)}%` : "—"}</td><td class="num">{e.sanPara != null ? `${n1(e.sanPara)}%` : "—"}</td>
+        <td class="num">{e.sanVar != null ? `+${n1(e.sanVar)}` : "—"}</td>
+        <td class="num">{e.homDe != null ? n1(e.homDe) : "—"}</td><td class="num">{e.homPara != null ? n1(e.homPara) : "—"}</td>
+        <td class={`num${(e.homVar ?? 0) > 0 ? " neg" : ""}`}>{e.homVar != null ? `${e.homVar > 0 ? "+" : "−"}${n1(Math.abs(e.homVar))}` : "—"}</td></tr>))}
+      </tbody>
+    </table>
+    <p class="src">Ordenado pelo avanço na escolaridade. Clique no cabeçalho para ordenar por outra coluna.</p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">O que não dá para medir por estado desde 1991</h3>
+    <ul class="limites">{((uf as any).fora as string[]).map((t) => <li>{t}</li>)}</ul>
+    <p class="src">Faltar fonte comparável não é o mesmo que ir bem ou mal: é não saber. Quando existe série mais curta, ela está no painel próprio de cada assunto.</p>
   </div>
 
   <h2>O que este painel não responde</h2>
