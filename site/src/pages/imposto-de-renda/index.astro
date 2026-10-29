@@ -77,6 +77,19 @@ const publicas = CARREIRAS.map((p) => ocup.find((o) => o.nome.startsWith(p))).fi
 // --- bases de incidência (painel Impostos, tabela oficial da Receita) ------------------------------------
 const bases = (imp as any).carga?.bases;
 const basesOrd = bases ? [...bases.linhas].filter((b: any) => b.pct >= 0.0005).sort((a: any, b: any) => b.pct - a.pct) : [];
+// Pizza das bases de incidência (pedido do dono em 29/10/2026: a tabela era grande demais).
+const CORES_BASE = ["var(--s4)", "var(--s1)", "var(--s2)", "var(--s3)", "var(--neutro)", "#9ec5e8"];
+const pizza = (fatias: { nome: string; v: number; cor: string }[], total: number) => {
+  let a = -Math.PI / 2;
+  return fatias.map((f) => {
+    const fr = f.v / total, a0 = a; a += fr * 2 * Math.PI;
+    const x0 = 100 + 86 * Math.cos(a0), y0 = 100 + 86 * Math.sin(a0), x1 = 100 + 86 * Math.cos(a), y1 = 100 + 86 * Math.sin(a);
+    return { ...f, fr, d: `M100,100 L${x0.toFixed(2)},${y0.toFixed(2)} A86,86 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` };
+  });
+};
+const fatiasBase = basesOrd.map((b: any, i: number) => ({ nome: b.base, v: b.pct, cor: CORES_BASE[i % CORES_BASE.length], total: b.total_milhoes }));
+const arcosBase = pizza(fatiasBase, fatiasBase.reduce((t: number, f: any) => t + f.v, 0));
+
 const naoRenda = basesOrd.filter((b: any) => b.base !== "Renda").reduce((s: number, b: any) => s + b.pct, 0);
 ---
 <Base title="Imposto de Renda: o que os brasileiros declaram ganhar — Nosso Dinheiro" accent="var(--s4)"
@@ -271,24 +284,28 @@ const naoRenda = basesOrd.filter((b: any) => b.base !== "Renda").reduce((s: numb
 
   {bases && (<>
   <h2>Onde o imposto brasileiro incide, de verdade</h2>
-  <div class="card">
+  <div class="card pizza">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label="Distribuição da arrecadação brasileira por base de incidência">
+      {arcosBase.map((a: any) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: {pct1(a.v)} de tudo que é arrecadado ({bi(a.total * 1e6)})</title></path>)}
+      <circle cx="100" cy="100" r="46" fill="var(--card)" />
+      <text x="100" y="94" text-anchor="middle" font-size="9.5" fill="var(--ink-2)">arrecadação</text>
+      <text x="100" y="110" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{bi((imp as any).carga.bases.total_milhoes * 1e6)}</text>
+    </svg>
     <table>
-      <thead><tr><th>Base de incidência</th><th class="num">% de tudo que é arrecadado</th><th class="num">União</th><th class="num">Estados</th><th class="num">Municípios</th><th class="barra-cab"></th></tr></thead>
-      <tbody>
-        {basesOrd.map((b: any) => (<tr>
-          <td>{b.base}</td><td class="num"><b>{pct1(b.pct)}</b></td>
-          <td class="num">{b.federal ? bi(b.federal * 1e6) : "—"}</td>
-          <td class="num">{b.estadual ? bi(b.estadual * 1e6) : "—"}</td>
-          <td class="num">{b.municipal ? bi(b.municipal * 1e6) : "—"}</td>
-          <td class="barra-cel"><span class="barra" style={`width:${(b.pct / basesOrd[0].pct) * 100}%;background:${b.base === "Renda" ? "var(--s4)" : "var(--s1)"}`}></span></td></tr>))}
+      <thead><tr><th>Base de incidência</th><th class="num">% do total</th><th class="num">Valor</th></tr></thead>
+      <tbody>{arcosBase.map((a: any) => (<tr>
+        <td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td>
+        <td class="num"><b>{pct1(a.v)}</b></td>
+        <td class="num">{bi(a.total * 1e6)}</td></tr>))}
       </tbody>
     </table>
-    <p class="src">
-      O Imposto de Renda é parte de uma base só: {pct1(naoRenda)} de tudo que União, estados e municípios arrecadam
-      incide sobre outra coisa — consumo, folha de salários, propriedade e transações financeiras. Quem não paga Imposto de
-      Renda continua pagando tributo embutido no preço do que compra, e essa parte não aparece em nenhuma declaração. Fonte:
-      Receita Federal, Carga Tributária no Brasil {(imp as any).carga.edicao}, tabela INC 01-A, ano {(imp as any).carga.ano}.
-      Detalhe por tributo e por estado no <a href="/impostos/">painel Impostos</a>.
+    <p class="src" style="grid-column:1/-1">
+      O Imposto de Renda é parte de uma base só: <b>{pct1(naoRenda)}</b> de tudo que União, estados e municípios
+      arrecadam incide sobre outra coisa — consumo, folha de salários, propriedade e transações financeiras. Quem não
+      paga Imposto de Renda continua pagando tributo embutido no preço do que compra, e essa parte não aparece em
+      nenhuma declaração. Fonte: Receita Federal, Carga Tributária no Brasil {(imp as any).carga.edicao}, tabela
+      INC 01-A, ano {(imp as any).carga.ano}. Detalhe por tributo, por estado e a divisão entre União, estados e
+      municípios no <a href="/impostos/">painel Impostos</a>.
     </p>
   </div>
   </>)}
@@ -308,6 +325,10 @@ const naoRenda = basesOrd.filter((b: any) => b.base !== "Renda").reduce((s: numb
   <Glossario termos={["declarante", "aliquota_efetiva", "rendimento_isento", "lucros_dividendos", "tributacao_exclusiva", "base_incidencia", "quem_paga"]} />
 </Base>
 <style>
+  .pizza { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: center; }
+  .pizza .src { font-size: 12.5px; }
+  @media (max-width: 720px) { .pizza { grid-template-columns: 1fr; } }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 7px; }
   .conclusoes { margin: 0; padding-left: 18px; } .conclusoes li { margin: 6px 0; }
   .explica { font-size: 13.5px; color: var(--ink-2); margin: 0 0 12px; max-width: 78ch; }
   td.sub { padding-left: 22px; color: var(--ink-2); }
