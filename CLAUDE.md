@@ -399,6 +399,18 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   **2026 não existe** em nenhuma fonte e a página diz isso. Quando a Receita publicar a edição 2025, o ETL pega sozinho
   (`CTB.format(ano=2025)` — hoje dá 403); aí vale conferir os dois números lado a lado em `/conferir/`.
 
+## Carga tributária no mundo (29/10/2026)
+- Pedido do dono: dias trabalhados para pagar imposto em outros países. `etl/carga_mundo/extract.py` → `carga_mundo.json`,
+  bloco em `/impostos/` logo abaixo dos dias do Brasil, mensal dia 19. **Fonte: OCDE Global Revenue Statistics via API SDMX**
+  (`sdmx.oecd.org/public/rest/data/OECD.CTP.TPS,DSD_REV_COMP_GLOBAL@DF_RSGLOBAL,2.1/.TAX_REV.S13._T._T.PT_B1GQ.A`, CSV com
+  rótulos; chave = REF_AREA.MEASURE.SECTOR.STANDARD_REVENUE.CTRY_SPECIFIC.UNIT.FREQ; S13 = governo geral; `OECD_REP` = média).
+  145 países, 131 com 2024. Nomes PT de `etl/rankings/paises_pt.json`.
+- **A OCDE mede o Brasil em 33,68% (2024)**, acima do Tesouro (32,22) e da Receita (32,20) — método. Regra adotada: destaque
+  com o número brasileiro, comparação com a OCDE para todos (mesma régua), diferença declarada ao lado. Brasil é o **29º**
+  de 145; abaixo da média OCDE (34,06) e acima de toda a América Latina. EUA 25,6 (94 dias), Japão 33,7, Austrália 29,9,
+  Reino Unido 34,4, França 43,5 (159 dias), Alemanha 38,0.
+- A dica ⓘ de "carga tributária" passou a citar as duas fontes (Tesouro em abril, Receita depois) — o dono perguntou.
+
 ## Revisão da página de Inflação (29/10/2026) — a lição
 - O dono disse quatro vezes, de formas diferentes, que "os números não traduzem a realidade". Os números estavam certos.
   **O erro era editorial**: a cada objeção eu acrescentava um cartão defendendo a mesma tese (salário mínimo × preços),

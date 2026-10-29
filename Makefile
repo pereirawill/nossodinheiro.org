@@ -29,6 +29,11 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+carga-mundo: ## carga tributária por país (OCDE, governo geral com previdência)
+	python -m etl.carga_mundo.extract
+	cp data/public/carga_mundo.json site/public/data/
+.PHONY: carga-mundo
+
 industria: ## indústria: participação (Banco Mundial) e produção física (IBGE PIM-PF)
 	python -m etl.industria.extract
 	cp data/public/industria.json site/public/data/

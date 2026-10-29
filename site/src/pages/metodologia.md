@@ -423,6 +423,20 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   arrecadação por lei, então o que muda a partir de 2027 é quem paga, não o total — e isso só será conferido quando a carga de
   2027 sair, em 2028.
 
+## Carga tributária no mundo — bloco em Impostos (29/10/2026)
+
+- **O que é:** quantos dias do ano cada país trabalha para pagar tributos, para 21 países de referência, com a posição do Brasil
+  entre os 145 que a OCDE mede e a média da OCDE.
+- **Fonte:** OCDE, *Global Revenue Statistics*, API SDMX pública (dataflow `DSD_REV_COMP_GLOBAL@DF_RSGLOBAL`, série "receita
+  tributária, governo geral, total, % do PIB"). `etl/carga_mundo/extract.py` → `carga_mundo.json`, mensal. Governo geral =
+  todos os níveis, com previdência — a definição comparável. **Não** usamos a série do Banco Mundial, que é só do governo central
+  e dá 15% para o Brasil.
+- **Atenção:** para o Brasil a OCDE calcula **33,68% em 2024**, contra 32,22% do Tesouro e 32,20% da Receita — diferença de
+  método no que conta como tributo. A página usa o número brasileiro no destaque e o da OCDE na comparação, porque comparar
+  países exige a mesma régua para todos, e diz isso ao lado do gráfico. Países sem dado para o último ano aparecem com o ano
+  mais recente que têm, marcado.
+- **O que não dizemos:** se a carga é alta ou baixa "demais". O que cada país entrega em troca está em Comparação internacional.
+
 ## IVA — bloco em Impostos (29/10/2026)
 
 - **O que é:** a alíquota de referência estimada para o IVA da reforma tributária (CBS + IBS), o ranking das maiores

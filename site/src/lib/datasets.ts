@@ -96,7 +96,7 @@ export const DATASETS: Dataset[] = [
   {
     slug: "/impostos/", nome: "Arrecadação federal por estado e tributo",
     descricao: "Receita administrada pela Receita Federal, mensal desde 2000, por UF e por tributo.",
-    arquivos: ["impostos.json"],
+    arquivos: ["impostos.json", "carga_mundo.json"],
     fontes: [{ nome: "Receita Federal — arrecadação por estado (dados abertos)", url: "https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/dados-abertos" }],
     periodo: "2000/..", atualizacao: "mensal",
   },

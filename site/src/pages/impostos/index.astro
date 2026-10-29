@@ -6,6 +6,7 @@ import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/impostos.json";
 import { ALIQUOTA, MAIORES_IVA, FONTE_OCDE, EXCECOES, CALENDARIO, FONTE_LEI } from "../../lib/iva";
 import { CARGA_TESOURO } from "../../lib/carga";
+import mundo from "../../../public/data/carga_mundo.json";
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = (v: number) =>
@@ -35,6 +36,15 @@ const ocdeAno = ocdeBens ? Object.keys(ocdeBens).sort().pop() as string : null;
 const n1i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const n2i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const cargaTes = CARGA_TESOURO.total_pct_pib / 100;
+// carga no mundo (OCDE, governo geral com previdência): mesma régua para todos, Brasil inclusive
+const mp = (mundo as any).paises as Record<string, any>;
+const REF_MUNDO = ["BRA", "USA", "JPN", "AUS", "GBR", "FRA", "DEU", "ITA", "ESP", "PRT", "SWE", "DNK", "CAN", "KOR", "CHN", "ARG", "CHL", "COL", "MEX", "URY", "ZAF"];
+const linhasMundo = REF_MUNDO.filter((i) => mp[i]).map((i) => ({ iso: i, ...mp[i] })).sort((a, b) => b.ultimo - a.ultimo);
+const mediaOcde = (mundo as any).ocde_media;
+const todosMundo = Object.entries(mp).map(([iso, v]: [string, any]) => ({ iso, ultimo: v.ultimo }));
+const posicaoBR = todosMundo.filter((x) => x.ultimo > mp.BRA.ultimo).length + 1;
+const diasDe = (pct: number) => Math.round((pct / 100) * 365);
+const maxMundo = Math.max(...linhasMundo.map((l) => l.ultimo));
 const atual = d.anual[d.anual.length - 1];
 const anterior = d.anual[d.anual.length - 2];
 const u = d.ultimo_mes;
@@ -183,6 +193,35 @@ const W = 920;
         </g>))}
       </svg>
       <p class="src">Fonte: <a href={carga.url} rel="noopener">Receita Federal, Carga Tributária no Brasil {carga.edicao}</a>, tabelas 01 e 02. Inclui todos os tributos das três esferas (impostos, taxas e contribuições, inclusive previdência); o resto desta página trata só dos tributos federais, que são a maior parte.</p>
+    </div>
+
+
+    <div class="card" style="margin-top:14px">
+      <h3 style="margin:0 0 8px">E em outros países, quantos dias?</h3>
+      <p style="margin:0 0 10px">
+        Mesma conta, mesma régua: a receita tributária de <b>todos os níveis de governo, com previdência</b>, em % do PIB,
+        medida pela OCDE para {todosMundo.length} países. O Brasil fica em <b>{posicaoBR}º</b> entre eles — abaixo da média da
+        OCDE ({mediaOcde ? mediaOcde.ultimo.toFixed(1).replace(".", ",") : "—"}%, {mediaOcde ? diasDe(mediaOcde.ultimo) : "—"} dias) e
+        acima de todos os vizinhos da América Latina.
+      </p>
+      <svg viewBox={`0 0 ${W} ${linhasMundo.length * 24 + 8}`} width="100%" role="img" aria-label="Dias do ano trabalhados para pagar tributos, por país">
+        {linhasMundo.map((l, i) => (<g transform={`translate(0 ${i * 24 + 4})`}>
+          <text x="190" y="15" text-anchor="end" font-size="12.5" font-weight={l.iso === "BRA" ? 700 : 400} fill="var(--ink)">{l.nome}</text>
+          <rect x="200" y="3" width={(l.ultimo / maxMundo) * 560} height="16" fill={l.iso === "BRA" ? "#a3302a" : "var(--s2)"} opacity={l.iso === "BRA" ? 1 : 0.75} rx="2">
+            <title>{l.nome} ({l.ultimo_ano}): {l.ultimo.toFixed(1).replace(".", ",")}% do PIB</title></rect>
+          <text x={206 + (l.ultimo / maxMundo) * 560} y="15" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{diasDe(l.ultimo)} dias · {l.ultimo.toFixed(1).replace(".", ",")}% <tspan fill="var(--ink-2)" font-size="10.5">{l.ultimo_ano}</tspan></text>
+        </g>))}
+        {mediaOcde && <line x1={200 + (mediaOcde.ultimo / maxMundo) * 560} x2={200 + (mediaOcde.ultimo / maxMundo) * 560} y1="0" y2={linhasMundo.length * 24 + 4} stroke="var(--ink-2)" stroke-dasharray="3 3" />}
+      </svg>
+      <p class="src">
+        Fonte: {(mundo as any).fonte}. A linha tracejada é a média da OCDE. <b>Para o Brasil, a OCDE calcula
+        {" "}{mp.BRA.ultimo.toFixed(2).replace(".", ",")}% em {mp.BRA.ultimo_ano}, mais que os {CARGA_TESOURO.ano_anterior.total_pct_pib.toFixed(2).replace(".", ",")}% do
+        Tesouro para o mesmo ano</b> — diferença de método no que conta como tributo (a OCDE inclui contribuições que as fontes
+        brasileiras classificam de outro modo). No destaque acima vale o número brasileiro; nesta comparação vale a OCDE para
+        todos, porque comparar países exige a mesma régua. Países sem dado para {mp.BRA.ultimo_ano} aparecem com o ano mais
+        recente que têm. O que cada país <b>entrega</b> em troca — saúde, educação, previdência — está em
+        {" "}<a href="/comparacao/">Comparação internacional</a>.
+      </p>
     </div>
 
     <div class="card" style="margin-top:14px">
