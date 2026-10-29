@@ -17,8 +17,11 @@ Crédito nas páginas: Câmara dos Deputados e Senado Federal.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import logging
+import re
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from io import BytesIO
@@ -32,6 +35,12 @@ PUB, FOTOS = Path("site/public/data"), Path("site/public/fotos")
 LARGURA = 96          # o site mostra 36 px; 96 cobre tela retina sem pesar
 QUALIDADE = 82
 CASAS = {"camara": ("custo_deputado_*.json", "id_deputado"), "senado": ("custo_senador_*.json", "id_senador")}
+# O STF não publica a foto numa API: ela está na página "Composição Atual" da Biblioteca, numa tabela em que a linha
+# das imagens é seguida pela linha dos nomes, coluna a coluna. O par é lido dali — chutar pelas iniciais do arquivo
+# trocaria Alexandre de Moraes (adm) por André Mendonça (alm).
+STF_PAGINA = ("https://portal.stf.jus.br/textos/verTexto.asp"
+              "?servico=bibliotecaConsultaProdutoBibliotecaPastaMinistro&pagina=ComposicaoAtual")
+SEM_PESO = {"de", "da", "do", "dos", "das", "e", "ministro", "ministra"}
 
 
 def _mais_novo(padrao: str) -> Path | None:
@@ -56,6 +65,35 @@ def _baixar_uma(c: httpx.Client, url: str, destino: Path) -> bool:
         return False
 
 
+def _chave(v: str) -> set[str]:
+    t = unicodedata.normalize("NFKD", (v or "").lower()).encode("ascii", "ignore").decode()
+    return {p for p in re.split(r"[^a-z]+", t) if p and p not in SEM_PESO}
+
+
+def fotos_do_stf(c: httpx.Client) -> dict[str, str]:
+    """{nome do ministro: url da foto}, da página "Composição Atual" da Biblioteca do STF.
+
+    O par sai do atributo `title` da própria imagem (`title="Ministro Edson Fachin"`). Tentar parear pela posição
+    na tabela não funciona — parte das fotos está dentro de tabelas aninhadas — e parear pelas iniciais do arquivo
+    trocaria Alexandre de Moraes (`foto_adm`) por André Mendonça (`foto_alm`).
+    """
+    r = c.get(STF_PAGINA, timeout=90)
+    if r.status_code != 200:
+        log.warning("página de composição do STF respondeu HTTP %s", r.status_code)
+        return {}
+    pares: dict[str, str] = {}
+    for tag in re.findall(r"<img[^>]+>", r.text, re.I):
+        src = re.search(r'src="\s*([^"]*?foto_[^"]*?\.jpg)\s*"', tag, re.I)
+        titulo = re.search(r'title="([^"]+)"', tag, re.I)
+        if not src or not titulo:
+            continue
+        nome = re.sub(r"\(.*?\)", "", html.unescape(titulo.group(1))).strip()
+        if "ministr" in nome.lower():
+            pares[nome] = src.group(1).strip()
+    log.info("STF: %d fotos na página de composição", len(pares))
+    return pares
+
+
 def run(forcar: bool = False) -> Path:
     manifesto: dict[str, list[int]] = {}
     with httpx.Client(follow_redirects=True, headers={"User-Agent": "nossodinheiro.org (coleta de fotos oficiais)"}) as c:
@@ -73,6 +111,27 @@ def run(forcar: bool = False) -> Path:
                     list(ex.map(lambda p: _baixar_uma(c, p["url_foto"], FOTOS / casa / f"{p[chave]}.jpg"), faltando))
             manifesto[casa] = sorted(p[chave] for p in pessoas if (FOTOS / casa / f"{p[chave]}.jpg").exists())
             log.info("%s: %d de %d com foto local", casa, len(manifesto[casa]), len(pessoas))
+
+        # STF: casa o nome curto da página com o nome completo da folha, por tokens do sobrenome
+        arq = _mais_novo("custo_ministro_stf_*.json")
+        if arq:
+            ministros = json.loads(arq.read_text(encoding="utf-8"))
+            pares = fotos_do_stf(c)
+            casados: list[str] = []
+            for nome_pagina, url in pares.items():
+                alvo = _chave(nome_pagina)
+                achados = [m for m in ministros if alvo and alvo <= _chave(m["nome"])]
+                if len(achados) != 1:
+                    log.warning("STF: %r casou com %d ministros — foto não usada", nome_pagina, len(achados))
+                    continue
+                m = achados[0]
+                destino = FOTOS / "stf" / f"{m['matricula']}.jpg"
+                if forcar or not destino.exists():
+                    _baixar_uma(c, url, destino)
+                if destino.exists():
+                    casados.append(str(m["matricula"]))
+            manifesto["stf"] = sorted(set(casados))
+            log.info("stf: %d de %d com foto local", len(manifesto["stf"]), len(ministros))
 
     saida = PUB / "fotos.json"
     saida.write_text(json.dumps({

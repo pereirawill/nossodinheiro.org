@@ -4,9 +4,15 @@ import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
 import BeneficiosBox from "../../components/BeneficiosBox.astro";
 import rows from "../../../public/data/custo_ministro_stf_2026.json";
+import fotos from "../../../public/data/fotos.json";
 import meta from "../../../public/data/meta_stf_2026.json";
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+// Fotos oficiais dos ministros, servidas por este site (baixadas da página de composição da Biblioteca do STF por
+// `python -m etl.fotos.baixar`). O manifesto evita imagem quebrada se faltar alguma.
+const comFoto = new Set<string>(((fotos as any).stf ?? []).map(String));
+const fotoDe = (r: any) => (comFoto.has(String(r.matricula)) ? `/fotos/stf/${r.matricula}.jpg` : null);
+const temFoto = rows.some((r: any) => fotoDe(r));
 const compact = (v: number) =>
   v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -77,10 +83,10 @@ const x = (v: number) => (v / max) * plotW;
 
   <h2>Todos os ministros</h2>
   <table>
-    <thead><tr><th>#</th><th>Ministro(a)</th><th>Lotação</th><th class="num"><Termo t="remuneracao_bruta">Bruto</Termo> / mês</th><th class="num">Líquido / mês</th><th class="num"><Termo t="gabinete_stf">Gabinete</Termo> / mês</th><th class="num"><Termo t="pessoas_gabinete">Pessoas ({MESES[meta.ultimo_mes - 1]})</Termo></th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
+    <thead><tr><th>#</th>{temFoto ? <th class="col-foto"><span class="vis-oculto">Foto</span></th> : null}<th>Ministro(a)</th><th>Lotação</th><th class="num"><Termo t="remuneracao_bruta">Bruto</Termo> / mês</th><th class="num">Líquido / mês</th><th class="num"><Termo t="gabinete_stf">Gabinete</Termo> / mês</th><th class="num"><Termo t="pessoas_gabinete">Pessoas ({MESES[meta.ultimo_mes - 1]})</Termo></th><th class="num">Custo / mês</th><th class="num">Custo / ano{proj}</th></tr></thead>
     <tbody>
       {rows.map((r, i) => (
-        <tr><td class="rank">{i + 1}</td><td>{r.nome_curto}</td><td>{r.observacao ? <Termo t="gabinete_presidencia">{r.unidade.replace("GABINETE ", "").toLowerCase()}</Termo> : r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
+        <tr><td class="rank">{i + 1}</td>{temFoto ? <td class="cel-foto">{fotoDe(r) ? <img src={fotoDe(r)} alt="" width="36" height="36" loading="lazy" decoding="async" /> : null}</td> : null}<td>{r.nome_curto}</td><td>{r.observacao ? <Termo t="gabinete_presidencia">{r.unidade.replace("GABINETE ", "").toLowerCase()}</Termo> : r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
             <td class="num">{brl0(r.remuneracao_mensal_media)}</td><td class="num">{brl0(r.remuneracao_liquida / r.meses_com_folha)}</td><td class="num">{brl0(r.gabinete_mensal_medio)}</td><td class="num">{r.gabinete_pessoas_ultimo_mes}</td>
             <td class="num">{brl0(r.custo_mensal_medio)}</td><td class="num">{brl0(r.custo_anual_projetado)}</td></tr>
       ))}
