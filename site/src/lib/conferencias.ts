@@ -138,6 +138,18 @@ export const CHECAGENS: Checagem[] = [
     fonte: "Tesouro Nacional (RTN, tabela 2.1) e SIOP",
     url: "https://www.tesourotransparente.gov.br/ckan/dataset/resultado-do-tesouro-nacional",
   },
+  {
+    painel: "Trânsito", slug: "/transito/",
+    oQue: "Mortes no trânsito, pelo atestado de óbito (Ministério da Saúde) e pelo registro policial (Sinesp)",
+    nosso: "37.150 (2024, atestado de óbito)",
+    outro: "25.074 (2025, registro policial)",
+    status: "nao_explicada",
+    explicacao: "O registro policial fica 32% abaixo do atestado de óbito. Parte é conhecida — quem morre dias " +
+      "depois no hospital não volta ao registro —, mas não temos como medir o resto. As duas contagens são " +
+      "publicadas lado a lado, e os anos de referência são diferentes.",
+    fonte: "IBGE/ODS 3.6.1 (SIM) e MJSP (Sinesp VDE)",
+    url: "https://sidra.ibge.gov.br/tabela/4408",
+  },
 ];
 
 /** As regras que valem para todas as páginas, e que é possível checar olhando o site. */

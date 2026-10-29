@@ -146,6 +146,9 @@ export const GLOSSARIO: Record<string, { rotulo: string; texto: string }> = {
   amortizacao: { rotulo: "Amortização", texto: "Pagamento do principal de uma dívida que venceu — diferente dos juros, que são o preço de dever. No Orçamento da União é o maior valor isolado, e quase todo ele é refinanciado." },
   selic_indexador: { rotulo: "Dívida atrelada à Selic", texto: "Parte da dívida é paga em títulos (LFT) que rendem a taxa básica de juros. Quando a Selic sobe, o custo dessa parte sobe quase imediatamente, sem esperar o vencimento." },
   estoque_divida: { rotulo: "Estoque da dívida", texto: "O saldo devedor em um dia — quanto se deve, e não quanto se gastou no ano. Por isso não é corrigido pela inflação como se fosse uma despesa." },
+  sim_obito: { rotulo: "SIM (atestado de óbito)", texto: "Sistema de Informações sobre Mortalidade, do Ministério da Saúde: reúne os atestados de óbito do país inteiro, com a causa declarada pelo médico. É a contagem mais completa de mortes, e independe de a polícia ter registrado o caso." },
+  registro_policial: { rotulo: "Registro policial", texto: "A ocorrência anotada pela polícia. Chega rápido, mas depende de alguém registrar: quem morre dias depois no hospital em geral não volta para o registro." },
+  estimativa_oms: { rotulo: "Estimativa da OMS", texto: "Para comparar países, a Organização Mundial da Saúde corrige o sub-registro de cada um com um modelo próprio. O número estimado não é o que o país contou — e por isso não bate com a estatística nacional." },
 };
 
 export type TermoId = keyof typeof GLOSSARIO;

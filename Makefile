@@ -29,6 +29,11 @@ stf: ## ministros do STF: folha (ministros + gabinetes) + transform. Se o Action
 	cp data/public/custo_ministro_stf_*.json data/public/meta_stf_*.json site/public/data/
 .PHONY: senado stf
 
+transito: ## mortes no trânsito: ODS 3.6.1 (SIM/Ministério da Saúde) pelo SIDRA
+	python -m etl.transito.extract
+	cp data/public/transito.json site/public/data/
+.PHONY: transito
+
 divida: ## dívida: juros nominais (RTN) e estoque da DPF (Tesouro Transparente)
 	python -m etl.divida.extract
 	cp data/public/divida.json site/public/data/

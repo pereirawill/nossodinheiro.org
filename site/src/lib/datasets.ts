@@ -208,6 +208,15 @@ export const DATASETS: Dataset[] = [
              { nome: "Tesouro Transparente — Estoque da Dívida Pública Federal", url: "https://www.tesourotransparente.gov.br/ckan/dataset/estoque-da-divida-publica-federal" }],
     periodo: "1997/2026", atualizacao: "mensal",
   },
+  {
+    slug: "/transito/", nome: "Mortes no trânsito",
+    descricao: "Mortes por acidente de trânsito no Brasil desde 2000, por ano, estado, sexo e faixa de idade, a partir do atestado de óbito (SIM/Ministério da Saúde), com a comparação com o registro policial e com outros países.",
+    arquivos: ["transito.json"],
+    fontes: [{ nome: "IBGE — indicador ODS 3.6.1 (tabela 4408 do SIDRA), a partir do SIM/Ministério da Saúde", url: "https://sidra.ibge.gov.br/tabela/4408" },
+             { nome: "MJSP — Sinesp VDE (registro policial)", url: "https://www.gov.br/mj/pt-br/assuntos/sua-seguranca/seguranca-publica/estatistica" },
+             { nome: "Banco Mundial / OMS — mortes no trânsito por 100 mil", url: "https://data.worldbank.org/indicator/SH.STA.TRAF.P5" }],
+    periodo: "2000/2024", atualizacao: "anual",
+  },
 ];
 
 export const porSlug = (slug: string) => DATASETS.find((d) => d.slug === slug);

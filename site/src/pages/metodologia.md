@@ -268,6 +268,19 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   se fosse despesa. Dívida bruta em % do PIB não entra aqui porque depende de um PIB que é revisado.
 - Completo: `docs/metodologia/painel-divida.md`.
 
+## Mortes no trânsito
+
+- **O que é:** quantas pessoas morrem em acidente de trânsito por ano desde 2000, por estado, sexo e faixa de idade, com a
+  comparação entre as duas contagens oficiais e com outros países.
+- **Fonte:** IBGE, indicador ODS 3.6.1 (tabela 4408 do SIDRA), a partir do Sistema de Informações sobre Mortalidade do Ministério
+  da Saúde; Sinesp VDE para o registro policial; OMS/Banco Mundial para a comparação internacional.
+- **Atenção:** **não entra no painel de Segurança** porque não é morte intencional — somar as duas contas inflaria a violência.
+  As duas contagens brasileiras não batem: 37.150 mortes pelo atestado de óbito (2024) contra 25.074 pelo registro policial
+  (2025), diferença de 32% que só em parte sabemos explicar. O número internacional é **estimativa da OMS**, que corrige o
+  sub-registro de cada país e por isso não coincide com a contagem nacional. A página não atribui a queda desde o pico de 2012 a
+  nenhuma causa.
+- Completo: `docs/metodologia/painel-transito.md`.
+
 ## Imposto de Renda — o que os brasileiros declaram ganhar
 
 - **O que é:** quantas pessoas declararam cada faixa de renda, quanto cada faixa pagou de imposto (alíquota efetiva), de onde vem
@@ -426,6 +439,7 @@ sempre só PDF ou metodologia diferente.
 | Água e esgoto ano a ano | IBGE — PNAD Contínua | 2016 (esgoto, 2019) | PNAD antiga com outra pergunta; sem 2020 e 2021 |
 | Juros nominais do Governo Central | Tesouro Nacional (RTN, tabela 2.1) | 1997 | o RTN começa em 1997 |
 | Estoque da Dívida Pública Federal | Tesouro Transparente (CSV por título) | set/2017 | relatórios mensais em PDF |
+| Mortes no trânsito | IBGE/ODS 3.6.1, do SIM (Ministério da Saúde) | 2000 | o SIM existe desde 1979, sem indicador calculado |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 
 ## Como conferir

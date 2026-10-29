@@ -345,6 +345,17 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - `/comparacao/`: os 20 países de referência passaram a ser **nomeados** no próprio gráfico, com o critério e o aviso de que a
   lista é editorial (pedido do dono).
 
+## Painel Trânsito (NO AR, sem chave, mensal dia 9; feito 29/10/2026)
+- Pergunta do dono: "mortes no trânsito seria em segurança ou transporte?" → **painel próprio** `/transito/` (menu depois de
+  Segurança), porque morte no trânsito **não é intencional** e somá-la ao MVI inflaria a violência; as duas aparecem lado a lado.
+- `etl/transito/extract.py` → `transito.json`: **SIDRA 4408** (indicador ODS 3.6.1, do **SIM/Ministério da Saúde**), óbitos (v
+  11728) e taxa (9734), **2000→2024**, por sexo (c2), faixa de idade (c58) e UF. 2024: **37.150 mortes** (17,5/100 mil), 102 por
+  dia, 82,4% homens; pico em **2012** (44.812); TO 38,7 × RJ 7,8.
+- **Duas contagens oficiais que não batem**: atestado de óbito 37.150 (2024) × registro policial do Sinesp 25.074 (2025) — o
+  policial fica **32% abaixo**; parte é quem morre depois no hospital, o resto não sabemos medir. Virou linha de `/conferir/`.
+- Internacional pela **estimativa da OMS** (`SH.STA.TRAF.P5`, entrou no `etl/rankings`): Brasil 16,0 (2019) — não bate com o
+  atestado de óbito de propósito, e a página explica.
+
 ## Painel Saneamento (NO AR, sem chave, mensal dia 8; feito 28/10/2026)
 - Pedido do dono: "aba de saneamento, evolução desde 1988, e como saber se o dado do governo não é maquiado?".
 - `etl/saneamento/extract.py` → `saneamento.json`, `/saneamento/` (menu depois de Saúde — 32º item). **IBGE/SIDRA**, duas pesquisas

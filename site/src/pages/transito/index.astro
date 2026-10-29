@@ -1,0 +1,175 @@
+---
+import Base from "../../layouts/Base.astro";
+import Termo from "../../components/Termo.astro";
+import Glossario from "../../components/Glossario.astro";
+import MapaBrasil from "../../components/MapaBrasil.astro";
+import d from "../../../public/data/transito.json";
+import seg from "../../../public/data/seguranca.json";
+import rankings from "../../../public/data/rankings.json";
+
+const quando = new Date(d.gerado_em_utc);
+const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+const num = (v: number) => Math.round(v).toLocaleString("pt-BR");
+const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const pct = (a: number, b: number) => `${n1((100 * a) / b)}%`;
+
+const anos = d.anos as string[];
+const serie = d.serie as Record<string, { obitos: number; taxa: number }>;
+const ult = String(d.ultimo_ano);
+const pico = anos.reduce((m, a) => (serie[a].obitos > serie[m].obitos ? a : m), anos[0]);
+const porDia = serie[ult].obitos / 365;
+const homens = (d.por_sexo as any).homens ?? 0, mulheres = (d.por_sexo as any).mulheres ?? 0;
+const idades = Object.entries(d.por_idade as Record<string, number>);
+const maiorIdade = idades.reduce((m, x) => (x[1] > m[1] ? x : m), idades[0]);
+const estados = d.estados as any[];
+
+// as duas contagens brasileiras
+const sinesp = (seg as any).brasil.transito as number;
+const anoSinesp = (seg as any).ano as number;
+const difContagem = serie[ult].obitos - sinesp;
+
+// comparação internacional (estimativa da OMS, via Banco Mundial)
+const indTransito = (rankings.indices as any[]).find((i) => i.id === "transito_100k");
+const indHomicidio = (rankings.indices as any[]).find((i) => i.id === "homicidios");
+const REF = ["USA", "GBR", "DEU", "FRA", "ESP", "PRT", "JPN", "AUS", "CAN", "CHN", "ARG", "CHL", "MEX", "COL", "ZAF", "IND"];
+const paisesTransito = indTransito ? REF.map((iso) => (indTransito.paises as any[]).find((p) => p.iso3 === iso))
+  .filter(Boolean).sort((a, b) => b.valor - a.valor) : [];
+const brTransito = indTransito?.brasil;
+
+const W = 920, L = 56, R = 16, H = 250, T = 16, B = 28;
+const maxO = Math.max(...anos.map((a) => serie[a].obitos));
+const passo = (W - L - R) / anos.length, largura = passo - 3;
+const y = (v: number) => T + (1 - v / maxO) * (H - T - B);
+---
+<Base title="Mortes no trânsito: quantas são e onde — Nosso Dinheiro" accent="var(--s2)"
+  description="Quantas pessoas morrem no trânsito brasileiro por ano desde 2000, por estado, idade e sexo, as duas contagens oficiais que não batem e a comparação com outros países.">
+  <h1>Mortes no trânsito</h1>
+  <p class="lede">
+    Em {ult}, <strong>{num(serie[ult].obitos)} pessoas</strong> morreram em acidente de trânsito no Brasil pelos
+    atestados de óbito — <strong>{num(porDia)} por dia</strong>, {n1(serie[ult].taxa)} para cada 100 mil habitantes.
+    É quase o mesmo número das {num((seg as any).brasil.mvi)} mortes violentas intencionais de {anoSinesp} — que entram
+    em outra conta, porque a morte no trânsito não é intencional. {pct(homens, homens + mulheres)} das vítimas são homens.
+  </p>
+  <p class="meta">atualizado em {fmt.format(quando)} · fonte: IBGE/ODS 3.6.1, do Sistema de Informações sobre Mortalidade (Ministério da Saúde) · <a href="/metodologia/">metodologia</a> · <a href="/conferir/">como conferir</a></p>
+
+  <div class="hero">
+    <div class="stat big"><b>{num(serie[ult].obitos)}</b><span>mortes no trânsito em {ult} — {num(porDia)} por dia, ou uma a cada {n1(24 * 60 / porDia)} minutos</span></div>
+    <div class="stat"><b>{n1(serie[ult].taxa)}</b><span>mortes por 100 mil habitantes; o pico foi em {pico}, com {num(serie[pico].obitos)} mortes ({n1(serie[pico].taxa)} por 100 mil)</span></div>
+    <div class="stat"><b>{pct(homens, homens + mulheres)}</b><span>das vítimas são homens; a faixa mais atingida é a de {maiorIdade[0].toLowerCase()}, com {num(maiorIdade[1])} mortes</span></div>
+  </div>
+
+  <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
+    <div><b>Por que isto não está no painel de Segurança.</b> Lá contamos <Termo t="mvi">mortes violentas
+    intencionais</Termo> — alguém quis matar. No trânsito a morte é, na definição legal, não intencional, e misturar
+    as duas contas inflaria o número da violência. São painéis separados de propósito, e os dois estão nesta página
+    para quem quiser comparar a ordem de grandeza.
+    <b>Há duas contagens oficiais e elas não batem</b>: o atestado de óbito (Ministério da Saúde) e o registro
+    policial (Sinesp). A diferença está mais abaixo, com o que sabemos sobre ela.</div>
+  </div>
+
+  <h2>Desde 2000</h2>
+  <div class="card">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Mortes no trânsito no Brasil por ano, desde 2000">
+      {[1, 0.75, 0.5, 0.25].map((t) => <g><line x1={L} x2={W - R} y1={y(maxO * t)} y2={y(maxO * t)} stroke="var(--line)" /><text x={L - 6} y={y(maxO * t) + 4} text-anchor="end" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{num(maxO * t)}</text></g>)}
+      {anos.map((a, i) => (<g>
+        <rect x={L + i * passo + 1} y={y(serie[a].obitos)} width={largura} height={y(0) - y(serie[a].obitos)} fill={a === pico ? "#a3302a" : "var(--s2)"}>
+          <title>{a}: {num(serie[a].obitos)} mortes ({n1(serie[a].taxa)} por 100 mil)</title></rect>
+        {Number(a) % 4 === 0 && <text x={L + i * passo + largura / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{a}</text>}
+      </g>))}
+    </svg>
+    <p class="src">
+      O pico foi em {pico} ({num(serie[pico].obitos)} mortes). De lá para {ult} a queda é de
+      {" "}{pct(serie[pico].obitos - serie[ult].obitos, serie[pico].obitos)}, e a taxa por 100 mil caiu de
+      {" "}{n1(serie[pico].taxa)} para {n1(serie[ult].taxa)}. Esta página não atribui a queda a nenhuma causa: a
+      Lei Seca é de 2008, o teste do bafômetro endureceu em 2012 e a frota seguiu crescendo — separar o efeito de cada
+      coisa exige estudo que não é um dado público.
+    </p>
+  </div>
+
+  <h2>Onde se morre mais</h2>
+  <div class="card">
+    <MapaBrasil valores={Object.fromEntries(estados.map((e) => [e.sigla, e.taxa]))} formato={(v) => `${n1(v)}`}
+      titulo={`Mortes no trânsito por 100 mil habitantes em cada estado, ${ult}`}
+      legenda={`mortes no trânsito por 100 mil habitantes (${ult})`} cor="var(--s2)" melhorMenor={true} />
+  </div>
+  <div class="card" style="margin-top:14px">
+    <table>
+      <thead><tr><th>Estado</th><th class="num">Mortes ({ult})</th><th class="num">Por 100 mil</th><th class="num">Vezes o estado com menor taxa</th></tr></thead>
+      <tbody>{estados.map((e) => (<tr><td>{e.nome}</td><td class="num">{num(e.obitos)}</td><td class="num">{n1(e.taxa)}</td>
+        <td class="num">{n1(e.taxa / estados[estados.length - 1].taxa)}×</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      {estados[0].nome} tem {n1(estados[0].taxa / estados[estados.length - 1].taxa)} vezes a taxa de
+      {" "}{estados[estados.length - 1].nome}. Estado com muita rodovia e pouca cidade grande tende a ter taxa mais
+      alta — o acidente é mais grave onde a velocidade é maior e o socorro demora mais —, mas esta página não publica
+      explicação que não esteja no dado.
+    </p>
+  </div>
+
+  <h2>Quem morre</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Faixa de idade</th><th class="num">Mortes ({ult})</th><th class="num">% do total</th></tr></thead>
+      <tbody>{idades.map(([faixa, v]) => (<tr><td>{faixa}</td><td class="num">{num(v)}</td><td class="num">{pct(v, serie[ult].obitos)}</td></tr>))}</tbody>
+    </table>
+    <p class="src">{num(homens)} homens e {num(mulheres)} mulheres em {ult}. Faixa etária e sexo vêm da mesma tabela do IBGE, que os publica a partir do atestado de óbito.</p>
+  </div>
+
+  <h2>As duas contagens oficiais</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Fonte</th><th class="num">Mortes</th><th>O que conta</th></tr></thead>
+      <tbody>
+        <tr><td><b>Ministério da Saúde (SIM)</b>, via IBGE</td><td class="num">{num(serie[ult].obitos)} ({ult})</td>
+          <td class="desc">Atestados de óbito com causa de trânsito. Alcança quem morre dias depois, no hospital, e independe de a polícia ter registrado.</td></tr>
+        <tr><td><b>Sinesp VDE</b>, Ministério da Justiça</td><td class="num">{num(sinesp)} ({anoSinesp})</td>
+          <td class="desc">Mortes registradas pelas polícias estaduais. Chega mais rápido e alimenta o painel de <a href="/seguranca/">Segurança</a>.</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      A diferença é de <b>{num(difContagem)} mortes</b> — o registro policial fica {pct(difContagem, serie[ult].obitos)} abaixo
+      do atestado de óbito, e os anos nem são os mesmos. Parte disso é conhecido: a vítima que morre depois no hospital
+      costuma não voltar ao registro policial. Não temos como medir o resto, e por isso publicamos as duas contagens em
+      vez de escolher uma. O mesmo raciocínio está em <a href="/conferir/">Como conferir</a>.
+    </p>
+  </div>
+
+  {paisesTransito.length > 0 && <>
+    <h2>O Brasil e outros países</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>País</th><th class="num">Mortes no trânsito por 100 mil</th><th class="num">Ano</th></tr></thead>
+        <tbody>
+          {paisesTransito.filter((p) => p.valor >= (brTransito?.valor ?? 0)).map((p) => (<tr><td>{p.pais}</td><td class="num">{n1(p.valor)}</td><td class="num">{p.ano}</td></tr>))}
+          <tr class="destaque"><td><b>Brasil</b></td><td class="num"><b>{n1(brTransito?.valor ?? 0)}</b></td><td class="num">{brTransito?.ano}</td></tr>
+          {paisesTransito.filter((p) => p.valor < (brTransito?.valor ?? 0)).map((p) => (<tr><td>{p.pais}</td><td class="num">{n1(p.valor)}</td><td class="num">{p.ano}</td></tr>))}
+        </tbody>
+      </table>
+      <p class="src">
+        <b>Estes números não são a contagem de cada país</b>: são a estimativa da <b>Organização Mundial da Saúde</b>,
+        que corrige o sub-registro de cada um para que fiquem comparáveis — por isso o valor do Brasil aqui
+        ({n1(brTransito?.valor ?? 0)}) não é igual ao do atestado de óbito ({n1(serie[ult].taxa)}), e o ano é mais
+        antigo ({brTransito?.ano}): a OMS só republica a série de tempos em tempos. O Brasil é o
+        {" "}{(indTransito.total - (brTransito?.posicao ?? 0) + 1)}º em mortes no trânsito entre os {indTransito.total} países com dado.
+        Fonte: {indTransito.fonte} (<a href={indTransito.url}>indicador</a>).
+      </p>
+    </div>
+  </>}
+
+  {indHomicidio && <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Trânsito e homicídio, lado a lado</h3>
+    <p style="margin:0">
+      No Brasil as duas causas matam na mesma ordem de grandeza: {n1(serie[ult].taxa)} por 100 mil no trânsito
+      ({ult}, atestado de óbito) e {n1(indHomicidio.brasil.valor)} por 100 mil em homicídios
+      ({indHomicidio.brasil.ano}, UNODC). Nos países ricos a proporção é outra: a morte no trânsito costuma ser várias
+      vezes mais comum que o homicídio. A comparação país a país de homicídios está em <a href="/rankings/">Rankings</a>.
+    </p>
+  </div>}
+
+  <Glossario termos={["mvi", "registro_policial", "sim_obito", "estimativa_oms"]} />
+</Base>
+<style>
+  td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 420px; }
+  td.num, th.num { white-space: nowrap; }
+  tr.destaque td { background: color-mix(in srgb, var(--s2) 12%, var(--card)); }
+</style>
