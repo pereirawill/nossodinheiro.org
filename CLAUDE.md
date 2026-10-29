@@ -399,6 +399,26 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
   **2026 não existe** em nenhuma fonte e a página diz isso. Quando a Receita publicar a edição 2025, o ETL pega sozinho
   (`CTB.format(ano=2025)` — hoje dá 403); aí vale conferir os dois números lado a lado em `/conferir/`.
 
+## Link por seção e botão de compartilhar (29/10/2026)
+- Pedido do dono: link ao lado de cada seção para compartilhar, e um botão de compartilhar em toda página/aba.
+  **Terceira exceção ao "zero JS"** (as outras duas: ordenação de tabela em `sort.js`, painel Agora): `site/public/compartilhar.js`,
+  carregado globalmente pelo `Base.astro`, sem editar nenhuma das ~40 páginas.
+- Melhoria progressiva: cada `<h2>` do `<main>` vira um link real (`<a href="#id">`) com ícone — se já tinha `id` manual
+  (como `#poder-de-compra`) ou vindo do rehype-slug do Markdown (`metodologia.md`), o script reaproveita; senão gera um
+  slug (remove acento, minúsculas, hífens) com desambiguação (`-2`, `-3`...) por página. Clicar copia a URL completa
+  (origin + pathname + search + hash) para a área de transferência e navega para a âncora — funciona mesmo sem clipboard
+  (fallback com `textarea` + `execCommand`).
+- Botão de compartilhar: círculo fixo no canto inferior direito, injetado uma vez por página. Usa `navigator.share` quando
+  existe (abre o menu nativo do celular); senão copia a URL da página e mostra um aviso (`.nd-toast`). Cores pelas
+  variáveis do tema, então já funciona em modo escuro sem CSS extra.
+- **Achado da verificação**: tentei `opacity:0` no ícone, revelado só no `:hover`/`:focus` — a automação do navegador não
+  consegue simular `:hover` real (`:hover` nunca casa via CDP neste ambiente) e até o `:focus` programático não disparou
+  o seletor combinado em teste, por razão não identificada. Em vez de insistir numa CSS que eu não conseguia confirmar
+  visualmente, troquei para opacidade baixa sempre visível (.5 → 1 no hover/focus) — mais simples, compatível com o
+  pedido literal do dono ("o link do lado de cada seção") e testado por screenshot real em duas páginas.
+- Testado nas 5.652 páginas do build: script presente em todas, nenhum `<h2>` vazio/malformado, ids do Markdown
+  preservados (inclusive com acento — funciona como fragmento de URL).
+
 ## Carga tributária no mundo (29/10/2026)
 - Pedido do dono: dias trabalhados para pagar imposto em outros países. `etl/carga_mundo/extract.py` → `carga_mundo.json`,
   bloco em `/impostos/` logo abaixo dos dias do Brasil, mensal dia 19. **Fonte: OCDE Global Revenue Statistics via API SDMX**

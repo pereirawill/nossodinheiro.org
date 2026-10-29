@@ -82,7 +82,20 @@ if (dataset) {
       .stripe { height: 4px; background: linear-gradient(90deg, var(--s1) 0 20%, var(--s2) 20% 40%, var(--s3) 40% 60%, var(--s4) 60% 80%, var(--s5) 80%); }
       main { max-width: 1040px; margin: 0 auto; padding: 28px 16px 64px; }
       h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.0; letter-spacing: -.005em; margin: 0 0 8px; }
-      h2 { font-size: 19px; font-weight: 800; margin: 40px 0 14px; padding-left: 12px; border-left: 4px solid var(--accent); line-height: 1.2; }
+      h2 { font-size: 19px; font-weight: 800; margin: 40px 0 14px; padding-left: 12px; border-left: 4px solid var(--accent); line-height: 1.2; scroll-margin-top: 14px; }
+      /* Link de seção, injetado por compartilhar.js — só aparece com JS, some na impressão */
+      h2 .h2-link { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-left: 6px;
+        vertical-align: -4px; color: var(--ink-2); border-radius: 6px; opacity: .5; transition: opacity .12s, color .12s; }
+      h2 .h2-link:hover, h2 .h2-link:focus { opacity: 1; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); outline: none; }
+      /* Botão de compartilhar a página, fixo, injetado por compartilhar.js */
+      .nd-compartilhar { position: fixed; right: 18px; bottom: 18px; z-index: 20; width: 46px; height: 46px; border-radius: 50%;
+        background: var(--ink); color: var(--card); border: none; display: flex; align-items: center; justify-content: center;
+        cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.22); }
+      .nd-compartilhar:hover, .nd-compartilhar:focus { background: var(--s1); outline: none; }
+      .nd-toast { position: fixed; left: 50%; bottom: 18px; transform: translate(-50%, 12px); z-index: 30; background: var(--ink); color: var(--card);
+        font: 600 13px/1 var(--mono); padding: 10px 16px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; }
+      .nd-toast.mostrar { opacity: 1; transform: translate(-50%, 0); }
+      @media print { .h2-link, .nd-compartilhar, .nd-toast { display: none !important; } }
       .lede { color: var(--ink-2); max-width: 70ch; margin: 0 0 20px; }
       .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
       .hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin: 20px 0 8px; }
@@ -157,6 +170,7 @@ if (dataset) {
     <main style={`--accent:${accent}`}><slot /></main>
     <footer><div><a href="/conferir/">Como conferir estes números</a> · <a href="/dados/">todos os arquivos</a> · <a href="/metodologia/">metodologia</a> · Fontes: Câmara dos Deputados · Senado Federal · STF · Portal da Transparência (CGU) · SIOP · código MIT · dados e textos CC BY 4.0</div></footer>
     <script src="/sort.js" defer></script>
+    <script src="/compartilhar.js" defer></script>
     <!--
       Sinal do painel "Agora" (/agora/): diz qual página foi aberta e nada mais. Sem cookie, sem IP, sem user-agent.
       O identificador de sessão é aleatório, mora no sessionStorage (morre ao fechar a aba) e só serve para não contar
