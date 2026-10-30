@@ -326,8 +326,8 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
       Em bilhões de <b>reais de {base}</b>, grupo a grupo, pelos balancetes que o Banco Central publica desde 1988.
       Todo o período é de um só governo (Fernando Henrique Cardoso, de 1995 a 2002), e por isso a faixa dos
       presidentes aparece apenas no gráfico do total.
-      Acima, os oito maiores lucros do período; abaixo, em vermelho, os quatro maiores prejuízos — e eles são
-      maiores que os lucros.
+      Acima, os oito maiores lucros do período; abaixo, em vermelho, os quatro maiores prejuízos — quatro grupos
+      perdem quase tanto quanto os oito maiores ganham.
       {parciais.map((a) => (<> O ano de {a} está publicado só pela metade — a primeira data-base em reais é
       dezembro de {a}, logo depois do Plano Real — e por isso fica fora da tabela; nele os grupos somam
       R$ {n1(somaParcial(a) / 1e9)} bi.</>))}
@@ -359,7 +359,7 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
     <p class="src">
       Entre 2000 e 2018 o balancete dá de {faixaAntes} do lucro publicado. Em {convDepois.map((c) => c.ano).join(", ")}
       {" "}dá <b>{convDepois.map((c) => n1(100 * c.razao) + "%").join(", ")}</b> — os dois números passam a ser o
-      mesmo a partir de 2019, quando essa conta deixa de ser usada. Por isso a tabela de 1995 a 1999 é um
+      mesmo a partir de 2019: a fórmula continua subtraindo o terceiro termo, que passa a não fazer diferença. Por isso a tabela de 1995 a 1999 é um
       <b>piso</b>: naqueles anos o lucro medido pelo balancete é menor que o que o Banco Central chamaria de
       lucro líquido, e o quanto só dá para saber de 2000 em diante, onde as duas fontes existem.
       Fonte da faixa dos presidentes: {FONTE_PRESIDENTES.nome}.

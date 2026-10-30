@@ -124,9 +124,9 @@ const vencimentos = Object.entries(est.vencimento_por_ano as Record<string, numb
   <h2>Em que a União gastou {ultJ}, para comparar</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Despesa da União em {ultJ}</th><th class="num">Pago</th><th class="num">Vezes os juros</th></tr></thead>
+      <thead><tr><th>Despesa da União em {ultJ}</th><th class="num">Valor</th><th class="num">Vezes os juros</th></tr></thead>
       <tbody>
-        <tr><td><b>Juros nominais da dívida</b></td><td class="num">{bi(juros[ultJ])}</td><td class="num">—</td></tr>
+        <tr><td><b>Juros nominais da dívida</b><small>apropriados no ano, não pagos no ano</small></td><td class="num">{bi(juros[ultJ])}</td><td class="num">—</td></tr>
         {compara.map(([nome, v]) => (<tr><td>{nome}</td><td class="num">{bi(v)}</td><td class="num">{n1(v / juros[ultJ])}×</td></tr>))}
         <tr><td>Previdência Social</td><td class="num">{bi(fun["Previdência Social"])}</td><td class="num">{n1(fun["Previdência Social"] / juros[ultJ])}×</td></tr>
       </tbody>
@@ -194,6 +194,7 @@ const vencimentos = Object.entries(est.vencimento_por_ano as Record<string, numb
   <Glossario termos={["juros_nominais", "rolagem", "amortizacao", "selic_indexador", "estoque_divida", "encargos_especiais"]} />
 </Base>
 <style>
+  td small { display: block; font-size: 11px; color: var(--ink-2); font-weight: 400; }
   td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 330px; }
   td.num, th.num { white-space: nowrap; }
   .limites { margin: 0; padding-left: 20px; } .limites li { margin: 7px 0; color: var(--ink-2); }

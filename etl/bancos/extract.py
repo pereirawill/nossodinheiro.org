@@ -499,7 +499,7 @@ def main() -> None:
             "regra_lucro": "Lucro Líquido do IF.data acumula no semestre: lucro do ano = junho (jan–jun) + dezembro (jul–dez)",
             "formula_lucro": {str(k): v for k, v in sorted(FORMULA_LUCRO.items()) if k in (200012, ultimo_fechado * 100 + 12)},
             "regra_saldo": "Patrimônio Líquido, Ativo e Carteira de Crédito são saldos de 31 de dezembro",
-            "limite_inicio": "O IF.data começa em março de 2000; antes disso, os balancetes do Cosif (desde dez/1994, em reais) dão o lucro por grupo financeiro, sem o termo de juros ao capital",
+            "limite_inicio": "O IF.data começa em março de 2000; antes disso, os balancetes do Cosif (desde dez/1994, em reais) dão o lucro por grupo financeiro, sem o terceiro termo da fórmula (conta de 4º nível, que os arquivos públicos não abrem)",
             "cosif": "Banco Central, balancetes do Cosif, documento 4040 (conglomerado financeiro), data-base de junho e dezembro",
             "cosif_url": "https://www.bcb.gov.br/estabilidadefinanceira/balancetesbalancospatrimoniais",
         },

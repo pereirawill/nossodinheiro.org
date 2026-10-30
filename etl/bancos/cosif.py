@@ -17,10 +17,10 @@ Três coisas que esta parte do painel resolve, e uma que ela não resolve:
    Banco Central publica a fórmula no próprio IF.data, e ela tem um terceiro termo: menos a conta 8.1.9.55.00-2,
    "Juros ao Capital". Essa conta é de 4º nível e **não existe nos arquivos públicos**, que vão até o 3º.
 3. **O tamanho dessa diferença está medido**, conglomerado a conglomerado, em `convergencia`: o balancete dá de
-   52% a 83% do lucro que o BC publica entre 2000 e 2018 e **exatamente 100%** em 2019, 2020 e 2021 — quando a
-   conta de juros ao capital saiu do Cosif. Por isso o número de 1996 a 1999 é um **piso**: é o lucro depois dos
-   juros sobre capital próprio. Em 1994 e 1995 não há essa ressalva, porque o JCP só passou a existir com a Lei
-   9.249, de dezembro de 1995.
+   61% a 74% do lucro que o BC publica entre 2000 e 2018 e **98,5%, 99,8% e 100,2%** em 2019, 2020 e 2021 — a
+   partir daí o terceiro termo da fórmula deixa de fazer diferença. Por isso o número de 1995 a 1999 é um
+   **piso**, e o tamanho da diferença só é mensurável de 2000 em diante, onde as duas fontes existem. O que essa
+   conta é, não escrevemos: a identificação que circula em material de terceiros não entra aqui.
 
 **O que não dá**: o total do sistema antes de 2000. O BC não publica, nessa época, quais bancos pertencem a
 qual grupo, e somar banco a banco conta duas vezes o resultado que a controladora reconhece da controlada —
@@ -170,7 +170,8 @@ def serie(c: httpx.Client, ate: int = ULTIMO_HISTORICO) -> dict:
 def convergencia(c: httpx.Client, ifdata_por_ano: dict[int, dict[str, float]]) -> list[dict]:
     """
     Quanto o balancete dá, em relação ao que o BC publica como lucro líquido, nos mesmos conglomerados.
-    É a medida do termo que falta (juros ao capital, conta de 4º nível que os arquivos públicos não trazem).
+    É a medida do termo que falta: a conta de 4º nível que a fórmula do IF.data subtrai e que os arquivos
+    públicos de balancete, que vão até o 3º nível, não trazem.
     """
     arquivos = indice(c)
     fora = []
