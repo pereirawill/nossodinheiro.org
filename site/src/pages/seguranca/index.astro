@@ -32,6 +32,12 @@ const maxComp = Math.max(...COMPONENTES.map((c) => c.v));
 const serie = d.serie_uf as Record<string, Record<string, Record<string, number>>>;
 const anos = Object.keys(serie).sort();
 const brasilSerie = anos.map((a) => Object.values(serie[a]).reduce((s, u) => s + (u.mvi || 0), 0));
+// Cobertura: em 2015 ES e GO vêm com MVI zero (25 de 27 UFs). Um total parcial não pode abrir uma variação
+// nacional como se fosse cheio — a variação declarada parte do primeiro ano com as 27.
+const ufsComDado = anos.map((a) => Object.values(serie[a]).filter((u) => u.mvi).length);
+const iCompleto = Math.max(0, ufsComDado.findIndex((n) => n === 27));
+const anoCompleto = anos[iCompleto];
+const ufsSem = (i: number) => Object.entries(serie[anos[i]]).filter(([, u]) => !u.mvi).map(([uf]) => uf);
 const brasilHomic = anos.map((a) => Object.values(serie[a]).reduce((s, u) => s + (u.homicidio_doloso || 0), 0));
 const SW = 920, SH = 230, padL = 56, padB = 24;
 const maxS = Math.max(...brasilSerie) * 1.06;
@@ -138,10 +144,10 @@ const ufSerie = (uf: string, k: string) => anos.map((a) => serie[a]?.[uf]?.[k] ?
       {anos.map((a, i) => <text x={sx(i)} y={SH - 6} text-anchor="middle" font-size="11" fill="var(--ink-2)">{a}</text>)}
     </svg>
     <div class="legend">
-      <span><i style="background:var(--s1)"></i>Total de mortes violentas intencionais: {num(brasilSerie[0])} em {anos[0]} → {num(brasilSerie[brasilSerie.length - 1])} em {anos[anos.length - 1]} ({varPct(brasilSerie[0], brasilSerie[brasilSerie.length - 1])})</span>
-      <span><i style="background:var(--s3)"></i>Só homicídio doloso: {num(brasilHomic[0])} → {num(brasilHomic[brasilHomic.length - 1])}</span>
+      <span><i style="background:var(--s1)"></i>Total de mortes violentas intencionais: {num(brasilSerie[iCompleto])} em {anoCompleto} → {num(brasilSerie[brasilSerie.length - 1])} em {anos[anos.length - 1]} ({varPct(brasilSerie[iCompleto], brasilSerie[brasilSerie.length - 1])})</span>
+      <span><i style="background:var(--s3)"></i>Só homicídio doloso: {num(brasilHomic[iCompleto])} → {num(brasilHomic[brasilHomic.length - 1])}</span>
     </div>
-    <p class="src">Soma das vítimas informadas pelos estados (Sinesp VDE, bases anuais {anos[0]}–{anos[anos.length - 1]}). Anos antigos podem ter cobertura menor, com estados que ainda não enviavam tudo.</p>
+    <p class="src">Soma das vítimas informadas pelos estados (Sinesp VDE, bases anuais {anos[0]}–{anos[anos.length - 1]}). {ufsComDado[0] < 27 ? `Em ${anos[0]} só ${ufsComDado[0]} das 27 UFs informaram (${ufsSem(0).join(" e ")} vêm zeradas), por isso a variação acima parte de ${anoCompleto}, o primeiro ano com as 27; o total de ${anos[0]} aparece no gráfico, mas é parcial.` : "Todos os anos têm as 27 UFs."}</p>
     <details style="margin-top:10px">
       <summary style="cursor:pointer;font-weight:700;color:var(--accent)">Total por estado, ano a ano</summary>
       <div class="largo"><table style="margin-top:8px"><thead><tr><th>Estado</th>{anos.map((a) => <th class="num">{a}</th>)}</tr></thead>
@@ -155,7 +161,7 @@ const ufSerie = (uf: string, k: string) => anos.map((a) => serie[a]?.[uf]?.[k] ?
       <li>Em {d.ano} foram registradas {num(b.mvi)} mortes violentas intencionais no Brasil, {t1(b.taxa_mvi)} por 100 mil habitantes — {t1(b.mvi / 365)} por dia. Homicídio doloso responde por {t1(100 * b.homicidio_doloso / b.mvi)}% delas e a ação policial por {t1(100 * b.intervencao_estado / b.mvi)}%.</li>
       <li>A taxa de {estados[estados.length - 1].nome} ({t1(estados[estados.length - 1].taxa_mvi)}) é {(estados[estados.length - 1].taxa_mvi / estados[0].taxa_mvi).toFixed(1).replace(".", ",")} vezes a de {estados[0].nome} ({t1(estados[0].taxa_mvi)}).</li>
       <li>Entre as capitais, a menor taxa é de {capitais[0]?.nome} ({t1(capitais[0]?.taxa_mvi)}) e a maior, de {capitais[capitais.length - 1]?.nome} ({t1(capitais[capitais.length - 1]?.taxa_mvi)}).</li>
-      <li>De {anos[0]} a {anos[anos.length - 1]} o total registrado variou {varPct(brasilSerie[0], brasilSerie[brasilSerie.length - 1])}, de {num(brasilSerie[0])} para {num(brasilSerie[brasilSerie.length - 1])}.</li>
+      <li>De {anoCompleto} a {anos[anos.length - 1]} o total registrado variou {varPct(brasilSerie[iCompleto], brasilSerie[brasilSerie.length - 1])}, de {num(brasilSerie[iCompleto])} para {num(brasilSerie[brasilSerie.length - 1])}.</li>
       <li>Fora dessa conta, o país registrou {num(b.transito)} mortes no trânsito, {num(b.suicidio)} suicídios e {num(b.mortes_a_esclarecer)} mortes a esclarecer em {d.ano}.</li>
     </ul>
     <p class="src">Frases calculadas automaticamente a partir dos dados acima.</p>

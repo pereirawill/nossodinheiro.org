@@ -104,8 +104,9 @@ const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
     </svg>
     <p class="src">Na barra da União entra o que ela <b>aplica direto</b> ({compact(uniaoDireta)}); os outros{" "}
       {compact(uniaoRepasse)} que ela pagou na função Saúde em {ANO} são repasse fundo a fundo e já estão
-      contados nas barras de estados e prefeituras — por isso as três podem ser lidas juntas sem contar o mesmo
-      real duas vezes. Fontes: União — SIOP, execução orçamentária de {ANO}, função 10 (Saúde), <Termo t="despesa_paga">despesa paga</Termo>, por modalidade de aplicação. Estados e prefeituras — SICONFI/Tesouro Nacional, Declaração de Contas Anuais de {ANO}, anexo I-E, mesma função. "Por habitante" usa a população estimada pelo IBGE ({num(popBR)}), só para dar escala.</p>
+      contados nas barras de estados e prefeituras. Isso tira a sobreposição da União com os outros dois níveis,
+      mas <b>não torna as três barras somáveis</b>: os estados também repassam aos fundos municipais, e esse
+      dinheiro segue aparecendo nas duas barras de baixo (a tabela por estado diz onde). Fontes: União — SIOP, execução orçamentária de {ANO}, função 10 (Saúde), <Termo t="despesa_paga">despesa paga</Termo>, por modalidade de aplicação. Estados e prefeituras — SICONFI/Tesouro Nacional, Declaração de Contas Anuais de {ANO}, anexo I-E, mesma função. "Por habitante" usa a população estimada pelo IBGE ({num(popBR)}), só para dar escala.</p>
   </div>
 
   <h2>Quem tem plano de saúde e quem depende só do SUS ({d.planos.referencia})</h2>

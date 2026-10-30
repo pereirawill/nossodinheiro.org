@@ -153,9 +153,10 @@ const FONTES_ATE = [
     </table>
     <p class="src">
       <b>Não some as três linhas</b> como se fossem o investimento do país em saneamento: boa parte da obra é feita
-      pelas companhias estaduais com dinheiro de tarifa e de financiamento, fora do orçamento — o resultado delas está
-      em <a href="/estatais/">Estatais</a> (Sabesp, Copasa, Sanepar, Casan, Saneago, Cagece, Cedae e Corsan publicam
-      balanço). Quem mais pagou pela função em 2025: {topMun.slice(0, 4).map((m) => `${m.nome} (${compact(m.pago_saneamento)})`).join(", ")}.
+      pelas companhias de saneamento com dinheiro de tarifa e de financiamento, fora do orçamento. As que ainda são
+      estaduais e publicam balanço (Copasa, Sanepar, Casan, Saneago, Cagece, Cedae) estão em <a href="/estatais/">Estatais</a>;
+      a Sabesp (2024) e a Corsan (2023) foram privatizadas e saíram daquela lista — o investimento delas continua
+      existindo, só não é mais público. Quem mais pagou pela função em 2025: {topMun.slice(0, 4).map((m) => `${m.nome} (${compact(m.pago_saneamento)})`).join(", ")}.
       Despesa por município está em <a href="/municipios/">Municípios</a>.
     </p>
   </div>
