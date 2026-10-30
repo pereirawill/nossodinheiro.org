@@ -12,6 +12,7 @@ import categorias from "../../../public/data/poderes_categoria_2025.json";
 import poderesJ from "../../../public/data/poderes_2025.json";
 import estadosJ from "../../../public/data/estados_2025.json";
 import municipiosJ from "../../../public/data/municipios_2025.json";
+import metaMunJ from "../../../public/data/municipios_meta_2025.json";
 const ANO_GASTO = 2025;
 const compact = (v: number) => {
   const a = Math.abs(v);
@@ -67,7 +68,10 @@ const sM = (k: string) => (municipiosJ as any[]).reduce((t, m) => t + (m[k] || 0
 const jurosPagos = (categorias as any[]).filter((c) => c.subcategoria === "Juros e Encargos da Dívida")
   .reduce((t, c) => t + c.pago, 0);
 const uniaoPoliticas = (poderesJ as any[]).filter((p) => p.poder !== "Dívida/Transferências").reduce((t, p) => t + p.pago, 0);
-const baseGasto = uniaoPoliticas + jurosPagos
+// Os repasses fundo a fundo (saúde, educação e outros) estão dentro dos órgãos do Executivo, logo dentro de
+// uniaoPoliticas — e também no gasto de quem recebeu. Saem da base; os da função 28 já saíram com o órgão.
+const repassesNaBase = (funcoes as any[]).filter((f) => f.funcao !== "28").reduce((t, f) => t + (f.pago_transferido_entes || 0), 0);
+const baseGasto = uniaoPoliticas - repassesNaBase + jurosPagos
   + (estadosJ as any[]).reduce((t, e) => t + e.pago_total - (e.pago_encargos || 0), 0)
   + (municipiosJ as any[]).reduce((t, m) => t + (m.pago_total || 0), 0);
 const DESTINOS = [
@@ -172,10 +176,12 @@ const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
       </tbody>
     </table>
     <p class="src">
-      Base: {compact(baseGasto)} — o que a União pagou em políticas públicas e na máquina, mais os juros que ela
-      pagou no ano, mais os estados (sem encargos especiais) e as prefeituras. <b>Fora da conta, de propósito</b>:
-      o refinanciamento da dívida, que é rolagem e não gasto; e os repasses da União a estados e municípios, que
-      já estão contados no nível que gastou. A folha de pessoal não aparece como linha porque está dentro de cada
+      Base: {compact(baseGasto)} — o que a União pagou em políticas públicas e na máquina <b>sem os{" "}
+      {compact(repassesNaBase)} que ela repassou</b> a estados e municípios (já contados em quem gastou), mais os
+      juros que ela pagou no ano, mais os estados (sem encargos especiais) e {metaMunJ.municipios_com_dca.toLocaleString("pt-BR")}{" "}
+      prefeituras que prestaram contas. <b>Fora da conta, de propósito</b>: o refinanciamento da dívida, que é
+      rolagem e não gasto. A linha de juros é só a da União — os juros que os estados pagam estão nos encargos
+      especiais deles, que o DCA não abre, então é um piso. A folha de pessoal não aparece como linha porque está dentro de cada
       função — o professor está em educação e o médico, em saúde. Encargos especiais dos estados ficam fora por
       falta de abertura, e os dos municípios não estão separados no DCA.
     </p>
@@ -186,7 +192,9 @@ const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
     <table>
       <thead><tr><th>O que se afirma</th><th>O que o dado mostra</th><th>Situação</th></tr></thead>
       <tbody>{AFIRMACOES.itens.map((a) => (<tr>
-        <td class="desc">{a.afirma}</td><td class="desc">{a.dado}</td>
+        <td class="desc">{a.afirma}</td><td class="desc">{a.dado_calculado === "cada100"
+          ? `Pelo gasto dos três níveis em ${ANO_GASTO}, calculado acima: R$ ${r2(DESTINOS.find((d) => d.nome.startsWith("Aposentadoria"))!.v)} aposentadoria e pensão, R$ ${r2(jurosPagos)} juros, R$ ${r2(DESTINOS.find((d) => d.nome === "Educação")!.v)} educação e R$ ${r2(DESTINOS.find((d) => d.nome === "Saúde")!.v)} saúde. ${a.dado}`
+          : a.dado}</td>
         <td><span class={`selo ${a.veredito}`}>{VEREDITO[a.veredito] ?? a.veredito}</span></td></tr>))}</tbody>
     </table>
     <p class="src">{AFIRMACOES.origem}</p>

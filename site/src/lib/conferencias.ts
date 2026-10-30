@@ -292,7 +292,8 @@ export const LIMITES: string[] = [
  * chegam por mensagem, notícia ou resposta de inteligência artificial — o que elas dizem, o que o dado mostra e
  * em que ponto as duas coisas se separam. Os valores do nosso lado são lidos dos JSONs pela própria página.
  */
-export type Afirmacao = { afirma: string; dado: string; veredito: "confere" | "ordem certa" | "nao_confere" | "sem_fonte"; };
+export type Afirmacao = { afirma: string; dado: string; dado_calculado?: "cada100";
+  veredito: "confere" | "ordem certa" | "nao_confere" | "sem_fonte"; };
 export const AFIRMACOES: { titulo: string; origem: string; itens: Afirmacao[] } = {
   titulo: "Para onde vai o dinheiro: o que circula e o que o dado mostra",
   origem: "Texto recebido em 30/10/2026, com números declarados pelo próprio autor como \"de memória\". " +
@@ -320,8 +321,8 @@ export const AFIRMACOES: { titulo: string; origem: string; itens: Afirmacao[] } 
       dado: "Na PNAD Contínua, o rendimento médio no setor público é R$ 5.301 e no privado com carteira R$ 3.176 — 1,67 vez. A comparação não controla escolaridade nem função, então nenhum dos dois números mede \"equivalente\".",
       veredito: "ordem certa" },
     { afirma: "De cada R$ 100, R$ 40 vão para aposentadoria, R$ 20 para juros e R$ 25 para salário de servidor.",
-      dado: "Pelo gasto dos três níveis em 2025: R$ 25,69 aposentadoria e pensão, R$ 7,39 juros, R$ 13,84 educação e R$ 11,41 saúde. A folha de pessoal não aparece separada porque está dentro de cada função — o professor está em educação, o médico em saúde.",
-      veredito: "nao_confere" },
+      dado: "A folha de pessoal não aparece separada porque está dentro de cada função — o professor está em educação, o médico em saúde.",
+      dado_calculado: "cada100", veredito: "nao_confere" },
     { afirma: "Pessoal nos três níveis ~10% do PIB; assistência ~2%; investimento público ~2%; renúncias fiscais ~4% a 5%.",
       dado: "Não temos essas quebras em fonte aberta comparável, e por isso não publicamos número nenhum nessas quatro linhas.",
       veredito: "sem_fonte" },
