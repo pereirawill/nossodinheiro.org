@@ -287,6 +287,47 @@ export const LIMITES: string[] = [
   "Fraude dentro do dado de origem. O que fazemos é cruzar fontes independentes; onde só existe uma, dizemos que só existe uma.",
 ];
 
+/**
+ * Afirmações que circulam sobre o dinheiro público, conferidas contra a fonte primária. Entram aqui as que
+ * chegam por mensagem, notícia ou resposta de inteligência artificial — o que elas dizem, o que o dado mostra e
+ * em que ponto as duas coisas se separam. Os valores do nosso lado são lidos dos JSONs pela própria página.
+ */
+export type Afirmacao = { afirma: string; dado: string; veredito: "confere" | "ordem certa" | "nao_confere" | "sem_fonte"; };
+export const AFIRMACOES: { titulo: string; origem: string; itens: Afirmacao[] } = {
+  titulo: "Para onde vai o dinheiro: o que circula e o que o dado mostra",
+  origem: "Texto recebido em 30/10/2026, com números declarados pelo próprio autor como \"de memória\". " +
+    "Conferido contra SIOP, SICONFI, Tesouro, Receita Federal, IBGE e Banco Mundial, nas versões publicadas aqui.",
+  itens: [
+    { afirma: "Juros da dívida custam de 6% a 8% do PIB.",
+      dado: "7,6% do PIB em 2025 — os juros nominais do Governo Central apurados pelo Tesouro.",
+      veredito: "confere" },
+    { afirma: "Em ano de juro alto, os juros passam saúde e educação somadas.",
+      dado: "Nos três níveis de governo, saúde e educação somaram 10,6% do PIB em 2025, contra 7,6% dos juros nominais — e 3,1% se a comparação for com os juros efetivamente pagos no Orçamento. A frase só se sustenta comparando juros apropriados com a despesa paga de um nível só.",
+      veredito: "nao_confere" },
+    { afirma: "A previdência custa cerca de 13% do PIB.",
+      dado: "O que dá para somar com dado aberto é 10,7% do PIB (União e estados). Faltam os regimes próprios dos municípios, e o número mistura o INSS com a aposentadoria do servidor, que são regimes diferentes.",
+      veredito: "ordem certa" },
+    { afirma: "O Brasil gasta cerca de 6% do PIB em educação, acima da média da OCDE.",
+      dado: "5,8% somando os três níveis; 5,6% pelo Banco Mundial. A mediana dos 20 países de referência é 5,0%.",
+      veredito: "confere" },
+    { afirma: "Gasta cerca de 4% em saúde, contra 7% na OCDE.",
+      dado: "4,8% nos três níveis; 4,3% de gasto público pelo Banco Mundial. A mediana dos 20 de referência é 6,4%.",
+      veredito: "ordem certa" },
+    { afirma: "O país paga mais de R$ 700 bilhões por ano só de juros.",
+      dado: "R$ 891,9 bilhões de juros nominais em 2025; R$ 362,7 bilhões efetivamente pagos no Orçamento. São dois números diferentes e os dois são oficiais.",
+      veredito: "confere" },
+    { afirma: "O servidor federal ganha cerca de duas vezes o equivalente no setor privado.",
+      dado: "Na PNAD Contínua, o rendimento médio no setor público é R$ 5.301 e no privado com carteira R$ 3.176 — 1,67 vez. A comparação não controla escolaridade nem função, então nenhum dos dois números mede \"equivalente\".",
+      veredito: "ordem certa" },
+    { afirma: "De cada R$ 100, R$ 40 vão para aposentadoria, R$ 20 para juros e R$ 25 para salário de servidor.",
+      dado: "Pelo gasto dos três níveis em 2025: R$ 25,69 aposentadoria e pensão, R$ 7,39 juros, R$ 13,84 educação e R$ 11,41 saúde. A folha de pessoal não aparece separada porque está dentro de cada função — o professor está em educação, o médico em saúde.",
+      veredito: "nao_confere" },
+    { afirma: "Pessoal nos três níveis ~10% do PIB; assistência ~2%; investimento público ~2%; renúncias fiscais ~4% a 5%.",
+      dado: "Não temos essas quebras em fonte aberta comparável, e por isso não publicamos número nenhum nessas quatro linhas.",
+      veredito: "sem_fonte" },
+  ],
+};
+
 /** Correções que já fizemos no próprio site, com a data e como apareceram. */
 export const CORRECOES: { data: string; painel: string; oQue: string; como: string }[] = [
   {

@@ -1,12 +1,24 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { CHECAGENS, REGRAS, LIMITES, CORRECOES, type Status } from "../../lib/conferencias";
+import { CHECAGENS, REGRAS, LIMITES, CORRECOES, AFIRMACOES, type Status } from "../../lib/conferencias";
 import saneamento from "../../../public/data/saneamento.json";
 import estatais from "../../../public/data/estatais.json";
 import impostos from "../../../public/data/impostos.json";
 import poderes from "../../../public/data/poderes_2026.json";
 import bancos from "../../../public/data/bancos.json";
 import { DATASETS } from "../../lib/datasets";
+import funcoes from "../../../public/data/poderes_funcao_2025.json";
+import categorias from "../../../public/data/poderes_categoria_2025.json";
+import poderesJ from "../../../public/data/poderes_2025.json";
+import estadosJ from "../../../public/data/estados_2025.json";
+import municipiosJ from "../../../public/data/municipios_2025.json";
+const ANO_GASTO = 2025;
+const compact = (v: number) => {
+  const a = Math.abs(v);
+  if (a >= 1e12) return `R$ ${(v / 1e12).toFixed(2).replace(".", ",")} tri`;
+  if (a >= 1e9) return `R$ ${(v / 1e9).toFixed(1).replace(".", ",")} bi`;
+  return `R$ ${Math.round(v / 1e6).toLocaleString("pt-BR")} mi`;
+};
 
 const n1 = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const tri = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tri`;
@@ -45,6 +57,34 @@ const vivos: Record<string, { nosso: string; outro?: string; diferenca: string }
                 diferenca: bMenor && bMaior ? `de ${n1(Math.abs(bMenor.dif_pct))}% a ${n1(Math.abs(bMaior.dif_pct))}% nos cinco bancos` : "—" },
   Poderes: { nosso: `${tri(dotacao26 / 1e12)} de orçamento e ${tri(pago26 / 1e12)} pagos`, diferenca: "1,6% e 3,8%" },
 };
+// Para onde vai cada R$ 100 do gasto público. Base: o que a União paga em políticas e máquina, mais os juros
+// que ela paga no ano, mais estados (sem encargos especiais) e prefeituras. Fora: refinanciamento da dívida,
+// que é rolagem, e os repasses da União, que já estão contados no nível que gastou.
+const fn = (cod: string) => (funcoes as any[]).find((f) => f.funcao === cod);
+const direta = (cod: string) => { const f = fn(cod); return f ? (f.pago_aplicacao_direta ?? f.pago) : 0; };
+const sE = (k: string) => (estadosJ as any[]).reduce((t, e) => t + (e[k] || 0), 0);
+const sM = (k: string) => (municipiosJ as any[]).reduce((t, m) => t + (m[k] || 0), 0);
+const jurosPagos = (categorias as any[]).filter((c) => c.subcategoria === "Juros e Encargos da Dívida")
+  .reduce((t, c) => t + c.pago, 0);
+const uniaoPoliticas = (poderesJ as any[]).filter((p) => p.poder !== "Dívida/Transferências").reduce((t, p) => t + p.pago, 0);
+const baseGasto = uniaoPoliticas + jurosPagos
+  + (estadosJ as any[]).reduce((t, e) => t + e.pago_total - (e.pago_encargos || 0), 0)
+  + (municipiosJ as any[]).reduce((t, m) => t + (m.pago_total || 0), 0);
+const DESTINOS = [
+  { nome: "Aposentadoria e pensão", v: direta("09") + sE("pago_previdencia") },
+  { nome: "Educação", v: direta("12") + sE("pago_educacao") + sM("pago_educacao") },
+  { nome: "Saúde", v: direta("10") + sE("pago_saude") + sM("pago_saude") },
+  { nome: "Juros da dívida", v: jurosPagos },
+  { nome: "Administração", v: direta("04") + sE("pago_administracao") + sM("pago_administracao") },
+  { nome: "Judiciário e Ministério Público", v: direta("02") + sE("pago_judiciaria") + sE("pago_essencial_justica") },
+  { nome: "Segurança pública", v: direta("06") + sE("pago_seguranca") },
+  { nome: "Legislativo", v: direta("01") + sE("pago_legislativa") + sM("pago_legislativo") },
+].sort((a, b) => b.v - a.v);
+const restoGasto = baseGasto - DESTINOS.reduce((t, d) => t + d.v, 0);
+const r2 = (v: number) => (100 * v / baseGasto).toFixed(2).replace(".", ",");
+const VEREDITO: Record<string, string> = { confere: "confere", ordem_certa: "ordem certa",
+  nao_confere: "não confere", sem_fonte: "sem fonte para conferir" };
+
 const ROTULO: Record<Status, string> = {
   bate: "confere", explicada: "diferença explicada", nao_explicada: "diferença sem explicação", em_aberto: "em aberto",
 };
@@ -116,6 +156,42 @@ const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
     </ol>
   </div>
 
+  <h2 id="afirmacoes">{AFIRMACOES.titulo}</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      Chegam aqui listas de "para onde vai o dinheiro" — por mensagem, notícia ou resposta de inteligência
+      artificial. A tabela abaixo é a conta, feita dos arquivos deste site: de cada <b>R$ 100</b> que os governos
+      gastaram em {ANO_GASTO}, quanto foi para cada coisa.
+    </p>
+    <table>
+      <thead><tr><th>Para onde vai</th><th class="num">De cada R$ 100</th><th class="num">No ano</th></tr></thead>
+      <tbody>
+        {DESTINOS.map((d) => (<tr><td>{d.nome}</td><td class="num"><b>R$ {r2(d.v)}</b></td><td class="num">{compact(d.v)}</td></tr>))}
+        <tr><td>Todo o resto (assistência social, transporte, defesa, agricultura, cultura, urbanismo…)</td>
+          <td class="num"><b>R$ {r2(restoGasto)}</b></td><td class="num">{compact(restoGasto)}</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      Base: {compact(baseGasto)} — o que a União pagou em políticas públicas e na máquina, mais os juros que ela
+      pagou no ano, mais os estados (sem encargos especiais) e as prefeituras. <b>Fora da conta, de propósito</b>:
+      o refinanciamento da dívida, que é rolagem e não gasto; e os repasses da União a estados e municípios, que
+      já estão contados no nível que gastou. A folha de pessoal não aparece como linha porque está dentro de cada
+      função — o professor está em educação e o médico, em saúde. Encargos especiais dos estados ficam fora por
+      falta de abertura, e os dos municípios não estão separados no DCA.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Afirmação por afirmação</h3>
+    <table>
+      <thead><tr><th>O que se afirma</th><th>O que o dado mostra</th><th>Situação</th></tr></thead>
+      <tbody>{AFIRMACOES.itens.map((a) => (<tr>
+        <td class="desc">{a.afirma}</td><td class="desc">{a.dado}</td>
+        <td><span class={`selo ${a.veredito}`}>{VEREDITO[a.veredito] ?? a.veredito}</span></td></tr>))}</tbody>
+    </table>
+    <p class="src">{AFIRMACOES.origem}</p>
+  </div>
+
   <h2>O que nenhuma conferência nossa alcança</h2>
   <div class="card">
     <ul class="limites">{LIMITES.map((l) => <li>{l}</li>)}</ul>
@@ -137,6 +213,10 @@ const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
   </div>
 </Base>
 <style>
+  span.selo { display: inline-block; white-space: nowrap; font-size: 12px; padding: 2px 8px; border-radius: 10px;
+              background: color-mix(in srgb, var(--s2) 18%, var(--card)); }
+  span.selo.nao_confere { background: color-mix(in srgb, #a3302a 18%, var(--card)); }
+  span.selo.sem_fonte { background: color-mix(in srgb, var(--ink-2) 14%, var(--card)); }
   td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 360px; }
   td.num { white-space: nowrap; font-family: var(--mono); }
   .selo { font-size: 11.5px; font-family: var(--mono); padding: 2px 7px; border-radius: 10px; white-space: nowrap;
