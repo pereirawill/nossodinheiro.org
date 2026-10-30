@@ -2,6 +2,7 @@
 import Base from "../layouts/Base.astro";
 import Termo from "../components/Termo.astro";
 import Glossario from "../components/Glossario.astro";
+import { cada100 } from "../lib/cada100";
 import funcoes from "../../public/data/poderes_funcao_2025.json";
 import poderes from "../../public/data/poderes_2025.json";
 import categorias from "../../public/data/poderes_categoria_2025.json";
@@ -87,6 +88,8 @@ const ufDireta = (cod: string) => {
   return f ? (f.pago_aplicacao_direta ?? f.pago) : 0;
 };
 const ufTransferido = (cod: string) => (funcoes.find((x) => x.funcao === cod) as any)?.pago_transferido_entes ?? 0;
+const C100 = cada100({ funcoes: funcoes as any[], poderes: poderes as any[], categorias: categorias as any[],
+                    estados: estados as any[], municipios: municipios as any[] });
 const niveis = [
   { nome: "Saúde", uniao: ufDireta("10"), repasse: ufTransferido("10"), estados: somaF("pago_saude"), municipios: somaM("pago_saude") },
   { nome: "Educação", uniao: ufDireta("12"), repasse: ufTransferido("12"), estados: somaF("pago_educacao"), municipios: somaM("pago_educacao") },
@@ -151,6 +154,29 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
   <div class="card resumo">
     <ul>{resumo.map((r) => <li>{r}</li>)}</ul>
     <p class="src">Só aritmética sobre os dados oficiais desta página; nenhuma avaliação sobre se é muito ou pouco. Fontes nos cartões e nas abas.</p>
+  </div>
+
+  <h2>Para onde vai cada R$ 100 ({ANO})</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      De cada <b>R$ 100</b> que União, estados e prefeituras gastaram em {ANO}, somados sem contar o mesmo real duas
+      vezes, quanto foi para cada coisa. O maior item não é escola, hospital nem juros: é <b>aposentadoria e pensão</b>.
+    </p>
+    <svg viewBox={`0 0 920 ${(C100.destinos.length + 1) * 30 + 8}`} width="100%" role="img" aria-label={`Divisão de cada R$ 100 do gasto público em ${ANO}`}>
+      {[...C100.destinos, { nome: "Todo o resto", v: C100.resto }].map((d, i) => { const w = (C100.por100(d.v) / 30) * 620; return (<g>
+        <text x="0" y={i * 30 + 20} font-size="13" fill="var(--ink)">{d.nome}</text>
+        <rect x="270" y={i * 30 + 6} width={w} height="18" fill={d.nome === "Todo o resto" ? "var(--ink-3, #9aa39a)" : "var(--s2)"} opacity={d.nome === "Todo o resto" ? 0.6 : 0.85}>
+          <title>{d.nome}: R$ {C100.r2(d.v)} de cada R$ 100 — {compact(d.v)} no ano</title></rect>
+        <text x={276 + w} y={i * 30 + 20} font-size="13" font-family="IBM Plex Mono, monospace" fill="var(--ink)">R$ {C100.r2(d.v)}</text>
+      </g>); })}
+    </svg>
+    <p class="src">
+      Base de {compact(C100.base)}: a União em políticas e máquina <b>sem os {compact(C100.repasses)} que repassou</b> a
+      estados e municípios (já contados em quem gastou), mais os juros que ela pagou no ano, mais estados (sem encargos
+      especiais) e prefeituras. Fora: o refinanciamento da dívida, que é rolagem. A folha de pessoal não é uma linha — o
+      professor está em educação e o médico em saúde. Juros só da União, portanto piso. A conta inteira e a conferência
+      de uma lista que circula estão em <a href="/conferir/#afirmacoes">Como conferir</a>.
+    </p>
   </div>
 
   <h2>Em que a União gasta ({ANO}, sem dívida e transferências)</h2>

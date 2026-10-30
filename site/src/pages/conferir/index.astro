@@ -7,6 +7,7 @@ import impostos from "../../../public/data/impostos.json";
 import poderes from "../../../public/data/poderes_2026.json";
 import bancos from "../../../public/data/bancos.json";
 import { DATASETS } from "../../lib/datasets";
+import { cada100 } from "../../lib/cada100";
 import funcoes from "../../../public/data/poderes_funcao_2025.json";
 import categorias from "../../../public/data/poderes_categoria_2025.json";
 import poderesJ from "../../../public/data/poderes_2025.json";
@@ -58,34 +59,9 @@ const vivos: Record<string, { nosso: string; outro?: string; diferenca: string }
                 diferenca: bMenor && bMaior ? `de ${n1(Math.abs(bMenor.dif_pct))}% a ${n1(Math.abs(bMaior.dif_pct))}% nos cinco bancos` : "—" },
   Poderes: { nosso: `${tri(dotacao26 / 1e12)} de orçamento e ${tri(pago26 / 1e12)} pagos`, diferenca: "1,6% e 3,8%" },
 };
-// Para onde vai cada R$ 100 do gasto público. Base: o que a União paga em políticas e máquina, mais os juros
-// que ela paga no ano, mais estados (sem encargos especiais) e prefeituras. Fora: refinanciamento da dívida,
-// que é rolagem, e os repasses da União, que já estão contados no nível que gastou.
-const fn = (cod: string) => (funcoes as any[]).find((f) => f.funcao === cod);
-const direta = (cod: string) => { const f = fn(cod); return f ? (f.pago_aplicacao_direta ?? f.pago) : 0; };
-const sE = (k: string) => (estadosJ as any[]).reduce((t, e) => t + (e[k] || 0), 0);
-const sM = (k: string) => (municipiosJ as any[]).reduce((t, m) => t + (m[k] || 0), 0);
-const jurosPagos = (categorias as any[]).filter((c) => c.subcategoria === "Juros e Encargos da Dívida")
-  .reduce((t, c) => t + c.pago, 0);
-const uniaoPoliticas = (poderesJ as any[]).filter((p) => p.poder !== "Dívida/Transferências").reduce((t, p) => t + p.pago, 0);
-// Os repasses fundo a fundo (saúde, educação e outros) estão dentro dos órgãos do Executivo, logo dentro de
-// uniaoPoliticas — e também no gasto de quem recebeu. Saem da base; os da função 28 já saíram com o órgão.
-const repassesNaBase = (funcoes as any[]).filter((f) => f.funcao !== "28").reduce((t, f) => t + (f.pago_transferido_entes || 0), 0);
-const baseGasto = uniaoPoliticas - repassesNaBase + jurosPagos
-  + (estadosJ as any[]).reduce((t, e) => t + e.pago_total - (e.pago_encargos || 0), 0)
-  + (municipiosJ as any[]).reduce((t, m) => t + (m.pago_total || 0), 0);
-const DESTINOS = [
-  { nome: "Aposentadoria e pensão", v: direta("09") + sE("pago_previdencia") },
-  { nome: "Educação", v: direta("12") + sE("pago_educacao") + sM("pago_educacao") },
-  { nome: "Saúde", v: direta("10") + sE("pago_saude") + sM("pago_saude") },
-  { nome: "Juros da dívida", v: jurosPagos },
-  { nome: "Administração", v: direta("04") + sE("pago_administracao") + sM("pago_administracao") },
-  { nome: "Judiciário e Ministério Público", v: direta("02") + sE("pago_judiciaria") + sE("pago_essencial_justica") },
-  { nome: "Segurança pública", v: direta("06") + sE("pago_seguranca") },
-  { nome: "Legislativo", v: direta("01") + sE("pago_legislativa") + sM("pago_legislativo") },
-].sort((a, b) => b.v - a.v);
-const restoGasto = baseGasto - DESTINOS.reduce((t, d) => t + d.v, 0);
-const r2 = (v: number) => (100 * v / baseGasto).toFixed(2).replace(".", ",");
+const C100 = cada100({ funcoes: funcoes as any[], poderes: poderesJ as any[], categorias: categorias as any[],
+                        estados: estadosJ as any[], municipios: municipiosJ as any[] });
+const { destinos: DESTINOS, resto: restoGasto, base: baseGasto, repasses: repassesNaBase, juros: jurosPagos, r2 } = C100;
 const VEREDITO: Record<string, string> = { confere: "confere", ordem_certa: "ordem certa",
   nao_confere: "não confere", sem_fonte: "sem fonte para conferir" };
 
