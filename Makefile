@@ -10,6 +10,10 @@ etl: ## extrai + transforma + gráfico
 	python -m etl.camara.chart --ano $(ANO) --top 20 --por partido
 	cp data/public/*.json site/public/data/
 
+checar: ## checagem mecânica do site (glossário, links, datasets, JSONs, workflows) — sem modelo, custo zero
+	python tools/checar_site.py
+.PHONY: checar
+
 test:
 	python -m pytest tests/ -q
 

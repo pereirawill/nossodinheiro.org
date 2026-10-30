@@ -127,6 +127,15 @@ export const DATASETS: Dataset[] = [
     fontes: [{ nome: "INSS — BEPS", url: "https://www.gov.br/previdencia/pt-br/assuntos/previdencia-social/arquivos/beps" }], atualizacao: "mensal",
   },
   {
+    slug: "/aposentadoria/", nome: "Aposentadoria — os dois regimes",
+    descricao: "Quanto o país paga de aposentadoria e pensão nos dois regimes: o INSS (RGPS) por espécie de benefício e o regime próprio, com a União pela subcategoria de despesa do SIOP e os estados pela função 09 do SICONFI.",
+    arquivos: ["previdencia.json", "poderes_categoria_2025.json", "estados_2025.json", "trabalho.json"],
+    fontes: [{ nome: "INSS — Boletim Estatístico da Previdência Social (BEPS)", url: "https://www.gov.br/previdencia/pt-br/assuntos/previdencia-social/arquivos/beps" },
+             { nome: "SIOP — Orçamento da União", url: "https://www1.siop.planejamento.gov.br/sparql/" },
+             { nome: "SICONFI — Declaração de Contas Anuais", url: "https://siconfi.tesouro.gov.br/" }],
+    periodo: "2000/2026", atualizacao: "mensal",
+  },
+  {
     slug: "/renda/", nome: "Renda — distribuição e desigualdade",
     descricao: "Rendimento por posição na ocupação, massa por percentil, limites P90/P99 e Gini (PNAD Contínua).",
     arquivos: ["renda.json"], fontes: [{ nome: "IBGE — SIDRA (PNAD Contínua)", url: "https://sidra.ibge.gov.br/" },
