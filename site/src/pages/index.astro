@@ -80,14 +80,21 @@ const munTotal = metaMun.totais.pago_total;
 const somaF = (k: string) => estados.reduce((s, e) => s + ((e as any)[k] || 0), 0);
 const somaM = (k: string) => municipios.reduce((s, m) => s + ((m as any)[k] || 0), 0);
 const uf = (cod: string) => funcoes.find((f) => f.funcao === cod)?.pago ?? 0;
+// O que a União aplica DIRETO, sem os repasses a estados e municípios: é o único valor que pode ser somado ao
+// gasto deles. Na saúde de 2025 são R$ 52,6 bi de R$ 216,0 bi — o resto é fundo a fundo e reaparece embaixo.
+const ufDireta = (cod: string) => {
+  const f = funcoes.find((x) => x.funcao === cod) as any;
+  return f ? (f.pago_aplicacao_direta ?? f.pago) : 0;
+};
+const ufTransferido = (cod: string) => (funcoes.find((x) => x.funcao === cod) as any)?.pago_transferido_entes ?? 0;
 const niveis = [
-  { nome: "Saúde", uniao: uf("10"), estados: somaF("pago_saude"), municipios: somaM("pago_saude") },
-  { nome: "Educação", uniao: uf("12"), estados: somaF("pago_educacao"), municipios: somaM("pago_educacao") },
-  { nome: "Previdência", uniao: uf("09"), estados: somaF("pago_previdencia"), municipios: null },
-  { nome: "Segurança pública", uniao: uf("06"), estados: somaF("pago_seguranca"), municipios: null },
-  { nome: "Legislativo", uniao: uf("01"), estados: somaF("pago_legislativa"), municipios: somaM("pago_legislativo") },
-  { nome: "Judiciário", uniao: uf("02"), estados: somaF("pago_judiciaria"), municipios: null },
-  { nome: "Administração", uniao: uf("04"), estados: somaF("pago_administracao"), municipios: somaM("pago_administracao") },
+  { nome: "Saúde", uniao: ufDireta("10"), repasse: ufTransferido("10"), estados: somaF("pago_saude"), municipios: somaM("pago_saude") },
+  { nome: "Educação", uniao: ufDireta("12"), repasse: ufTransferido("12"), estados: somaF("pago_educacao"), municipios: somaM("pago_educacao") },
+  { nome: "Previdência", uniao: ufDireta("09"), estados: somaF("pago_previdencia"), municipios: null },
+  { nome: "Segurança pública", uniao: ufDireta("06"), estados: somaF("pago_seguranca"), municipios: null },
+  { nome: "Legislativo", uniao: ufDireta("01"), estados: somaF("pago_legislativa"), municipios: somaM("pago_legislativo") },
+  { nome: "Judiciário", uniao: ufDireta("02"), estados: somaF("pago_judiciaria"), municipios: null },
+  { nome: "Administração", uniao: ufDireta("04"), estados: somaF("pago_administracao"), municipios: somaM("pago_administracao") },
 ];
 const maxNivel = Math.max(...niveis.map((n) => n.uniao + n.estados + (n.municipios ?? 0)));
 const maquina = categorias.filter((c) => c.categoria === "Manter a máquina" && c.poder !== "Dívida/Transferências").reduce((s, c) => s + c.pago, 0);
@@ -110,8 +117,8 @@ const resumo = [
   `De cada R$ 100 que a União pagou em ${ANO}, R$ ${Math.round(100 * encargos / uniaoTotal)} foram dívida e transferências a estados e municípios; R$ ${Math.round(100 * uniaoSemEncargos / uniaoTotal)} viraram políticas públicas e custo da máquina.`,
   `Da parte que não é dívida, ${pct(prev, uniaoSemEncargos)} é Previdência (${compact(prev)}). Saúde (${compact(saude)}) e Educação (${compact(educ)}) juntas ficam com ${pct(saude + educ, uniaoSemEncargos)}; Assistência Social, onde está o Bolsa Família, com ${pct(assist, uniaoSemEncargos)}.`,
   `Manter a máquina dos três Poderes (pessoal, aposentados, custeio) custou ${compact(maquina)}: ${pct(maquina, uniaoSemEncargos)} do que não é dívida.`,
-  `Estados e municípios pagaram juntos ${compact(estTotal + munTotal)}, mais do que a União gastou em políticas e máquina (${compact(uniaoSemEncargos)}). Saúde e educação são, na prática, estaduais e municipais: dos três níveis, ${pct(somaF("pago_saude") + somaM("pago_saude"), uf("10") + somaF("pago_saude") + somaM("pago_saude"))} da saúde e ${pct(somaF("pago_educacao") + somaM("pago_educacao"), uf("12") + somaF("pago_educacao") + somaM("pago_educacao"))} da educação são pagos por eles.`,
-  `Somando os três níveis, o setor público pagou ${brl0((uniaoTotal + estTotal + munTotal) / POP)} por habitante no ano, ${brl0((uniaoTotal + estTotal + munTotal) / POP / 12)} por mês.`,
+  `Estados e municípios pagaram juntos ${compact(estTotal + munTotal)}, mais do que a União gastou em políticas e máquina (${compact(uniaoSemEncargos)}). Saúde e educação são, na prática, estaduais e municipais: da saúde paga no país, ${pct(somaF("pago_saude") + somaM("pago_saude"), ufDireta("10") + somaF("pago_saude") + somaM("pago_saude"))} sai do caixa deles — e boa parte desse dinheiro vem da própria União, que repassou ${compact(ufTransferido("10"))} fundo a fundo e por isso não entra duas vezes nesta conta.`,
+  `Somar os três níveis exige cuidado: o que a União repassa a estados e municípios reaparece no gasto de quem recebeu, e o refinanciamento da dívida não é despesa nova. Tirando a dívida e as transferências, a União aplicou direto ${compact(uniaoSemEncargos)}; com estados e municípios, dá ${brl0((uniaoSemEncargos + estTotal + munTotal) / POP)} por habitante no ano.`,
 ];
 const irpfTopo = irpf.faixas[irpf.faixas.length - 1];
 const irpfPico = irpf.faixas.reduce((a, f) => (f.aliquota_efetiva ?? 0) > (a.aliquota_efetiva ?? 0) ? f : a, irpf.faixas[0]);
@@ -137,7 +144,7 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
   <div class="hero" style="margin-top:0">
     <div class="stat"><b>{compact(arrec.total)}</b><span>arrecadados pela União em {arrec.meses} meses de {arrec.ano} · <a href="/impostos/">impostos</a></span></div>
     <div class="stat"><b>{compact(maquina)}</b><span><Termo t="maquina">manter a máquina</Termo> dos três Poderes da União em {ANO} ({pct(maquina, uniaoSemEncargos)} do que não é dívida) · <a href="/poderes/">Poderes</a></span></div>
-    <div class="stat"><b>{brl0((uniaoTotal + estTotal + munTotal) / POP)}</b><span>por habitante por ano, somando os três níveis (com dívida e transferências contadas na União)</span></div>
+    <div class="stat"><b>{brl0((uniaoSemEncargos + estTotal + munTotal) / POP)}</b><span>por habitante por ano nos três níveis, sem a dívida e sem contar duas vezes o que a União repassa</span></div>
   </div>
 
   <h2>O que os números dizem</h2>
@@ -199,7 +206,7 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
           <text x={x + 6} y="21" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(tot)}{n.municipios == null ? " (sem municípios)" : ""}</text>
         </g>); })}
     </svg>
-    <p class="src">Despesa paga por função em cada nível. Municípios: só saúde, educação, legislativo e administração estão carregados por enquanto; previdência, segurança e judiciário municipais não existem ou não foram extraídos. Transferências da União a estados e municípios aparecem no nível que gastou. Fontes: SIOP e SICONFI.</p>
+    <p class="src">Despesa paga por função em cada nível. Municípios: só saúde, educação, legislativo e administração estão carregados por enquanto; previdência, segurança e judiciário municipais não existem ou não foram extraídos. Na barra da União entra só o que ela <b>aplica direto</b>: o que ela repassa a estados e municípios (na saúde de {ANO}, {compact(ufTransferido("10"))} dos {compact(uf("10"))}) aparece na barra de quem gastou, e não nas duas. Fontes: SIOP e SICONFI.</p>
   </div>
 
   <h2>Quanto custa cada parte do Estado</h2>

@@ -19,12 +19,17 @@ const quando = new Date(d.gerado_em_utc);
 const fmt = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
 
 // ---- dinheiro: os três níveis, sem somar (há repasse da União que reaparece embaixo)
-const uniao = (funcoes as any[]).find((f) => f.funcao === "10")?.pago ?? 0;
+const fnSaude = (funcoes as any[]).find((f) => f.funcao === "10") as any;
+const uniao = fnSaude?.pago ?? 0;
+// O que a União aplica direto. O resto é repasse fundo a fundo, que reaparece no gasto de estados e
+// prefeituras: no gráfico dos três níveis vale o direto, senão o mesmo real aparece em duas barras.
+const uniaoDireta = fnSaude?.pago_aplicacao_direta ?? uniao;
+const uniaoRepasse = fnSaude?.pago_transferido_entes ?? 0;
 const estadual = (estados as any[]).reduce((s, e) => s + (e.pago_saude || 0), 0);
 const munSaude = (municipios as any[]).reduce((s, m) => s + (m.pago_saude || 0), 0);
 const popBR = d.planos.brasil.populacao;
 const NIVEIS = [
-  { nome: "União (Ministério da Saúde e demais órgãos federais)", v: uniao, cor: "var(--s1)" },
+  { nome: "União, aplicação direta (Ministério da Saúde e demais órgãos federais)", v: uniaoDireta, cor: "var(--s1)" },
   { nome: "Governos estaduais e Distrito Federal", v: estadual, cor: "var(--s3)" },
   { nome: `Prefeituras (${metaMun.municipios_com_dca.toLocaleString("pt-BR")} das ${metaMun.municipios_total.toLocaleString("pt-BR")} que prestaram contas)`, v: munSaude, cor: "var(--s2)" },
 ];
@@ -97,7 +102,10 @@ const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
         <text x={(n.v / maxNivel) * 700 + 8} y="33" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{compact(n.v)} · {brl0(n.v / popBR)} por habitante</text>
       </g>))}
     </svg>
-    <p class="src">Fontes: União — SIOP, execução orçamentária de {ANO}, função 10 (Saúde), <Termo t="despesa_paga">despesa paga</Termo>. Estados e prefeituras — SICONFI/Tesouro Nacional, Declaração de Contas Anuais de {ANO}, anexo I-E, mesma função. "Por habitante" usa a população estimada pelo IBGE ({num(popBR)}), só para dar escala.</p>
+    <p class="src">Na barra da União entra o que ela <b>aplica direto</b> ({compact(uniaoDireta)}); os outros{" "}
+      {compact(uniaoRepasse)} que ela pagou na função Saúde em {ANO} são repasse fundo a fundo e já estão
+      contados nas barras de estados e prefeituras — por isso as três podem ser lidas juntas sem contar o mesmo
+      real duas vezes. Fontes: União — SIOP, execução orçamentária de {ANO}, função 10 (Saúde), <Termo t="despesa_paga">despesa paga</Termo>, por modalidade de aplicação. Estados e prefeituras — SICONFI/Tesouro Nacional, Declaração de Contas Anuais de {ANO}, anexo I-E, mesma função. "Por habitante" usa a população estimada pelo IBGE ({num(popBR)}), só para dar escala.</p>
   </div>
 
   <h2>Quem tem plano de saúde e quem depende só do SUS ({d.planos.referencia})</h2>

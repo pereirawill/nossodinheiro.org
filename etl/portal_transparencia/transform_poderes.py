@@ -35,14 +35,20 @@ SQL_ITENS = """
 CREATE OR REPLACE TABLE itens AS
 SELECT poder, cod_superior::VARCHAR AS cod_superior, orgao_superior, cod_orgao::VARCHAR AS cod_orgao, orgao,
        gnd::VARCHAR AS gnd, gnd_nome, programa::VARCHAR AS programa, categoria, subcategoria,
-       coalesce(funcao::VARCHAR, '') AS funcao, coalesce(funcao_nome, '') AS funcao_nome, ano::INTEGER AS ano,
+       coalesce(funcao::VARCHAR, '') AS funcao, coalesce(funcao_nome, '') AS funcao_nome,
+       coalesce(modalidade, '')::VARCHAR AS modalidade_aplicacao, ano::INTEGER AS ano,
        dotacao::DOUBLE AS dotacao, empenhado::DOUBLE AS empenhado, liquidado::DOUBLE AS liquidado, pago::DOUBLE AS pago
 FROM read_json_auto('{raw}', format='newline_delimited');
 """
 SQL_FUNCOES = """
 CREATE OR REPLACE TABLE funcoes AS
 SELECT funcao, funcao_nome, round(sum(pago),2) AS pago, round(sum(empenhado),2) AS empenhado,
-       round(coalesce(sum(pago) FILTER (WHERE poder = 'Dívida/Transferências'), 0),2) AS pago_divida_transferencias
+       round(coalesce(sum(pago) FILTER (WHERE poder = 'Dívida/Transferências'), 0),2) AS pago_divida_transferencias,
+       -- Modalidade de aplicação: 30/31/35/40/41/45 são repasses a estados e municípios, que reaparecem no
+       -- gasto de quem recebeu. Sem separar, somar os três níveis conta o mesmo real duas vezes — na saúde de
+       -- 2025 isso é R$ 158 bi dos R$ 216 bi da União.
+       round(coalesce(sum(pago) FILTER (WHERE modalidade_aplicacao IN ('30','31','35','40','41','45')), 0),2) AS pago_transferido_entes,
+       round(coalesce(sum(pago) FILTER (WHERE modalidade_aplicacao IN ('90','91')), 0),2) AS pago_aplicacao_direta
 FROM itens GROUP BY ALL ORDER BY pago DESC;
 """
 SQL_CATEGORIAS = """
