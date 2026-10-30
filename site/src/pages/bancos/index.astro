@@ -77,7 +77,9 @@ const caminho = (m: any) => anosLinha.map((a, i) => `${i ? "L" : "M"}${xL(i).toF
 
 // 1994–1999: balancetes do Cosif, por grupo financeiro (ver historico no bancos.json)
 const hist = (d as any).historico;
-const anosHist = Array.from({ length: hist.ano_fim - 1995 + 1 }, (_, i) => 1995 + i);   // 1994 é só meio ano
+const meioAno = new Set<number>(hist.meio_ano ?? []);                 // anos com só um semestre publicado
+const anosHist = Array.from({ length: hist.ano_fim - hist.ano_inicio + 1 }, (_, i) => hist.ano_inicio + i)
+  .filter((a) => !meioAno.has(a));                                    // ano pela metade não vira coluna
 const gruposHist = (hist.grupos as any[])
   .map((g) => ({ ...g, real: anosHist.reduce((t, a) => t + (g.serie[String(a)] ?? 0) * (deflator[String(a)] ?? 1), 0) }))
   .filter((g) => anosHist.some((a) => String(a) in g.serie));
@@ -94,7 +96,9 @@ const sumidos = gruposHist.filter((g: any) => sumiu(g) && ultimoAno(g) < hist.an
   .map((g: any) => ({ ...g, ate: ultimoAno(g), porte: Math.abs(g.real) }))
   .sort((a: any, b: any) => b.porte - a.porte).slice(0, 6)
   .sort((a: any, b: any) => a.ate - b.ate);
-const meioAno1994 = (hist.grupos as any[]).reduce((t, g) => t + (g.serie["1994"] ?? 0), 0) * (deflator["1994"] ?? 1);
+const parciais = [...meioAno].sort();
+const somaParcial = (ano: number) => (hist.grupos as any[]).reduce((t, g) => t + (g.serie[String(ano)] ?? 0), 0) * (deflator[String(ano)] ?? 1);
+const formula = Object.values((d.fonte as any).formula_lucro ?? {})[0] as string | undefined;
 
 const cvm = (d.conferencia_cvm as any)?.bancos ?? [];
 const anoCvm = (d.conferencia_cvm as any)?.ano;
@@ -323,8 +327,10 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
       Todo o período é de um só governo (Fernando Henrique Cardoso, de 1995 a 2002), e por isso a faixa dos
       presidentes aparece apenas no gráfico do total.
       Acima, os oito maiores lucros do período; abaixo, em vermelho, os quatro maiores prejuízos — e eles são
-      maiores que os lucros. O semestre de julho a dezembro de 1994, o primeiro em reais, soma
-      R$ {n1(meioAno1994 / 1e9)} bi entre todos os grupos e fica fora da tabela por ser meio ano.
+      maiores que os lucros.
+      {parciais.map((a) => (<> O ano de {a} está publicado só pela metade — a primeira data-base em reais é
+      dezembro de {a}, logo depois do Plano Real — e por isso fica fora da tabela; nele os grupos somam
+      R$ {n1(somaParcial(a) / 1e9)} bi.</>))}
       {sumidos.length > 0 && <> <b>O último balancete de cada um conta a história do período</b>:
       {" "}{sumidos.map((g: any) => `${g.nome} em ${g.ate}`).join(", ")} — depois disso o grupo deixa de existir
       com nome próprio no sistema do Banco Central.</>}
@@ -337,10 +343,11 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
   <div class="card" style="margin-top:14px">
     <h3 style="margin:0 0 8px">Por que estes números são um piso</h3>
     <p style="margin:0 0 10px">
-      O lucro que o Banco Central publica no IF.data soma de volta uma despesa que os bancos lançavam: os
-      <b>juros sobre capital próprio</b>, uma forma de remunerar o acionista que a lei deixa deduzir do imposto.
-      Essa conta é de 4º nível e não aparece nos arquivos públicos, que vão até o 3º. Dá para medir o tamanho
-      disso nos anos em que as duas fontes existem, nos mesmos grupos:
+      O Banco Central publica, dentro do próprio IF.data, a conta que ele faz para chegar ao lucro
+      {formula && <> — <code>{formula}</code></>}. Os dois primeiros termos são as contas de resultado, que estão
+      nos balancetes. O terceiro é uma conta de <b>4º nível</b>, e os arquivos públicos de balancete só vão até o
+      3º: ela não dá para calcular de fora. Dá, porém, para medir o tamanho dela, comparando as duas fontes nos
+      mesmos grupos, ano a ano:
     </p>
     <table>
       <thead><tr><th>Ano</th><th class="num">Pelo balancete</th><th class="num">Como o BC publica</th><th class="num">Razão</th></tr></thead>
@@ -352,9 +359,9 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
     <p class="src">
       Entre 2000 e 2018 o balancete dá de {faixaAntes} do lucro publicado. Em {convDepois.map((c) => c.ano).join(", ")}
       {" "}dá <b>{convDepois.map((c) => n1(100 * c.razao) + "%").join(", ")}</b> — os dois números passam a ser o
-      mesmo quando a conta de juros ao capital sai do plano contábil. Por isso a tabela de 1995 a 1999 é um
-      <b> piso</b>: o lucro de verdade daqueles anos foi maior, e não temos como dizer quanto. Em 1994 e 1995 a
-      ressalva é menor, porque os juros sobre capital próprio só passaram a existir com a lei de dezembro de 1995.
+      mesmo a partir de 2019, quando essa conta deixa de ser usada. Por isso a tabela de 1995 a 1999 é um
+      <b>piso</b>: naqueles anos o lucro medido pelo balancete é menor que o que o Banco Central chamaria de
+      lucro líquido, e o quanto só dá para saber de 2000 em diante, onde as duas fontes existem.
       Fonte da faixa dos presidentes: {FONTE_PRESIDENTES.nome}.
     </p>
   </div>

@@ -34,7 +34,9 @@ const vivos: Record<string, { nosso: string; outro?: string; diferenca: string }
   Impostos: { nosso: mar26 ? `R$ ${n1(mar26.total / 1e9)} bi` : "—", diferenca: "2,0%" },
   bancos_cosif: { nosso: bAntes.length ? `${n1(100 * Math.min(...bAntes.map((c) => c.razao)))}% a ${n1(100 * Math.max(...bAntes.map((c) => c.razao)))}% do lucro publicado, até 2018` : "—",
                   outro: bDepois.length ? `${bDepois.map((c) => n1(100 * c.razao) + "%").join(", ")} em ${bDepois.map((c) => c.ano).join(", ")}` : "—",
-                  diferenca: "some em 2019, quando a conta de juros ao capital sai do Cosif" },
+                  diferenca: bAntes.length && bDepois.length
+                    ? `até ${n1(100 * (1 - Math.min(...bAntes.map((c) => c.razao))))} pontos percentuais até 2018 e quase zero de 2019 em diante`
+                    : "—" },
   bancos_prudencial: { nosso: `R$ ${n1(bAno.segmentos.bancos.lucro / 1e9)} bi`,
                        outro: `R$ ${n1(bPrud.lucro_bancos / 1e9)} bi`,
                        diferenca: `${n1(100 * Math.abs(bAno.segmentos.bancos.lucro / bPrud.lucro_bancos - 1))}%` },

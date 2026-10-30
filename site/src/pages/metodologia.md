@@ -302,9 +302,9 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Desde o Plano Real:** o lucro de cada grupo financeiro vai a **dez/1994** pelos **balancetes do Cosif** (documento
   4040), que existem desde 1988 mas só estão em reais a partir dali. Até jun/1995 o balancete vem encerrado e o
   resultado é lido na conta de apuração; 18 grupos em 1994 e 13 em 1995 ficam sem valor porque trazem as duas contas
-  preenchidas. Esses números são um **piso**: a fórmula do BC soma de volta os juros sobre capital próprio, conta de 4º
-  nível que os arquivos públicos não abrem — medimos 61% a 74% do lucro publicado entre 2000 e 2018 e 100% de 2019 em
-  diante, quando a conta sai do plano contábil. O **total** do sistema não volta antes de 2000: o BC não publica, nessa
+  preenchidas. Esses números são um **piso**: a fórmula que o próprio BC publica no IF.data subtrai uma conta de 4º
+  nível que os arquivos de balancete não abrem — medimos 61% a 74% do lucro publicado entre 2000 e 2018 e 100% de 2019
+  em diante, quando essa conta deixa de pesar. O **total** do sistema não volta antes de 2000: o BC não publica, nessa
   época, quais bancos pertencem a qual grupo, e somar banco a banco dupla-conta de 17% a 36%.
 - A faixa com os presidentes embaixo do gráfico é **régua de tempo**: a página não atribui lucro a governo.
 - Completo: `docs/metodologia/painel-bancos.md`.

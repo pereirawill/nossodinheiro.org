@@ -147,14 +147,16 @@ Brasil aparece como 17.692 bilhões em jun/1994 e como R$ 5,75 bilhões em dez/1
   repetem, então esses grupos ficam **sem valor** no semestre, em vez de publicarmos um número que pode estar
   dobrado.
 
-**Por que o número de 1995 a 1999 é um piso.** A fórmula que o BC usa no IF.data é
-`[7] + [8] − [8.1.9.55.00-2]`, e essa última conta — "juros ao capital", a despesa com juros sobre capital
-próprio — é de 4º nível e **não aparece nos arquivos públicos**, que vão até o 3º. Medimos o efeito disso
+**Por que o número de 1995 a 1999 é um piso.** A fórmula que o BC usa no IF.data vem declarada no campo
+`DescricaoColuna` da própria API — `[70000009]+[80000006]-[81955002]` — e está guardada em `fonte.formula_lucro`
+no JSON. Os dois primeiros termos são as contas de resultado, que o balancete traz; o terceiro é uma conta de
+**4º nível**, e os arquivos públicos de balancete só vão até o **3º**, então ela não dá para calcular de fora. Medimos o efeito disso
 comparando, nos mesmos grupos, o que o balancete dá e o que o BC publica: **61% a 74% entre 2000 e 2018** e
 **98,5%, 99,8% e 100,2% em 2019, 2020 e 2021**, quando a conta sai do plano contábil. A quebra limpa em 2019 é a
-prova de que a diferença é essa, e não erro de leitura. Logo, o lucro real de 1996–1999 foi maior que o
-publicado aqui, e não temos como dizer quanto. Em 1994 e 1995 a ressalva é menor: os juros sobre capital próprio
-só passaram a existir com a lei de dezembro de 1995.
+prova de que a diferença é essa, e não erro de leitura. Logo, o lucro de 1995–1999 medido aqui é menor que o
+que o BC chamaria de lucro líquido, e o tamanho da diferença só é mensurável de 2000 em diante, onde as duas
+fontes existem. **Não escrevemos o que é essa conta**: o número dela e o ano em que deixa de pesar são o que a
+fonte primária mostra; a identificação que circula em material de terceiros não entra aqui.
 
 **O que a série mostra**: Itaú R$ 19,4 bi e Bradesco R$ 12,1 bi somados em 1995–1999 (reais do ano-base), contra
 **−R$ 41,3 bi do Banco do Brasil** (quase tudo no prejuízo de 1996) e −R$ 18,2 bi do Banestado. O último

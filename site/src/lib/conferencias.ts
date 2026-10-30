@@ -29,11 +29,10 @@ export const CHECAGENS: Checagem[] = [
     painel: "Bancos", slug: "/bancos/", vivoId: "bancos_cosif",
     oQue: "O lucro dos mesmos grupos financeiros medido pelo IF.data e recalculado por nós nos balancetes que o próprio Banco Central publica (documento 4040), ano a ano entre 2000 e 2021",
     status: "explicada",
-    explicacao: "O balancete dá menos até 2018 porque a fórmula que o BC usa no IF.data soma de volta uma conta " +
-      "de 4º nível que os arquivos públicos não abrem: os juros sobre capital próprio, que os bancos lançavam " +
-      "como despesa. A partir de 2019, quando essa conta sai do plano contábil, as duas medidas passam a dar o " +
-      "mesmo número — é a prova de que a diferença era essa e não erro de leitura. Por isso a série de 1995 a " +
-      "1999, que só existe no balancete, é publicada como piso.",
+    explicacao: "O balancete dá menos até 2018 porque a fórmula que o próprio BC publica no IF.data subtrai uma " +
+      "terceira conta, de 4º nível, que os arquivos de balancete não abrem — eles vão até o 3º. A partir de 2019 " +
+      "as duas medidas passam a dar o mesmo número, o que mostra que a diferença era essa conta e não erro de " +
+      "leitura. Por isso a série de 1995 a 1999, que só existe no balancete, é publicada como piso.",
     fonte: "Banco Central — Balancetes e Balanços Patrimoniais (Cosif) e IF.data",
     url: "https://www.bcb.gov.br/estabilidadefinanceira/balancetesbalancospatrimoniais",
     lido: "29/10/2026",

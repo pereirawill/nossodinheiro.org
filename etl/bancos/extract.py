@@ -153,6 +153,9 @@ def cadastro(c: httpx.Client, anomes: int) -> dict[str, dict]:
     return out
 
 
+FORMULA_LUCRO: dict[int, str] = {}        # como o BC descreve a coluna Lucro Líquido em cada data-base
+
+
 def resumo(c: httpx.Client, anomes: int, tipo: int = TIPO_FINANCEIRO) -> dict[str, dict]:
     """Relatório Resumo de um trimestre. Devolve {CodInst: {lucro, pl, ativo, credito}}, em reais."""
     url = (f"{OLINDA}IfDataValores(AnoMes=@AnoMes,TipoInstituicao=@TipoInstituicao,Relatorio=@Relatorio)"
@@ -167,6 +170,8 @@ def resumo(c: httpx.Client, anomes: int, tipo: int = TIPO_FINANCEIRO) -> dict[st
             # Em 200006 duas instituições vêm sem código e sem nome; não há como identificá-las.
             sem_codigo += campo == "lucro"
             continue
+        if campo == "lucro" and x.get("DescricaoColuna"):
+            FORMULA_LUCRO[anomes] = x["DescricaoColuna"]
         chave = (x["CodInst"], x["Conta"], campo)
         valor = float(x["Saldo"] or 0.0)
         # O trimestre mais recente volta com as linhas repetidas; igual é dedupe, diferente é erro de leitura.
@@ -428,14 +433,27 @@ def main() -> None:
         prudencial = conferencia_prudencial(c, ultimo_fechado)
         cvm = conferencia_cvm(c, ultimo_fechado, series)
         # Antes de 2000 o IF.data não existe: os balancetes do Cosif dão o lucro de cada grupo desde dez/1994.
-        historico = cosif.serie(c)
+        # Essa parte é história fechada — não muda mais. Se o site do BC estiver fora do ar, vale a versão já
+        # publicada, em vez de derrubar a atualização do que é novo (ou, pior, publicar a página sem a seção).
+        try:
+            historico = cosif.serie(c)
+        except (httpx.HTTPError, RuntimeError, ValueError, KeyError) as e:
+            anterior = json.loads((PUB / "bancos.json").read_text(encoding="utf-8")) if (PUB / "bancos.json").exists() else {}
+            historico = anterior.get("historico")
+            if not historico:
+                raise
+            log.warning("balancetes do Cosif indisponíveis (%s); mantendo a série histórica já publicada", e)
         for g in historico["grupos"]:
             # o grupo ainda aparece no IF.data? serve para a página dizer quem sumiu do mapa
             anos_if = sorted(int(a) for a in series.get(g["cod"], {}).get("serie", {}))
             g["ultimo_ifdata"] = anos_if[-1] if anos_if else None
-        historico["convergencia"] = cosif.convergencia(
-            c, {a["ano"]: {cod: s["serie"][str(a["ano"])]["lucro"] for cod, s in series.items()
-                           if str(a["ano"]) in s["serie"]} for a in anos})
+        try:
+            historico["convergencia"] = cosif.convergencia(
+                c, {a["ano"]: {cod: s["serie"][str(a["ano"])]["lucro"] for cod, s in series.items()
+                               if str(a["ano"]) in s["serie"]} for a in anos})
+        except (httpx.HTTPError, RuntimeError, ValueError, KeyError) as e:
+            log.warning("conferência contra os balancetes não pôde ser refeita (%s)", e)
+            historico.setdefault("convergencia", [])
     if not anos or ultimo_fechado < 2024:
         raise SystemExit(f"IF.data incompleto (último ano fechado: {ultimo_fechado})")
     base = ultimo_fechado
@@ -479,6 +497,7 @@ def main() -> None:
             "ifdata_url": "https://www3.bcb.gov.br/ifdata/",
             "ipca": "IBGE, IPCA (SIDRA 1737), índice de dezembro de cada ano",
             "regra_lucro": "Lucro Líquido do IF.data acumula no semestre: lucro do ano = junho (jan–jun) + dezembro (jul–dez)",
+            "formula_lucro": {str(k): v for k, v in sorted(FORMULA_LUCRO.items()) if k in (200012, ultimo_fechado * 100 + 12)},
             "regra_saldo": "Patrimônio Líquido, Ativo e Carteira de Crédito são saldos de 31 de dezembro",
             "limite_inicio": "O IF.data começa em março de 2000; antes disso, os balancetes do Cosif (desde dez/1994, em reais) dão o lucro por grupo financeiro, sem o termo de juros ao capital",
             "cosif": "Banco Central, balancetes do Cosif, documento 4040 (conglomerado financeiro), data-base de junho e dezembro",
