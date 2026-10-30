@@ -2,7 +2,7 @@
   "ano": 2026,
   "fonte_ceap": "bulk",
   "gerado_em": "2026-10-30",
-  "gerado_em_utc": "2026-10-30T00:29+00:00",
+  "gerado_em_utc": "2026-10-30T18:50+00:00",
   "meses_considerados": 10,
   "deputados": 513,
   "deputados_na_legislatura": 648,
@@ -16,10 +16,10 @@
     "auxilio_moradia_no_total": false
   },
   "totais": [
-    139666905.12,
-    1254539327.79
+    139176714.36,
+    1254049137.03
   ],
-  "custo_mensal_medio_por_deputado": 244549.58,
-  "custo_anual_projetado_total": 1505447194.44,
+  "custo_mensal_medio_por_deputado": 244454.02,
+  "custo_anual_projetado_total": 1504858965.54,
   "anual_e_projecao": true
 }
