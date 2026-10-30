@@ -103,6 +103,7 @@ const W = 920;
     Tudo que a Receita Federal arrecadou, mês a mês, separado por <Termo t="base_incidencia">base de incidência</Termo>:
     consumo, folha, lucro das empresas, renda do trabalho, renda do capital. Só tributos federais; ICMS, IPVA, ISS e IPTU são
     de estados e municípios e ficam para o próximo painel.
+    <a href="#quem-paga-mais">Quem paga mais imposto, o pobre ou o rico?</a>
   </p>
   <p class="meta">atualizado em {fmt.format(quando)} · fonte: Receita Federal, "Arrecadação por estado" (dados abertos) · último mês publicado: {MESES[u.mes - 1]}/{u.ano}</p>
 
@@ -417,6 +418,9 @@ const W = 920;
       {" "}{n1i(picoIrpf.aliquota_efetiva * 100)}% na faixa {picoIrpf.faixa.toLowerCase()} salários mínimos e cai para
       {" "}{n1i(topoIrpf.aliquota_efetiva * 100)}% entre os declarantes de maior renda, porque
       {" "}{n1i(topoIrpf.pct_isenta * 100)}% da renda deles é isenta. Está em <a href="/imposto-de-renda/">Imposto de Renda</a>.
+      <b>Esse {n1i(topoIrpf.aliquota_efetiva * 100)}% não contradiz os {n1i(DECIS[9].direto)}%</b> do quadro acima: um é só o
+      imposto de renda sobre quem declara, o outro é o conjunto dos tributos diretos — IPTU, IPVA, contribuição
+      previdenciária inclusive — sobre o décimo mais rico das famílias. Universos diferentes, medidas diferentes.
     </p>
     <p class="src" style="margin-top:10px">
       Ressalvas impressas nas duas publicações. Ipea: "{FONTE_IPEA.ressalva}" Senado: "{FONTE_SENADO.ressalva}"
