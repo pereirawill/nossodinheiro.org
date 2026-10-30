@@ -95,10 +95,13 @@ export const DATASETS: Dataset[] = [
   },
   {
     slug: "/impostos/", nome: "Arrecadação federal por estado e tributo",
-    descricao: "Receita administrada pela Receita Federal, mensal desde 2000, por UF e por tributo.",
+    descricao: "Receita administrada pela Receita Federal, mensal desde 2000, por UF e por tributo; carga tributária de 145 países e, para o Brasil, a participação de cada base de incidência no PIB no governo geral, ano a ano desde 1990.",
     arquivos: ["impostos.json", "carga_mundo.json"],
-    fontes: [{ nome: "Receita Federal — arrecadação por estado (dados abertos)", url: "https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/dados-abertos" }],
-    periodo: "2000/..", atualizacao: "mensal",
+    fontes: [
+      { nome: "Receita Federal — arrecadação por estado (dados abertos)", url: "https://www.gov.br/receitafederal/pt-br/acesso-a-informacao/dados-abertos" },
+      { nome: "OCDE — Global Revenue Statistics (API SDMX)", url: "https://sdmx.oecd.org/public/rest/data/OECD.CTP.TPS,DSD_REV_COMP_GLOBAL@DF_RSGLOBAL,2.1/" },
+    ],
+    periodo: "1990/..", atualizacao: "mensal",
   },
   {
     slug: "/imposto-de-renda/", nome: "Imposto de Renda — renda declarada, alíquota efetiva e ocupação",

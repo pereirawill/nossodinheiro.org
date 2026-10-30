@@ -279,6 +279,7 @@ export const LIMITES: string[] = [
   "Quantas horas de trabalho custa uma TV ou um carro em cada país: exigiria o preço do mesmo modelo em cada lugar, que nenhum órgão público publica. O que existe é o nível de preços por categoria, do ICP.",
   "O preço da bomba comparado entre países: o indicador do Banco Mundial que trazia isso (EP.PMP.SGAS.CD) foi arquivado e não responde mais.",
   "Quanto do preço de um carro ou de uma geladeira é imposto: a abertura em imposto, insumo, frete e margem não é publicada por órgão oficial.",
+  "Por quanto tempo cada base de incidência subiu antes de 1995: sob hiperinflação a arrecadação sobre o PIB mede o denominador e a defasagem de recolhimento, não a política tributária. A série da OCDE vai a 1990 e está no JSON, mas o quadro de /impostos/ começa em 1995.",
   "Quanto de imposto cada família realmente pagou: o imposto sobre consumo está embutido no preço e ninguém o declara. O que existe é estimativa por modelo — e dois textos para discussão de instituições públicas, do Ipea (2022) e da Consultoria Legislativa do Senado (2024), chegam a conclusões opostas sobre o resultado. A seção /impostos/#quem-paga-mais publica os números de um e as objeções do outro, sem escolher.",
   "Se o morador respondeu certo ao recenseador, ou se o prestador declarou certo ao sistema do governo.",
   "Se a obra registrada como 'em execução' existe no mundo: a situação é declarada pelo próprio órgão.",

@@ -6,6 +6,7 @@ import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/impostos.json";
 import { ALIQUOTA, MAIORES_IVA, FONTE_OCDE, EXCECOES, CALENDARIO, FONTE_LEI } from "../../lib/iva";
 import { CARGA_TESOURO } from "../../lib/carga";
+import { LEI_ALTAS_RENDAS } from "../../lib/ir-altas-rendas";
 import { FONTE_IPEA, FONTE_SENADO, DECIS, PARAMETROS, RUBRICAS, COMPOSICAO, ESTRATOS, CRITICAS, LIMITE_CRITICA, EFEITO_DESIGUALDADE } from "../../lib/incidencia";
 import irpf from "../../../public/data/irpf.json";
 import renda from "../../../public/data/renda.json";
@@ -42,6 +43,27 @@ const linhasCarga = ((d as any).carga?.bases?.linhas ?? []) as { base: string; p
 const baseBens = linhasCarga.find((x) => x.base === "Bens e serviços") ?? { base: "", pct: 0 };
 const baseRenda = linhasCarga.find((x) => x.base === "Renda") ?? { base: "", pct: 0 };
 const incMax = Math.max(...DECIS.map((x) => x.direto + x.indireto));
+// Trinta anos por base de incidência: OCDE Global Revenue Statistics, Brasil, governo geral (três níveis), % do PIB.
+// É a única série longa com régua constante. Só os seis agregados atravessam a reclassificação de 2002 (ver o ETL).
+const pb = (mundo as any).brasil_por_base;
+const anoIni = String(pb.ano_confiavel);
+const anoFim = String(pb.anos[pb.anos.length - 1]);
+const ano20 = String(Number(anoFim) - 20);
+const serieAnos = pb.anos.filter((a: number) => a >= pb.ano_confiavel).map(String);
+const baseLinhas = pb.bases
+  .map((b: any) => ({ ...b, ini: b.serie[anoIni], fim: b.serie[anoFim], ini20: b.serie[ano20] }))
+  .filter((b: any) => b.ini != null && b.fim != null)
+  .map((b: any) => ({ ...b, delta: b.fim - b.ini, delta20: b.fim - b.ini20 }))
+  .sort((a: any, b: any) => b.delta - a.delta);
+const totalIni = pb.total[anoIni], totalFim = pb.total[anoFim], totalIni20 = pb.total[ano20];
+const CORES_BASE: Record<string, string> = {
+  T_5000: "var(--s4)", T_1000: "var(--s3)", T_2000: "var(--s1)", T_4000: "var(--s2)", T_3000: "var(--s5)", T_6000: "var(--neutro)",
+};
+const maxBase = Math.max(...baseLinhas.map((b: any) => Math.max(b.ini, b.fim)));
+const cpmf = pb.transacoes_financeiras as Record<string, number>;
+const tipos = pb.tipos_de_renda.map((t: any) => ({
+  ...t, ini: t.serie[String(pb.ano_quebra)], fim: t.serie[anoFim],
+})).filter((t: any) => t.ini != null && t.fim != null);
 // o primeiro décimo é o único fora da faixa; do segundo em diante o total quase não anda — dizer isso, não "cai sempre"
 const restoDecis = DECIS.slice(1).map((x) => x.direto + x.indireto);
 const restoMin = Math.min(...restoDecis);
@@ -484,6 +506,110 @@ const W = 920;
     </p>
   </div>
 
+  <h2 id="o-que-subiu">Quais tributos mais subiram — e se o país passou a taxar a renda</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      Duas perguntas diferentes, e a página responde as duas com a mesma série: <b>o que mais cresceu</b> em trinta
+      anos, e se a carga <b>se deslocou do consumo para a renda</b>. A medida é a participação de cada base no PIB,
+      pela <b>OCDE</b>, que é a única fonte com os três níveis de governo na mesma régua desde {pb.anos[0]}.
+    </p>
+    <table>
+      <thead><tr>
+        <th>Base de incidência</th><th class="num">{anoIni}</th><th class="num">{anoFim}</th>
+        <th class="num">Em 30 anos</th><th class="num">Em 20 anos</th><th class="barra-cab"></th>
+      </tr></thead>
+      <tbody>{baseLinhas.map((b: any) => (
+        <tr>
+          <td><i class="sw" style={`background:${CORES_BASE[b.codigo] ?? "#999"}`}></i>{b.nome}</td>
+          <td class="num">{n2i(b.ini)}%</td><td class="num">{n2i(b.fim)}%</td>
+          <td class="num"><b>{b.delta >= 0 ? "+" : "−"}{n2i(Math.abs(b.delta))} p.p.</b></td>
+          <td class="num">{b.delta20 == null ? "—" : `${b.delta20 >= 0 ? "+" : "−"}${n2i(Math.abs(b.delta20))} p.p.`}</td>
+          <td style="width:180px">
+            <svg viewBox="0 0 180 16" width="180" height="16" role="img" aria-label={`${b.nome}: ${n2i(b.ini)}% em ${anoIni}, ${n2i(b.fim)}% em ${anoFim}`}>
+              <rect x="0" y="9" width={(b.ini / maxBase) * 176} height="5" fill="var(--line)" rx="2"><title>{anoIni}: {n2i(b.ini)}% do PIB</title></rect>
+              <rect x="0" y="2" width={(b.fim / maxBase) * 176} height="5" fill={CORES_BASE[b.codigo] ?? "#999"} rx="2"><title>{anoFim}: {n2i(b.fim)}% do PIB</title></rect>
+            </svg>
+          </td>
+        </tr>))}
+        <tr><td><b>Carga total</b></td><td class="num"><b>{n2i(totalIni)}%</b></td><td class="num"><b>{n2i(totalFim)}%</b></td>
+          <td class="num"><b>+{n2i(totalFim - totalIni)} p.p.</b></td><td class="num">+{n2i(totalFim - totalIni20)} p.p.</td><td></td></tr>
+      </tbody>
+    </table>
+    <p class="src" style="margin-top:10px">
+      Barra de cima = {anoFim}, barra de baixo (cinza) = {anoIni}. As seis bases somam a carga total, nos dois anos.
+      Fonte: OCDE, Global Revenue Statistics (governo geral, % do PIB), lida pela API SDMX.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">A resposta, nos números</h3>
+    <ul class="iva-lista">
+      <li><b>A alta da carga veio da renda, não do consumo.</b> De {anoIni} a {anoFim} a carga subiu
+        {" "}{n2i(totalFim - totalIni)} pontos do PIB, e {n2i(baseLinhas[0].delta)} deles vieram de
+        {" "}{baseLinhas[0].nome.toLowerCase()} — {Math.round((baseLinhas[0].delta / (totalFim - totalIni)) * 100)}% de todo o aumento.</li>
+      <li><b>Nos últimos 20 anos o imposto sobre consumo caiu em proporção do PIB.</b> De {ano20} a {anoFim},
+        bens e serviços foi de {n2i(pb.bases.find((b: any) => b.codigo === "T_5000").serie[ano20])}% para
+        {" "}{n2i(pb.bases.find((b: any) => b.codigo === "T_5000").serie[anoFim])}% do PIB.</li>
+      <li><b>Mas consumo continua sendo o maior bloco</b>, e com folga:
+        {" "}{n2i(pb.bases.find((b: any) => b.codigo === "T_5000").serie[anoFim])}% do PIB contra
+        {" "}{n2i(pb.bases.find((b: any) => b.codigo === "T_1000").serie[anoFim])}% de renda. <b>Crescer menos não é
+        pesar menos</b>: quem paga mais em proporção da renda depende do tamanho e da composição de cada bloco hoje,
+        não de quem cresceu mais — é o que a seção <a href="#quem-paga-mais">acima</a> discute, com outra fonte.</li>
+    </ul>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">"Taxar os mais ricos": o que a lei fez, e o que a série ainda não mostra</h3>
+    <p style="margin:0 0 10px">
+      Imposto sobre <b>renda</b> não é a mesma coisa que imposto sobre <b>os ricos</b>. A série acima mostra a base,
+      não quem pagou. Duas coisas documentadas, em sentidos opostos:
+    </p>
+    <ul class="iva-lista">
+      <li><b>O topo pagava proporcionalmente pouco.</b> Nos dados da própria Receita para o ano-calendário
+        {" "}{irpf.ano_calendario}, a <Termo t="aliquota_efetiva">alíquota efetiva</Termo> do IRPF sobe até
+        {" "}{n1i(picoIrpf.aliquota_efetiva * 100)}% na faixa {picoIrpf.faixa.toLowerCase()} salários mínimos e cai a
+        {" "}{n1i(topoIrpf.aliquota_efetiva * 100)}% entre os declarantes de maior renda, porque
+        {" "}{n1i(topoIrpf.pct_isenta * 100)}% da renda deles é isenta — metade disso, lucro e dividendo.
+        Em <a href="/imposto-de-renda/">Imposto de Renda</a>.</li>
+      <li><b>Em {LEI_ALTAS_RENDAS.ano} isso mudou na lei.</b> A {LEI_ALTAS_RENDAS.norma} zerou o imposto
+        mensal até {brl0(LEI_ALTAS_RENDAS.isencao.ate)} ({LEI_ALTAS_RENDAS.isencao.artigo}) e criou uma tributação
+        mínima para quem soma mais de {brl0(LEI_ALTAS_RENDAS.minima.piso_anual)} no ano, chegando a
+        {" "}{LEI_ALTAS_RENDAS.minima.aliquota_maxima_pct}% a partir de
+        {" "}{brl0(LEI_ALTAS_RENDAS.minima.aliquota_cheia_a_partir_de)} ({LEI_ALTAS_RENDAS.minima.artigo}) — <b>com
+        lucros e dividendos na base de cálculo</b>.</li>
+      <li><b>Nenhum número desta página mede o efeito dela ainda.</b> A lei vale desde
+        {" "}{LEI_ALTAS_RENDAS.vigencia}; o último ano fechado da série da OCDE é {anoFim} e o dos Grandes Números do
+        IRPF é {irpf.ano_calendario}. O efeito só aparecerá nas edições seguintes, e esta página será atualizada
+        quando aparecer.</li>
+    </ul>
+    <p class="src" style="margin-top:8px">
+      {LEI_ALTAS_RENDAS.limites} Fonte: <a href={LEI_ALTAS_RENDAS.url} rel="noopener">texto da lei no Planalto</a>,
+      lido em {LEI_ALTAS_RENDAS.lido}.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Por que a série começa em {anoIni}, e como conferir que ela funciona</h3>
+    <ul class="iva-lista">
+      <li><b>Antes do Real a razão sobre o PIB mede outra coisa.</b> Sob hiperinflação, {pb.anos[0]} a 1994 oscilam
+        por causa do denominador e da defasagem entre fato gerador e recolhimento: 1994 dá {n2i(pb.total["1994"])}% e
+        1995, {n2i(pb.total["1995"])}%. A série inteira está no JSON; o quadro começa em {anoIni}.</li>
+      <li><b>Só as seis bases agregadas atravessam {pb.ano_quebra}.</b> Até 2001 a OCDE deixava quase todo o imposto
+        sobre renda em "não alocável" e reclassificou depois — a pessoa física salta de 0,28% para 1,85% do PIB de um
+        ano para o outro, o que é mudança de classificação, não de política. A abertura por tipo de renda, portanto,
+        só vale de {pb.ano_quebra} em diante: {tipos.map((t: any, i: number) => (
+          <span>{i ? "; " : ""}{t.nome.toLowerCase()} {n2i(t.ini)}% → {n2i(t.fim)}%</span>))}.</li>
+      <li><b>A CPMF é a conferência.</b> Ela existiu de 1997 a 2007, e a linha de transações financeiras mostra
+        exatamente isso: {n2i(cpmf["1996"])}% do PIB em 1996, {n2i(cpmf["1997"])}% em 1997, {n2i(cpmf["2007"])}% em
+        2007 e {n2i(cpmf["2008"])}% em 2008. Uma política que se sabe quando entrou e quando saiu aparece no lugar
+        certo — é o que dá confiança no resto da série.</li>
+      <li><b>A OCDE mede o Brasil acima das fontes brasileiras.</b> {n2i(totalFim)}% do PIB em {anoFim}, contra
+        {carga && <span> {(100 * cargaTotal).toFixed(2).replace(".", ",")}% da Receita no mesmo ano</span>}. É
+        diferença de método, não de dado; usamos a OCDE aqui porque só ela tem a série longa por base, e o número
+        brasileiro no resto da página. A comparação está em <a href="/conferir/">Como conferir</a>.</li>
+    </ul>
+  </div>
+
   <h2 id="iva">O IVA que vem aí — e por que a alíquota seria a maior do mundo</h2>
   <div class="card">
     <p style="margin:0 0 10px">
@@ -558,7 +684,7 @@ const W = 920;
     <p class="src">É onde a empresa ou pessoa recolheu, não onde o imposto "nasceu": sedes de empresas e o DF (órgãos federais, royalties) concentram.</p>
   </div>
 
-  <Glossario termos={["arrecadacao", "base_incidencia", "quem_paga", "tributo_direto", "tributo_indireto", "progressivo", "regressivo", "decimo_renda", "aliquota_efetiva", "iva", "per_capita"]} />
+  <Glossario termos={["arrecadacao", "base_incidencia", "ponto_percentual", "quem_paga", "tributacao_minima", "tributo_direto", "tributo_indireto", "progressivo", "regressivo", "decimo_renda", "aliquota_efetiva", "iva", "per_capita"]} />
 </Base>
 <style>
   .iva-lista { margin: 0; padding-left: 18px; } .iva-lista li { margin: 6px 0; }

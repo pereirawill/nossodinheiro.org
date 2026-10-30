@@ -158,6 +158,32 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   do estudo que os contesta, e a frase em que este último declara que medir o grau da progressividade "foge ao escopo
   deste artigo". A linha correspondente está em `/conferir/`.
 
+### Quais tributos mais subiram em 30 anos (seção de /impostos/)
+
+- **O que é:** a participação de cada base de incidência no PIB, no governo geral (União, estados e municípios),
+  de 1990 a 2024, e as variações em 30 e em 20 anos.
+- **Fonte:** OCDE, Global Revenue Statistics, API SDMX, dataflow `DSD_REV_COMP_GLOBAL@DF_RSGLOBAL` — bloco
+  `brasil_por_base` do `carga_mundo.json`. **Por que não a Receita**: o estudo de Carga Tributária publica por base,
+  mas cada edição republica a série com PIB revisado e as edições antigas saem do ar; não há série longa com régua
+  constante. A OCDE tem uma, e é a mesma que o site já usa na comparação entre países.
+- **Armadilhas tratadas, com o motivo na própria página:**
+  - **Quebra em 2002.** Até 2001 a OCDE deixa quase todo o imposto sobre renda em "não alocável"; a pessoa física
+    salta de 0,28% para 1,85% do PIB de 2001 para 2002, e a previdência faz o mesmo. É reclassificação, não
+    política. Por isso a série longa publica só os **seis agregados**, que atravessam a quebra, e a abertura por
+    tipo de renda vai em série separada, começando em 2002.
+  - **Hiperinflação até 1994.** Mesmo caso do painel de indústria: 1994 dá 29,10% do PIB e 1995, 26,77%. A série
+    inteira fica no JSON e o quadro começa em 1995 (`ano_confiavel`). Quem começasse em 1994 veria um aumento menor.
+  - **Invariante no ETL:** as seis bases têm de somar a carga total, nos dois anos de corte, ou o extrator falha.
+- **Conferência que o dado oferece:** a CPMF vigorou de 1997 a 2007 e a linha de transações financeiras mostra
+  exatamente isso (0,42% do PIB em 1996 → 1,21% em 1997 → 1,75% em 2007 → 0,82% em 2008).
+- **Diferença de régua declarada:** a OCDE mede o Brasil em 33,68% do PIB em 2024 e a Receita, 32,20%. É método, não
+  dado. A série longa é da OCDE porque só ela existe; o resto da página usa o número brasileiro. Linha em `/conferir/`.
+- **O que a seção não faz:** não conclui que a regressividade medida em `#quem-paga-mais` esteja certa ou errada.
+  Qual base cresceu mais e qual base pesa mais sobre a renda baixa são perguntas diferentes, e a página diz isso.
+- **Lei 15.270/2025** (isenção até R$ 5.000 e tributação mínima sobre altas rendas, com dividendos na base) está em
+  `site/src/lib/ir-altas-rendas.ts`, lida no texto da lei no Planalto. Vigora desde 1º/01/2026 e **não aparece em
+  nenhuma série do site ainda** — o último ano fechado da OCDE é 2024 e o do IRPF, o ano-calendário 2024.
+
 ## Trabalho — quem trabalha, quem empreende, quem recebe
 
 - **O que é:** ocupados por posição (carteira, sem carteira, conta própria, setor público, empregadores), desocupados e fora da
