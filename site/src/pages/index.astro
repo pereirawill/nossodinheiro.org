@@ -209,7 +209,7 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
     <a class="card tile" href="/presidencia/"><b>{compact(pres.totais.presidencia)}</b><span>cartão corporativo da Presidência em {pres.totais.meses_publicados} meses de 2026 · {pct(pres.totais.sigiloso, pres.totais.presidencia)} sob sigilo</span></a>
     <a class="card tile" href="/judiciario/"><b>{brl0(mediaStf)}</b><span>por mês, um ministro do STF com seu gabinete ({metaStf.ministros_ativos} ministros, folha real)</span></a>
     <a class="card tile" href="/poderes/"><b>{compact(maquina)}</b><span>manter a máquina dos Poderes da União em {ANO}: pessoal, aposentados, custeio</span></a>
-    <a class="card tile" href="/divida/"><b>{compact(jurosValor)}</b><span>os juros da dívida federal em {jurosUlt} — mais que saúde e educação somadas; amortização não é custo, e a página explica</span></a>
+    <a class="card tile" href="/divida/"><b>{compact(jurosValor)}</b><span>os juros da dívida federal em {jurosUlt}: o custo apropriado no ano, que não é o mesmo que saiu do caixa; amortização não é custo, e a página separa os três números</span></a>
     <a class="card tile" href="/estatais/"><b>{compact(estatalLucro)}</b><span>o lucro das estatais federais em {estatalUlt} · e quanto o Orçamento põe de volta nelas</span></a>
     <a class="card tile" href="/saneamento/"><b>{String(esgotoCenso.pct).replace(".", ",")}%</b><span>dos domicílios com esgoto ligado à rede no Censo de 2022 · água, esgoto e lixo desde 1991</span></a>
     <a class="card tile" href="/estados/"><b>{compact(somaF("pago_legislativa") + somaF("pago_judiciaria"))}</b><span>Assembleias, TCEs e Tribunais de Justiça dos estados em {ANO}</span></a>

@@ -85,8 +85,10 @@ const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
       </tbody>
     </table>
     <p class="src">
-      Os números do nosso lado são lidos dos mesmos arquivos que as páginas usam — não foram digitados aqui. Os da
-      outra fonte estão em <code>site/src/lib/conferencias.ts</code> com a URL e a data em que foram lidos.
+      {linhas.filter((l) => l.vivo).length} das {linhas.length} conferências têm o número do nosso lado <b>lido do
+      arquivo do painel</b> na hora de publicar esta página — se o dado mudar, a linha muda junto. As demais estão
+      escritas em <code>site/src/lib/conferencias.ts</code>, com a data em que foram apuradas, e só mudam quando
+      alguém as revisa; o mesmo vale para todos os números da outra fonte, que vêm com URL e data de leitura.
     </p>
   </div>
 

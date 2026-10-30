@@ -41,7 +41,9 @@ const variacaoGrupo = (id: string, grupo: string, de: number, ate: number) => {
   const serie = (agr.indicadores?.[id] ?? {})[grupo];
   const a = noAno(serie, de), b = noAno(serie, ate);
   if (!a || !b || !a.valor || a.ano === b.ano) return null;
-  return { pct: ((b.valor - a.valor) / Math.abs(a.valor)) * 100, de: a.ano, ate: b.ano, vDe: a.valor, vAte: b.valor };
+  // pontos para indicador medido em %, pela mesma razão da linha do Brasil; as duas colunas têm de ter a mesma régua
+  return { pct: ((b.valor - a.valor) / Math.abs(a.valor)) * 100, pontos: b.valor - a.valor,
+           de: a.ano, ate: b.ano, vDe: a.valor, vAte: b.valor };
 };
 
 const linhas = ESCOLHIDOS.map((id) => {
@@ -50,17 +52,24 @@ const linhas = ESCOLHIDOS.map((id) => {
   const s = i.serie as any[];
   const a = s[0], b = s[s.length - 1];
   const dezAnos = s.find((x) => x.ano >= b.ano - 10) ?? a;
-  const variacao = a.valor ? ((b.valor - a.valor) / Math.abs(a.valor)) * 100 : 0;
-  const var10 = dezAnos.valor ? ((b.valor - dezAnos.valor) / Math.abs(dezAnos.valor)) * 100 : 0;
+  // Indicador medido em % (internet, energia, escolaridade) varia em PONTOS percentuais. Em percentual a conta
+  // explode ou zera quando a série começa perto de zero: a internet saía de 0,0% em 1990 para 84,5% hoje e
+  // aparecia como "-0,0%", na tabela do que piorou — dividir por zero dava zero e o sinal mandava para o lado errado.
+  const emPontos = String(i.unidade || "").trim().startsWith("%");
+  const delta = (x: any) => (emPontos ? b.valor - x.valor
+                                      : x.valor ? ((b.valor - x.valor) / Math.abs(x.valor)) * 100 : 0);
+  const variacao = delta(a);
+  const var10 = delta(dezAnos);
   // percentil dentro do MESMO grupo de países (os que têm dado no primeiro e no último ano): é o único que
   // compara épocas. O percentil solto cresce ou encolhe só porque a lista de países muda.
   const pctl = (x: any) => (x.posicao_fixa && x.total_fixo ? (x.posicao_fixa / x.total_fixo) * 100 : null);
   const pctlSolto = (x: any) => (x.posicao && x.total ? (x.posicao / x.total) * 100 : null);
   // "melhorou" é o dado que decide, não nós: depende de o indicador ser melhor quando sobe ou quando desce
   const melhorou = i.maior_melhor ? variacao > 0 : variacao < 0;
+  const sufixo = emPontos ? " pontos" : "%";
   const melhorou10 = i.maior_melhor ? var10 > 0 : var10 < 0;
   const mundo = Object.fromEntries(GRUPOS_MOSTRA.map((g) => [g, variacaoGrupo(id, g, a.ano, b.ano)]));
-  return { ...i, a, b, variacao, var10, melhorou, melhorou10, pctlDe: pctl(a), pctlPara: pctl(b),
+  return { ...i, a, b, variacao, var10, melhorou, melhorou10, sufixo, pctlDe: pctl(a), pctlPara: pctl(b),
            soltoDe: pctlSolto(a), soltoPara: pctlSolto(b), serie: s, mundo };
 }).filter(Boolean) as any[];
 
@@ -239,9 +248,9 @@ const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
         <td>{l.titulo}<br /><span class="sub">{l.unidade}</span></td>
         <td class="num">{n1(l.a.valor)}<br /><span class="sub">{l.a.ano}</span></td>
         <td class="num">{n1(l.b.valor)}<br /><span class="sub">{l.b.ano}</span></td>
-        <td class="num"><b>{sinal(l.variacao)}%</b><br /><span class="sub" title={`últimos 10 anos: ${sinal(l.var10)}%`}>10 anos: {sinal(l.var10)}%</span></td>
+        <td class="num"><b>{sinal(l.variacao)}{l.sufixo}</b><br /><span class="sub" title={`últimos 10 anos: ${sinal(l.var10)}${l.sufixo}`}>10 anos: {sinal(l.var10)}{l.sufixo}</span></td>
         {GRUPOS_MOSTRA.map((g) => (<td class="num">{l.mundo[g]
-          ? <span title={`${agr.grupos[g]}: de ${n1(l.mundo[g].vDe)} (${l.mundo[g].de}) para ${n1(l.mundo[g].vAte)} (${l.mundo[g].ate})`}>{sinal(l.mundo[g].pct)}%</span>
+          ? <span title={`${agr.grupos[g]}: de ${n1(l.mundo[g].vDe)} (${l.mundo[g].de}) para ${n1(l.mundo[g].vAte)} (${l.mundo[g].ate})`}>{sinal(l.sufixo === " pontos" ? l.mundo[g].pontos : l.mundo[g].pct)}{l.sufixo}</span>
           : "—"}</td>))}</tr>))}
       </tbody>
     </table>
@@ -265,9 +274,9 @@ const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
         <td>{l.titulo}<br /><span class="sub">{l.unidade}</span></td>
         <td class="num">{n1(l.a.valor)}<br /><span class="sub">{l.a.ano}</span></td>
         <td class="num">{n1(l.b.valor)}<br /><span class="sub">{l.b.ano}</span></td>
-        <td class="num neg"><b>{sinal(l.variacao)}%</b><br /><span class="sub">10 anos: {sinal(l.var10)}%</span></td>
+        <td class="num neg"><b>{sinal(l.variacao)}{l.sufixo}</b><br /><span class="sub">10 anos: {sinal(l.var10)}{l.sufixo}</span></td>
         {GRUPOS_MOSTRA.map((g) => (<td class="num">{l.mundo[g]
-          ? <span title={`${agr.grupos[g]}: de ${n1(l.mundo[g].vDe)} (${l.mundo[g].de}) para ${n1(l.mundo[g].vAte)} (${l.mundo[g].ate})`}>{sinal(l.mundo[g].pct)}%</span>
+          ? <span title={`${agr.grupos[g]}: de ${n1(l.mundo[g].vDe)} (${l.mundo[g].de}) para ${n1(l.mundo[g].vAte)} (${l.mundo[g].ate})`}>{sinal(l.sufixo === " pontos" ? l.mundo[g].pontos : l.mundo[g].pct)}{l.sufixo}</span>
           : "—"}</td>))}</tr>))}
       </tbody>
     </table>
