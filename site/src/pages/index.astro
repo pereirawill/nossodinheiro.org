@@ -90,6 +90,13 @@ const ufDireta = (cod: string) => {
 const ufTransferido = (cod: string) => (funcoes.find((x) => x.funcao === cod) as any)?.pago_transferido_entes ?? 0;
 const C100 = cada100({ funcoes: funcoes as any[], poderes: poderes as any[], categorias: categorias as any[],
                     estados: estados as any[], municipios: municipios as any[] });
+// pizza de "cada R$ 100": 8 destinos + "todo o resto", mesma geometria e paleta das roscas abaixo
+const fatias100 = [...C100.destinos, { nome: "Todo o resto", v: C100.resto }];
+let ang100 = -Math.PI / 2;
+const arcos100 = fatias100.map((f, i) => { const fr = f.v / C100.base; const a0 = ang100; ang100 += fr * 2 * Math.PI;
+  const x0 = 100 + 86 * Math.cos(a0), y0 = 100 + 86 * Math.sin(a0), x1 = 100 + 86 * Math.cos(ang100), y1 = 100 + 86 * Math.sin(ang100);
+  return { ...f, fr, cor: f.nome === "Todo o resto" ? "#9e9e9e" : CORES[i],
+           d: `M100,100 L${x0.toFixed(2)},${y0.toFixed(2)} A86,86 0 ${fr > 0.5 ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)} Z` }; });
 const niveis = [
   { nome: "Saúde", uniao: ufDireta("10"), repasse: ufTransferido("10"), estados: somaF("pago_saude"), municipios: somaM("pago_saude") },
   { nome: "Educação", uniao: ufDireta("12"), repasse: ufTransferido("12"), estados: somaF("pago_educacao"), municipios: somaM("pago_educacao") },
@@ -162,14 +169,18 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
       De cada <b>R$ 100</b> que União, estados e prefeituras gastaram em {ANO}, somados sem contar o mesmo real duas
       vezes, quanto foi para cada coisa. O maior item não é escola, hospital nem juros: é <b>aposentadoria e pensão</b>.
     </p>
-    <svg viewBox={`0 0 920 ${(C100.destinos.length + 1) * 30 + 8}`} width="100%" role="img" aria-label={`Divisão de cada R$ 100 do gasto público em ${ANO}`}>
-      {[...C100.destinos, { nome: "Todo o resto", v: C100.resto }].map((d, i) => { const w = (C100.por100(d.v) / 30) * 620; return (<g>
-        <text x="0" y={i * 30 + 20} font-size="13" fill="var(--ink)">{d.nome}</text>
-        <rect x="270" y={i * 30 + 6} width={w} height="18" fill={d.nome === "Todo o resto" ? "var(--ink-3, #9aa39a)" : "var(--s2)"} opacity={d.nome === "Todo o resto" ? 0.6 : 0.85}>
-          <title>{d.nome}: R$ {C100.r2(d.v)} de cada R$ 100 — {compact(d.v)} no ano</title></rect>
-        <text x={276 + w} y={i * 30 + 20} font-size="13" font-family="IBM Plex Mono, monospace" fill="var(--ink)">R$ {C100.r2(d.v)}</text>
-      </g>); })}
+    <div class="pizza" style="padding:0;border:0;box-shadow:none;background:transparent">
+    <svg viewBox="0 0 200 200" width="240" role="img" aria-label={`Divisão de cada R$ 100 do gasto público em ${ANO}`}>
+      {arcos100.map((a) => <path d={a.d} fill={a.cor} stroke="var(--card)" stroke-width="1"><title>{a.nome}: R$ {C100.r2(a.v)} de cada R$ 100 — {compact(a.v)} no ano</title></path>)}
+      <circle cx="100" cy="100" r="46" fill="var(--card)" />
+      <text x="100" y="96" text-anchor="middle" font-size="10" fill="var(--ink-2)">três níveis, {ANO}</text>
+      <text x="100" y="112" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{compact(C100.base)}</text>
     </svg>
+    <table>
+      <thead><tr><th>Para onde vai</th><th class="num">De cada R$ 100</th><th class="num">No ano</th></tr></thead>
+      <tbody>{arcos100.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num"><b>R$ {C100.r2(a.v)}</b></td><td class="num">{compact(a.v)}</td></tr>))}</tbody>
+    </table>
+    </div>
     <p class="src">
       Base de {compact(C100.base)}: a União em políticas e máquina <b>sem os {compact(C100.repasses)} que repassou</b> a
       estados e municípios (já contados em quem gastou), mais os juros que ela pagou no ano, mais estados (sem encargos
