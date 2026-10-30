@@ -2,6 +2,8 @@
 import Base from "../../layouts/Base.astro";
 import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
+import BandaPresidentes from "../../components/BandaPresidentes.astro";
+import { FONTE_PRESIDENTES } from "../../lib/presidentes";
 import d from "../../../public/data/bancos.json";
 import impostos from "../../../public/data/impostos.json";
 
@@ -73,6 +75,27 @@ const rotulos = cinco.map((m, k) => ({ nome: curto(m.nome), cor: CORES[k],
   .map((r, i, todos) => (i > 0 && r.y - todos[i - 1].y < 13 ? { ...r, y: todos[i - 1].y + 13 } : r));
 const caminho = (m: any) => anosLinha.map((a, i) => `${i ? "L" : "M"}${xL(i).toFixed(1)} ${yL(real(m.serie[String(a)]?.lucro ?? 0, a)).toFixed(1)}`).join(" ");
 
+// 1994–1999: balancetes do Cosif, por grupo financeiro (ver historico no bancos.json)
+const hist = (d as any).historico;
+const anosHist = Array.from({ length: hist.ano_fim - 1995 + 1 }, (_, i) => 1995 + i);   // 1994 é só meio ano
+const gruposHist = (hist.grupos as any[])
+  .map((g) => ({ ...g, real: anosHist.reduce((t, a) => t + (g.serie[String(a)] ?? 0) * (deflator[String(a)] ?? 1), 0) }))
+  .filter((g) => anosHist.some((a) => String(a) in g.serie));
+const maioresHist = [...gruposHist].sort((a, b) => b.real - a.real).slice(0, 8);
+const pioresHist = [...gruposHist].sort((a, b) => a.real - b.real).slice(0, 4).reverse();
+const conv = hist.convergencia as any[];
+const convAntes = conv.filter((c) => c.ano <= 2018);
+const convDepois = conv.filter((c) => c.ano >= 2019);
+const faixaAntes = `${n1(100 * Math.min(...convAntes.map((c) => c.razao)))}% a ${n1(100 * Math.max(...convAntes.map((c) => c.razao)))}%`;
+const sumiu = (g: any) => !g.ultimo_ifdata;
+const ultimoAno = (g: any) => Math.max(...Object.keys(g.serie).map(Number));
+// grupos que pararam de publicar balancete antes do fim da série: o rastro das quebras dos anos 90
+const sumidos = gruposHist.filter((g: any) => sumiu(g) && ultimoAno(g) < hist.ano_fim)
+  .map((g: any) => ({ ...g, ate: ultimoAno(g), porte: Math.abs(g.real) }))
+  .sort((a: any, b: any) => b.porte - a.porte).slice(0, 6)
+  .sort((a: any, b: any) => a.ate - b.ate);
+const meioAno1994 = (hist.grupos as any[]).reduce((t, g) => t + (g.serie["1994"] ?? 0), 0) * (deflator["1994"] ?? 1);
+
 const cvm = (d.conferencia_cvm as any)?.bancos ?? [];
 const anoCvm = (d.conferencia_cvm as any)?.ano;
 const prud = d.conferencia_prudencial as any;
@@ -101,10 +124,14 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
   </div>
 
   <div class="disclaimer"><span aria-hidden="true">ⓘ</span>
-    <div><b>Não existe 1988.</b> A base do Banco Central que publica o resultado de cada instituição, o IF.data,
-    começa em <b>março de 2000</b> — pedimos períodos de 1993 a 1999 e a resposta vem vazia. Antes do Plano Real o
-    lucro nominal também não diria nada: foram cinco trocas de moeda e inflação de três dígitos. Então a série
-    desta página vai de 2000 a {base}, e é isso que a fonte alcança.
+    <div><b>Por que o total começa em 2000, e os bancos começam em 1994.</b> A base que publica o lucro de cada
+    instituição, o <Termo t="ifdata">IF.data</Termo>, começa em <b>março de 2000</b> — pedimos de 1993 a 1999 e a
+    resposta vem vazia. Mas o Banco Central publica os <b>balancetes</b> desde julho de 1988, e deles sai o lucro
+    de cada grupo financeiro desde <b>dezembro de 1994</b> — a primeira data-base em reais, logo depois do Plano
+    Real (antes disso os valores estão em cruzeiro real). É a seção do fim desta página. O que não dá é o
+    <b>total</b> antes de 2000: nessa época o BC não publica quais bancos pertencem a qual grupo, e somar banco a
+    banco conta duas vezes o resultado que a controladora reconhece da controlada — medimos de 17% a 36% a mais
+    nos anos em que dá para comparar.
     <b>O que este número é.</b> É o lucro contábil declarado por cada conglomerado ao BC, pelas regras do
     <Termo t="cosif">Cosif</Termo>, somando o primeiro e o segundo semestre do ano. <b>Não é</b> imposto que o banco
     pagou, <b>não é</b> o <Termo t="spread_bancario">spread</Termo> e <b>não é</b> o que o cliente pagou de tarifa:
@@ -125,8 +152,12 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
         {s.ano % 4 === 0 && <text x={L + i * passo + larg / 2 + 1} y={H - 8} text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{s.ano}</text>}
       </g>))}
     </svg>
+    <BandaPresidentes largura={W} esquerda={L} direita={R} de={serieBar[0].ano} ate={serieBar[serieBar.length - 1].ano} />
     <p class="src">
       Valores em bilhões de reais de {base}, corrigidos pelo <Termo t="ipca">IPCA</Termo> de dezembro de cada ano.
+      A faixa embaixo mostra <b>quem era presidente</b> em cada trecho, como régua de tempo: esta página não
+      atribui o lucro dos bancos a nenhum governo, porque ele depende de juro, câmbio, lei e economia mundial, e
+      separar o efeito de cada coisa exige estudo que não é um dado público.
       O lucro do setor em {ultimo.ano} é <b>{n1(real(seg(ultimo, "bancos").lucro, ultimo.ano) / real(seg(fechados[0], "bancos").lucro, fechados[0].ano))} vezes</b>
       {" "}o de 2000. A barra de {pior.ano} é a exceção: naquele ano a Caixa e o então Banespa fecharam o primeiro
       semestre com prejuízo de bilhões e o setor inteiro terminou o ano em
@@ -270,6 +301,64 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
     </p>}
   </div>
 
+  <h2>Desde o Plano Real: 1995 a 1999</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>Grupo financeiro</th>{anosHist.map((a) => <th class="num">{a}</th>)}<th class="num">Somado</th></tr></thead>
+      <tbody>
+        {maioresHist.map((g) => (<tr>
+          <td>{g.nome}{sumiu(g) && <small>último balancete em {ultimoAno(g)}</small>}</td>
+          {anosHist.map((a) => <td class="num">{String(a) in g.serie ? n1((g.serie[String(a)] * (deflator[String(a)] ?? 1)) / 1e9) : "—"}</td>)}
+          <td class="num"><b>{n1(g.real / 1e9)}</b></td>
+        </tr>))}
+        {pioresHist.map((g) => (<tr class="prejuizo">
+          <td>{g.nome}{sumiu(g) && <small>último balancete em {ultimoAno(g)}</small>}</td>
+          {anosHist.map((a) => <td class="num">{String(a) in g.serie ? n1((g.serie[String(a)] * (deflator[String(a)] ?? 1)) / 1e9) : "—"}</td>)}
+          <td class="num"><b>{n1(g.real / 1e9)}</b></td>
+        </tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Em bilhões de <b>reais de {base}</b>, grupo a grupo, pelos balancetes que o Banco Central publica desde 1988.
+      Todo o período é de um só governo (Fernando Henrique Cardoso, de 1995 a 2002), e por isso a faixa dos
+      presidentes aparece apenas no gráfico do total.
+      Acima, os oito maiores lucros do período; abaixo, em vermelho, os quatro maiores prejuízos — e eles são
+      maiores que os lucros. O semestre de julho a dezembro de 1994, o primeiro em reais, soma
+      R$ {n1(meioAno1994 / 1e9)} bi entre todos os grupos e fica fora da tabela por ser meio ano.
+      {sumidos.length > 0 && <> <b>O último balancete de cada um conta a história do período</b>:
+      {" "}{sumidos.map((g: any) => `${g.nome} em ${g.ate}`).join(", ")} — depois disso o grupo deixa de existir
+      com nome próprio no sistema do Banco Central.</>}
+      {hist.sem_leitura_por_ano["1995"] > 0 && <> Em 1995, {hist.sem_leitura_por_ano["1995"]} grupos ficam sem
+      valor: o balancete deles traz as contas de resultado e a de apuração preenchidas ao mesmo tempo, e não dá
+      para saber se somam ou se repetem.</>}
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 8px">Por que estes números são um piso</h3>
+    <p style="margin:0 0 10px">
+      O lucro que o Banco Central publica no IF.data soma de volta uma despesa que os bancos lançavam: os
+      <b>juros sobre capital próprio</b>, uma forma de remunerar o acionista que a lei deixa deduzir do imposto.
+      Essa conta é de 4º nível e não aparece nos arquivos públicos, que vão até o 3º. Dá para medir o tamanho
+      disso nos anos em que as duas fontes existem, nos mesmos grupos:
+    </p>
+    <table>
+      <thead><tr><th>Ano</th><th class="num">Pelo balancete</th><th class="num">Como o BC publica</th><th class="num">Razão</th></tr></thead>
+      <tbody>{conv.map((c) => (<tr class={c.razao > 0.95 ? "destaque" : undefined}>
+        <td>{c.ano}<small>{c.grupos} grupos nos dois</small></td>
+        <td class="num">R$ {bi(c.cosif)}</td><td class="num">R$ {bi(c.ifdata)}</td>
+        <td class="num">{n1(100 * c.razao)}%</td></tr>))}</tbody>
+    </table>
+    <p class="src">
+      Entre 2000 e 2018 o balancete dá de {faixaAntes} do lucro publicado. Em {convDepois.map((c) => c.ano).join(", ")}
+      {" "}dá <b>{convDepois.map((c) => n1(100 * c.razao) + "%").join(", ")}</b> — os dois números passam a ser o
+      mesmo quando a conta de juros ao capital sai do plano contábil. Por isso a tabela de 1995 a 1999 é um
+      <b> piso</b>: o lucro de verdade daqueles anos foi maior, e não temos como dizer quanto. Em 1994 e 1995 a
+      ressalva é menor, porque os juros sobre capital próprio só passaram a existir com a lei de dezembro de 1995.
+      Fonte da faixa dos presidentes: {FONTE_PRESIDENTES.nome}.
+    </p>
+  </div>
+
   <h2>O que esta página não responde</h2>
   <div class="card">
     <ul>
@@ -283,7 +372,8 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
       <li><b>Quanto cada cliente pagou.</b> Tarifa por serviço existe por banco na base de tarifas do BC, que é
         outra coleta; juro médio por modalidade está em <a href="/inadimplencia/">Inadimplência</a> e o peso da
         dívida na renda das famílias também.</li>
-      <li><b>O lucro antes de 2000</b> — pelos motivos do primeiro aviso.</li>
+      <li><b>O total do sistema antes de 2000</b>, e quanto dos lucros de 1995 a 1999 foi distribuído como juros
+        sobre capital próprio — as duas coisas pelos motivos explicados na seção do Plano Real.</li>
     </ul>
   </div>
 
@@ -295,6 +385,7 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
   td.per { white-space: nowrap; font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-2); }
   td.sub { padding-left: 18px; color: var(--ink-2); font-size: 13px; }
   tr.destaque td { background: color-mix(in srgb, var(--s3) 12%, var(--card)); }
+  tr.prejuizo td.num { color: #a3302a; }
   ul { margin: 0; padding-left: 20px; }
   li + li { margin-top: 8px; }
 </style>

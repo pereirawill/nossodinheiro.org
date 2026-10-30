@@ -194,12 +194,13 @@ export const DATASETS: Dataset[] = [
   },
   {
     slug: "/bancos/", nome: "Lucro dos bancos no Brasil",
-    descricao: "Lucro líquido, patrimônio líquido, ativo e carteira de crédito de cada conglomerado financeiro que opera no Brasil, por ano, desde 2000, com o total por segmento (bancos, cooperativas e instituições não bancárias), o ranking dos maiores grupos pelo lucro somado e a conferência contra o conglomerado prudencial e contra o balanço entregue à CVM.",
+    descricao: "Lucro líquido, patrimônio líquido, ativo e carteira de crédito de cada conglomerado financeiro que opera no Brasil, por ano, desde 2000, com o total por segmento (bancos, cooperativas e instituições não bancárias), o ranking dos maiores grupos pelo lucro somado, o lucro de cada grupo desde dezembro de 1994 pelos balancetes do Cosif e a conferência contra o conglomerado prudencial, contra os balancetes e contra o balanço entregue à CVM.",
     arquivos: ["bancos.json"],
     fontes: [{ nome: "Banco Central — IF.data (API Olinda)", url: "https://www3.bcb.gov.br/ifdata/" },
+             { nome: "Banco Central — Balancetes e Balanços Patrimoniais (Cosif)", url: "https://www.bcb.gov.br/estabilidadefinanceira/balancetesbalancospatrimoniais" },
              { nome: "CVM — Dados abertos: DFP", url: "https://dados.cvm.gov.br/dataset/cia_aberta-doc-dfp" },
              { nome: "IBGE — IPCA (SIDRA 1737)", url: "https://sidra.ibge.gov.br/tabela/1737" }],
-    periodo: "2000/2026", atualizacao: "trimestral",
+    periodo: "1994/2026", atualizacao: "trimestral",
   },
   {
     slug: "/saneamento/", nome: "Saneamento: água, esgoto e lixo",

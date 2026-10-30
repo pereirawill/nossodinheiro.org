@@ -299,6 +299,14 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   pelo valor, mas na classificação do BC não é banco (licença de financeira e de instituição de pagamento) e por isso **não
   está** no total do segmento bancário. A página não decompõe o lucro entre juros, tarifa e título público, porque o relatório
   Resumo não abre isso, e não dá nota de "alto" ou "baixo".
+- **Desde o Plano Real:** o lucro de cada grupo financeiro vai a **dez/1994** pelos **balancetes do Cosif** (documento
+  4040), que existem desde 1988 mas só estão em reais a partir dali. Até jun/1995 o balancete vem encerrado e o
+  resultado é lido na conta de apuração; 18 grupos em 1994 e 13 em 1995 ficam sem valor porque trazem as duas contas
+  preenchidas. Esses números são um **piso**: a fórmula do BC soma de volta os juros sobre capital próprio, conta de 4º
+  nível que os arquivos públicos não abrem — medimos 61% a 74% do lucro publicado entre 2000 e 2018 e 100% de 2019 em
+  diante, quando a conta sai do plano contábil. O **total** do sistema não volta antes de 2000: o BC não publica, nessa
+  época, quais bancos pertencem a qual grupo, e somar banco a banco dupla-conta de 17% a 36%.
+- A faixa com os presidentes embaixo do gráfico é **régua de tempo**: a página não atribui lucro a governo.
 - Completo: `docs/metodologia/painel-bancos.md`.
 
 ## Mortes no trânsito
@@ -627,7 +635,8 @@ sempre só PDF ou metodologia diferente.
 | Água e esgoto ano a ano | IBGE — PNAD Contínua | 2016 (esgoto, 2019) | PNAD antiga com outra pergunta; sem 2020 e 2021 |
 | Juros nominais do Governo Central | Tesouro Nacional (RTN, tabela 2.1) | 1997 | o RTN começa em 1997 |
 | Estoque da Dívida Pública Federal | Tesouro Transparente (CSV por título) | set/2017 | relatórios mensais em PDF |
-| Lucro de cada banco | Banco Central — IF.data | mar/2000 | balanços em papel e boletins em PDF; os CSV do Cosif só cobrem anos recentes |
+| Lucro do sistema bancário (total) | Banco Central — IF.data | mar/2000 | antes disso o BC não publica a composição dos grupos, e somar banco a banco dupla-conta |
+| Lucro de cada grupo financeiro | Banco Central — balancetes do Cosif | dez/1994 | os arquivos vão a jul/1988, mas até jun/1994 os valores estão em cruzeiro real |
 | Mortes no trânsito | IBGE/ODS 3.6.1, do SIM (Ministério da Saúde) | 2000 | o SIM existe desde 1979, sem indicador calculado |
 | Mortalidade infantil, materna e de menores de 5 anos | IBGE/ODS, a partir do SIM | 1990 (neonatal), 2000 (até 5 anos), 2009 (materna) | SIM do Ministério da Saúde desde 1979, sem indicador calculado |
 

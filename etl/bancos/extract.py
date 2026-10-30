@@ -45,6 +45,7 @@ from pathlib import Path
 
 import httpx
 
+from etl.bancos import cosif
 from etl.estatais.extract import DFP, _baixar as _baixar_dfp, _e_linha_do_lucro, _num as _num_cvm
 
 log = logging.getLogger("etl.bancos")
@@ -426,6 +427,15 @@ def main() -> None:
         indices = ipca(c)
         prudencial = conferencia_prudencial(c, ultimo_fechado)
         cvm = conferencia_cvm(c, ultimo_fechado, series)
+        # Antes de 2000 o IF.data não existe: os balancetes do Cosif dão o lucro de cada grupo desde dez/1994.
+        historico = cosif.serie(c)
+        for g in historico["grupos"]:
+            # o grupo ainda aparece no IF.data? serve para a página dizer quem sumiu do mapa
+            anos_if = sorted(int(a) for a in series.get(g["cod"], {}).get("serie", {}))
+            g["ultimo_ifdata"] = anos_if[-1] if anos_if else None
+        historico["convergencia"] = cosif.convergencia(
+            c, {a["ano"]: {cod: s["serie"][str(a["ano"])]["lucro"] for cod, s in series.items()
+                           if str(a["ano"]) in s["serie"]} for a in anos})
     if not anos or ultimo_fechado < 2024:
         raise SystemExit(f"IF.data incompleto (último ano fechado: {ultimo_fechado})")
     base = ultimo_fechado
@@ -463,13 +473,16 @@ def main() -> None:
                      "anos": s["anos"], "serie": s["serie"]} for cod, s in maiores],
         "conferencia_prudencial": prudencial,
         "conferencia_cvm": cvm,
+        "historico": historico,
         "fonte": {
             "ifdata": "Banco Central do Brasil, IF.data (API Olinda), relatório 1 — Resumo, conglomerado financeiro e instituições independentes",
             "ifdata_url": "https://www3.bcb.gov.br/ifdata/",
             "ipca": "IBGE, IPCA (SIDRA 1737), índice de dezembro de cada ano",
             "regra_lucro": "Lucro Líquido do IF.data acumula no semestre: lucro do ano = junho (jan–jun) + dezembro (jul–dez)",
             "regra_saldo": "Patrimônio Líquido, Ativo e Carteira de Crédito são saldos de 31 de dezembro",
-            "limite_inicio": "O IF.data começa em março de 2000; não há série aberta de lucro por banco em 1988",
+            "limite_inicio": "O IF.data começa em março de 2000; antes disso, os balancetes do Cosif (desde dez/1994, em reais) dão o lucro por grupo financeiro, sem o termo de juros ao capital",
+            "cosif": "Banco Central, balancetes do Cosif, documento 4040 (conglomerado financeiro), data-base de junho e dezembro",
+            "cosif_url": "https://www.bcb.gov.br/estabilidadefinanceira/balancetesbalancospatrimoniais",
         },
     }
     PUB.mkdir(parents=True, exist_ok=True)

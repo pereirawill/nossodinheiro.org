@@ -1,0 +1,42 @@
+---
+/**
+ * Faixa com quem era presidente em cada trecho do gráfico. Só régua de tempo — ver `presidentes.ts`.
+ *
+ * Recebe a geometria do gráfico de cima (largura, margens e o intervalo de anos) para que as divisões caiam
+ * exatamente sobre os mesmos anos. As trocas de governo usam a data real: a de 2016 cai no meio do ano.
+ */
+import { PRESIDENTES, anoFracionario } from "../lib/presidentes";
+
+interface Props {
+  largura: number;        // mesmo viewBox do gráfico de cima
+  esquerda: number;       // margem esquerda do gráfico
+  direita: number;        // margem direita
+  de: number;             // primeiro ano do eixo
+  ate: number;            // último ano do eixo (inclusive, representa o ano inteiro)
+  altura?: number;
+}
+const { largura, esquerda, direita, de, ate, altura = 34 } = Astro.props;
+const CORES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)"];
+const util = largura - esquerda - direita;
+const x = (ano: number) => esquerda + ((ano - de) / (ate + 1 - de)) * util;
+
+const br = (d: string) => d.split("-").reverse().join("/");
+const faixas = PRESIDENTES.map((p, i) => {
+  const ini = Math.max(de, anoFracionario(p.inicio));
+  const fim = Math.min(ate + 1, p.fim ? anoFracionario(p.fim) : ate + 1);
+  return { ...p, ini, fim, cor: CORES[i % CORES.length], largura: x(fim) - x(ini),
+           periodo: `${br(p.inicio)} a ${p.fim ? br(p.fim) : "hoje"}` };
+}).filter((f) => f.fim > f.ini + 0.01);
+---
+<svg viewBox={`0 0 ${largura} ${altura}`} width="100%" role="img" aria-label="Quem era presidente em cada período do gráfico" class="banda">
+  {faixas.map((f) => (<g>
+    <rect x={x(f.ini)} y={2} width={f.largura} height={14} fill={f.cor} opacity="0.55">
+      <title>{f.nome} — {f.periodo}{f.nota ? `; ${f.nota}` : ""}</title>
+    </rect>
+    {f.largura > 26 && <text x={x(f.ini) + f.largura / 2} y={29} text-anchor="middle" font-size="11"
+      font-family="IBM Plex Mono, monospace" fill="var(--ink-2)">{f.largura > 58 ? f.curto : f.curto.slice(0, 3)}</text>}
+  </g>))}
+</svg>
+<style>
+  .banda { display: block; margin-top: -6px; }
+</style>

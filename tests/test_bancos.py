@@ -91,3 +91,62 @@ def test_nome_do_banco_que_sai_do_cadastro():
     _anos, series, _u = consolidar([_ano(2007, {"X": dict(v)}, cad), _ano(2008, {"X": dict(v)}, {})])
     assert series["X"]["nome"] == "BANCO VELHO"
     assert series["X"]["segmento"] == "bancos"
+
+
+# ---------------------------------------------------------------- balancetes do Cosif (1994–1999)
+
+CABECALHO = "DATA;COD.CONGLOMERADO;NOME CONGLOMERADO;ATRIBUTO;DOCUMENTO;CONTA;NOME CONTA;SALDO"
+
+
+def _balancete(linhas):
+    return ["Consolidado Financeiro (doc 4040)", "Data de geração", "Fonte", CABECALHO] + linhas
+
+
+def _l(cod, nome, conta, saldo):
+    return f"199512;{cod};{nome};G;4040;{conta};NOME;{saldo:.2f}".replace(".", ",")
+
+
+def _ler(monkeypatch, linhas):
+    from etl.bancos import cosif
+    monkeypatch.setattr(cosif, "_csv", lambda c, anomes, url: _balancete(linhas))
+    return cosif.lucro_por_grupo(None, 199512, "")
+
+
+def test_cosif_balancete_aberto(monkeypatch):
+    """Caso normal (dez/1995 em diante): o lucro é a soma das contas de resultado."""
+    lucro, nomes, sem = _ler(monkeypatch, [_l("00010069", "ITAU", "0070000009", 500e6),
+                                           _l("00010069", "ITAU", "0080000006", -380e6)])
+    assert lucro == {"C0010069": 120e6}
+    assert nomes["C0010069"] == "ITAU" and sem == []
+
+
+def test_cosif_balancete_encerrado(monkeypatch):
+    """Até jun/1995 as contas de resultado vêm zeradas e o lucro está na apuração, com sinal trocado."""
+    lucro, _n, sem = _ler(monkeypatch, [_l("00010045", "BRADESCO", "0070000009", 900e6),
+                                        _l("00010045", "BRADESCO", "0080000006", -900e6),
+                                        _l("00010045", "BRADESCO", "0089100000", -186.8e6)])
+    assert round(lucro["C0010045"]) == round(186.8e6)
+    assert sem == []
+
+
+def test_cosif_ambiguo_fica_sem_valor(monkeypatch):
+    """Resultado e apuração preenchidos ao mesmo tempo: não dá para saber se somam ou se repetem."""
+    lucro, _n, sem = _ler(monkeypatch, [_l("00010014", "BAMERINDUS", "0070000009", 100e6),
+                                        _l("00010014", "BAMERINDUS", "0080000006", -165.6e6),
+                                        _l("00010014", "BAMERINDUS", "0089100000", -179.1e6)])
+    assert sem == ["C0010014"] and lucro == {}
+
+
+def test_cosif_so_o_documento_4040(monkeypatch):
+    """O arquivo traz também o balanço semestral (4046); somar os dois contaria o grupo duas vezes."""
+    linhas = [_l("00049906", "BB", "0070000009", 300e6), _l("00049906", "BB", "0080000006", -200e6),
+              "199512;00049906;BB;G;4046;0070000009;NOME;999999999,00"]
+    lucro, _n, _s = _ler(monkeypatch, linhas)
+    assert lucro == {"C0049906": 100e6}
+
+
+def test_cosif_codigo_vira_o_do_ifdata(monkeypatch):
+    """O formato antigo usa 00010069 e o IF.data usa C0010069 — é o mesmo grupo."""
+    lucro, _n, _s = _ler(monkeypatch, [_l("00010069", "ITAU", "0070000009", 10e6),
+                                       _l("00010069", "ITAU", "0080000006", -4e6)])
+    assert list(lucro) == ["C0010069"]

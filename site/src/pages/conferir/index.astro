@@ -19,6 +19,9 @@ const dotacao26 = (poderes as any[]).reduce((t, l) => t + l.dotacao, 0);
 const bAno = ((bancos as any).anos as any[]).filter((a) => !a.parcial).slice(-1)[0];
 const bPrud = (bancos as any).conferencia_prudencial;
 const bCvm = ((bancos as any).conferencia_cvm?.bancos ?? []) as any[];
+const bConv = ((bancos as any).historico?.convergencia ?? []) as any[];
+const bAntes = bConv.filter((c) => c.ano <= 2018);
+const bDepois = bConv.filter((c) => c.ano >= 2019);
 const bMenor = bCvm.length ? bCvm.reduce((m, b) => (Math.abs(b.dif_pct) < Math.abs(m.dif_pct) ? b : m), bCvm[0]) : null;
 const bMaior = bCvm.length ? bCvm.reduce((m, b) => (Math.abs(b.dif_pct) > Math.abs(m.dif_pct) ? b : m), bCvm[0]) : null;
 const pago26 = (poderes as any[]).reduce((t, l) => t + l.pago, 0);
@@ -29,6 +32,9 @@ const vivos: Record<string, { nosso: string; outro?: string; diferenca: string }
   Estatais: { nosso: `R$ ${n1(sest.agregado["2025"] / 1e9)} bi`, outro: `R$ ${n1(sest.oficial["2025"] / 1e9)} bi`,
               diferenca: `${n1(100 * Math.abs(sest.agregado["2025"] / sest.oficial["2025"] - 1))}%` },
   Impostos: { nosso: mar26 ? `R$ ${n1(mar26.total / 1e9)} bi` : "—", diferenca: "2,0%" },
+  bancos_cosif: { nosso: bAntes.length ? `${n1(100 * Math.min(...bAntes.map((c) => c.razao)))}% a ${n1(100 * Math.max(...bAntes.map((c) => c.razao)))}% do lucro publicado, até 2018` : "—",
+                  outro: bDepois.length ? `${bDepois.map((c) => n1(100 * c.razao) + "%").join(", ")} em ${bDepois.map((c) => c.ano).join(", ")}` : "—",
+                  diferenca: "some em 2019, quando a conta de juros ao capital sai do Cosif" },
   bancos_prudencial: { nosso: `R$ ${n1(bAno.segmentos.bancos.lucro / 1e9)} bi`,
                        outro: `R$ ${n1(bPrud.lucro_bancos / 1e9)} bi`,
                        diferenca: `${n1(100 * Math.abs(bAno.segmentos.bancos.lucro / bPrud.lucro_bancos - 1))}%` },

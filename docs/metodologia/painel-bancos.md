@@ -4,15 +4,18 @@ Página: `/bancos/` · dados: `site/public/data/bancos.json` · ETL: `etl/bancos
 
 ## 1. A pergunta e o que a fonte permite responder
 
-A pergunta foi "quanto os bancos lucraram no Brasil desde 1988, os principais 10–15". **Desde 1988 não é possível.**
-A única base aberta que publica o resultado de cada instituição financeira é o **IF.data** do Banco Central, e ela
-começa em **março de 2000** — pedimos todos os períodos de dezembro de 1993 a dezembro de 1999 pela API e a resposta
-vem com zero linhas. Os arquivos CSV do Cosif (`bcb.gov.br/content/estabilidadefinanceira/cosif/Bancos/AAAAMMBANCOS.csv.zip`)
-existem apenas para anos recentes: 2024 responde 200, e 2010, 2005, 2001, 2000 e 1999 respondem 404.
+A pergunta foi "quanto os bancos lucraram no Brasil desde 1988, os principais 10–15", e depois "dá para fazer desde
+o Plano Real, ano a ano?". A resposta tem duas partes:
 
-Além da indisponibilidade, antes do Plano Real o lucro nominal não significaria nada: foram cinco trocas de moeda e
-inflação de três dígitos. A página declara isso em vez de emendar séries — mesma regra do painel da indústria, onde a
-participação a preços correntes dava 46% em 1979.
+- **o total do sistema** começa em **2000**, porque é quando começa o **IF.data** do Banco Central (pedimos todos os
+  períodos de 1993 a 1999 pela API e a resposta vem com zero linhas);
+- **o lucro de cada grupo financeiro** vai até **dezembro de 1994**, pelos **balancetes do Cosif** — ver §8.
+
+Por que o total não volta junto: nos anos 90 o Banco Central não publica **quais bancos pertencem a qual grupo**.
+Somar banco a banco conta duas vezes o resultado que a controladora reconhece da controlada; medimos a diferença
+nos anos em que dá para comparar e ela é de **+17% a +36%** (2000, 2005, 2010, 2015 e 2020). Tentamos duas saídas e
+as duas falharam, e ficam registradas para não serem tentadas de novo: descontar as contas de participações
+(erra de −43% a −165%) e casar banco e grupo pelo nome (acerta 73% a 78% do valor).
 
 ## 2. Fonte
 
@@ -122,6 +125,49 @@ cooperativas; N1 a N4 são não bancárias. A classificação do grupo é a do s
 - **Tarifa por serviço e juro por modalidade.** São outras coletas do BC; o juro e a inadimplência por modalidade
   estão em `/inadimplencia/`.
 - **Lucro antes de 2000** (§1).
+
+## 8. Desde o Plano Real: os balancetes do Cosif
+
+**Fonte**: Banco Central, *Balancetes e Balanços Patrimoniais*, pasta `Conglomerados-financeiros`, documento
+**4040** (consolidado do conglomerado financeiro). O índice de arquivos vem da API do próprio site
+(`api/servico/sitebcb/Documentos/byListGuid`), porque o nome muda ao longo do tempo (`.ZIP`, `.csv.zip` e um
+`.zip.csv.zip`). Os arquivos existem desde **julho de 1988**.
+
+**Começa em dez/1994**, não em 1988: até jun/1994 os valores estão em cruzeiro real — o patrimônio do Banco do
+Brasil aparece como 17.692 bilhões em jun/1994 e como R$ 5,75 bilhões em dez/1994. A tabela da página mostra de
+1995 a 1999 (anos inteiros); o semestre jul–dez/1994 entra só como valor somado, no texto.
+
+**Duas convenções de balancete, e a regra para ler as duas** (§5 do código, com teste):
+- de dez/1995 em diante o balancete vem aberto, e o lucro do semestre é a soma das contas de resultado
+  (7 credoras + 8 devedoras), a mesma conta do IF.data;
+- em dez/1994 e jun/1995 o balancete vem **encerrado**: 7 e 8 se anulam e o resultado está na conta 8.9.1
+  ("apuração de resultado"), com o sinal trocado. É assim que se lê o Itaú de dez/1994 (R$ 126,1 mi) ou o
+  Bradesco (R$ 186,8 mi), e o mesmo vale no arquivo por instituição;
+- 18 grupos em dez/1994 e 13 em jun/1995 trazem **as duas** preenchidas. Não dá para saber se somam ou se
+  repetem, então esses grupos ficam **sem valor** no semestre, em vez de publicarmos um número que pode estar
+  dobrado.
+
+**Por que o número de 1995 a 1999 é um piso.** A fórmula que o BC usa no IF.data é
+`[7] + [8] − [8.1.9.55.00-2]`, e essa última conta — "juros ao capital", a despesa com juros sobre capital
+próprio — é de 4º nível e **não aparece nos arquivos públicos**, que vão até o 3º. Medimos o efeito disso
+comparando, nos mesmos grupos, o que o balancete dá e o que o BC publica: **61% a 74% entre 2000 e 2018** e
+**98,5%, 99,8% e 100,2% em 2019, 2020 e 2021**, quando a conta sai do plano contábil. A quebra limpa em 2019 é a
+prova de que a diferença é essa, e não erro de leitura. Logo, o lucro real de 1996–1999 foi maior que o
+publicado aqui, e não temos como dizer quanto. Em 1994 e 1995 a ressalva é menor: os juros sobre capital próprio
+só passaram a existir com a lei de dezembro de 1995.
+
+**O que a série mostra**: Itaú R$ 19,4 bi e Bradesco R$ 12,1 bi somados em 1995–1999 (reais do ano-base), contra
+**−R$ 41,3 bi do Banco do Brasil** (quase tudo no prejuízo de 1996) e −R$ 18,2 bi do Banestado. O último
+balancete de cada grupo marca as quebras do período: Nacional e Econômico em 1995, Bozano,Simonsen e Multiplic
+em 1997, Bandepe e Baneb em 1998.
+
+## 9. Faixa dos presidentes
+
+O gráfico do total traz embaixo quem era presidente em cada trecho (`site/src/lib/presidentes.ts`), com as datas
+reais — a troca de 2016 cai no meio do ano. É **régua de tempo**: a página não calcula lucro por governo nem
+ordena governos, porque o resultado dos bancos depende de juro, câmbio, lei e economia mundial, e separar o
+efeito de cada coisa exige estudo que não é um dado público. Mesma regra que `/transito/` aplica à queda das
+mortes desde 2012.
 
 ## 7. Lucro e imposto, lado a lado
 
