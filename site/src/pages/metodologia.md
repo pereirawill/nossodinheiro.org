@@ -131,6 +131,30 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
   o total divulgado na imprensa (receitas não administradas pela RFB). Série anual em valores nominais.
 - Completo: `docs/metodologia/painel-impostos.md`.
 
+### Quem paga mais imposto, o pobre ou o rico (seção de /impostos/)
+
+- **O que é:** a incidência dos tributos diretos e indiretos sobre a renda das famílias, por décimo de renda familiar
+  por pessoa, e a composição do orçamento de consumo de cada estrato.
+- **Por que não é um painel com ETL:** não existe medição. Ninguém declara o imposto embutido no preço, então qualquer
+  número por faixa de renda vem de um **modelo** — estima-se o tributo contido no preço de cada produto (via matriz
+  insumo-produto) e cruza-se com o que cada família comprou na POF. Não há API nem arquivo aberto com o resultado.
+- **Fontes:** Ipea, Texto para Discussão nº 2.823 (dezembro de 2022), microdados da POF 2017-2018 — gráficos 3, 4 e 6 e
+  seção 4; e Senado Federal/Consultoria Legislativa, Texto para Discussão nº 328 (abril de 2024), que o contesta.
+  Números lidos dos dois PDFs e declarados em `site/src/lib/incidencia.ts`, com gráfico de origem e data da leitura.
+- **Os dois são "texto para discussão"**, que por regra das próprias casas não é posição oficial do órgão. As duas
+  ressalvas estão impressas na página.
+- **O que ficou de fora, de propósito:**
+  - A decomposição do índice de Gini por etapa (gráfico 8 do TD do Ipea): os rótulos do gráfico não fecham com a frase
+    que os comenta — o texto atribui +5,22% à renda total e os valores só fecham se for a renda monetária. Publicamos só
+    a frase final, que está no texto corrido.
+  - Uma conta nossa da mesma coisa a partir das tabelas do SIDRA. Daria oito faixas fixas em vez de dez décimos, sem o
+    modelo de incidência, e seria um número mais fraco ao lado de um mais forte da mesma pesquisa.
+  - O "45% da carga sobre produção e consumo" que o TD do Ipea cita da Receita: a página já publica 43,5% da tabela
+    INC 01-A, lida por nós na fonte. São edições diferentes e não se misturam.
+- **Como a página resolve a divergência:** não resolve. Publica os números do estudo que os produziu, as cinco objeções
+  do estudo que os contesta, e a frase em que este último declara que medir o grau da progressividade "foge ao escopo
+  deste artigo". A linha correspondente está em `/conferir/`.
+
 ## Trabalho — quem trabalha, quem empreende, quem recebe
 
 - **O que é:** ocupados por posição (carteira, sem carteira, conta própria, setor público, empregadores), desocupados e fora da

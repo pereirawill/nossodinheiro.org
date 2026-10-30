@@ -6,6 +6,8 @@ import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/impostos.json";
 import { ALIQUOTA, MAIORES_IVA, FONTE_OCDE, EXCECOES, CALENDARIO, FONTE_LEI } from "../../lib/iva";
 import { CARGA_TESOURO } from "../../lib/carga";
+import { FONTE_IPEA, FONTE_SENADO, DECIS, PARAMETROS, RUBRICAS, COMPOSICAO, ESTRATOS, CRITICAS, LIMITE_CRITICA, EFEITO_DESIGUALDADE } from "../../lib/incidencia";
+import irpf from "../../../public/data/irpf.json";
 import mundo from "../../../public/data/carga_mundo.json";
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -32,7 +34,19 @@ const ivaLinhas = [...MAIORES_IVA.map((x) => ({ ...x, brasil: false })), { pais:
   .sort((a, b) => b.aliquota - a.aliquota);
 const ivaMax = Math.max(...ivaLinhas.map((x) => x.aliquota));
 const ocdeBens = (d as any).carga?.ocde?.bases?.["Bens e Serviços"];
+const ocdeRenda = (d as any).carga?.ocde?.bases?.["Renda, Lucros e Ganhos de Capital"];
 const ocdeAno = ocdeBens ? Object.keys(ocdeBens).sort().pop() as string : null;
+// quem paga mais imposto: linhas da INC 01-A (três níveis de governo) e a curva já medida do IRPF
+const linhasCarga = ((d as any).carga?.bases?.linhas ?? []) as { base: string; pct: number }[];
+const baseBens = linhasCarga.find((x) => x.base === "Bens e serviços") ?? { base: "", pct: 0 };
+const baseRenda = linhasCarga.find((x) => x.base === "Renda") ?? { base: "", pct: 0 };
+const incMax = Math.max(...DECIS.map((x) => x.direto + x.indireto));
+// o primeiro décimo é o único fora da faixa; do segundo em diante o total quase não anda — dizer isso, não "cai sempre"
+const restoDecis = DECIS.slice(1).map((x) => x.direto + x.indireto);
+const restoMin = Math.min(...restoDecis);
+const restoMax = Math.max(...restoDecis);
+const picoIrpf = irpf.faixas.reduce((a, b) => (b.aliquota_efetiva > a.aliquota_efetiva ? b : a));
+const topoIrpf = irpf.faixas[irpf.faixas.length - 1];
 const n1i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const n2i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const cargaTes = CARGA_TESOURO.total_pct_pib / 100;
@@ -251,6 +265,166 @@ const W = 920;
   </>}
 
 
+  <h2 id="quem-paga-mais">Quem paga mais imposto: o pobre ou o rico?</h2>
+  <div class="card">
+    <p style="margin:0 0 10px">
+      A pergunta tem <b>duas respostas verdadeiras</b>, e elas não se contradizem. <b>Em reais</b>, quem ganha mais paga
+      mais — é aritmética: um quinto de uma renda alta é mais dinheiro que um quarto de uma renda baixa.{" "}
+      <b>Em proporção da renda</b>, a ordem se inverte, e é aí que começa a controvérsia.
+    </p>
+    <p style="margin:0">
+      De tudo que o Brasil arrecada, <b>{n1i(baseBens.pct * 100)}%</b> vem de <b>bens e serviços</b> e{" "}
+      <b>{n1i(baseRenda.pct * 100)}%</b> da <b>renda</b> (tabela INC 01-A, os três níveis de governo — é o gráfico
+      do começo desta página). Imposto sobre consumo é cobrado por produto, não por pessoa: a lata de óleo custa o mesmo
+      para quem ganha um salário mínimo e para quem ganha cem. Como a família de renda baixa gasta quase tudo que
+      recebe e a de renda alta guarda uma parte, a <b>mesma</b> alíquota pesa diferente sobre as duas rendas. Esse é o
+      mecanismo. <b>O tamanho do efeito é que está em disputa</b> — e esta seção publica os dois lados.
+    </p>
+  </div>
+
+  <div class="disclaimer" style="margin-top:14px"><span aria-hidden="true">ⓘ</span>
+    <div><b>Aqui não há número medido, só número estimado.</b> A pesquisa de orçamentos do IBGE registra o que a família{" "}
+    <b>declara</b> pagar de imposto direto (IPTU, IPVA, imposto de renda), mas o imposto sobre consumo está embutido no
+    preço e ninguém o anota. Para chegar a um valor por faixa de
+    renda é preciso <b>estimar</b> quanto de tributo está no preço de cada produto e cruzar com o que cada família
+    comprou. Isso é um modelo, com escolhas discutíveis — e por isso os dois estudos abaixo, ambos de instituições
+    públicas, chegam a conclusões opostas. Os dois são <b>textos para discussão</b>, que por regra das próprias casas
+    não são posição oficial do órgão.</div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 4px">A conta do Ipea: 26,4% da renda embaixo, 19,2% em cima</h3>
+    <p class="src" style="margin:0 0 10px">
+      Incidência sobre a renda total, por <Termo t="decimo_renda">décimo de renda familiar por pessoa</Termo>, com os
+      microdados da POF 2017-2018.
+    </p>
+    <svg viewBox={`0 0 920 ${DECIS.length * 26 + 30}`} width="100%" role="img"
+      aria-label="Incidência da tributação direta e indireta sobre a renda total, por décimo de renda">
+      {DECIS.map((x, i) => { const tot = x.direto + x.indireto; return (
+        <g transform={`translate(0 ${i * 26 + 4})`}>
+          <text x="196" y="16" text-anchor="end" font-size="12.5" font-weight={x.decil === 1 || x.decil === 10 ? 700 : 400} fill="var(--ink)">
+            {x.decil === 1 ? "10% mais pobres" : x.decil === 10 ? "10% mais ricos" : `${x.decil}º décimo`}
+          </text>
+          <rect x="206" y="4" width={(x.direto / incMax) * 560} height="17" fill="var(--s3)" rx="2">
+            <title>{x.decil}º décimo · tributos diretos: {n1i(x.direto)}% da renda</title></rect>
+          <rect x={206 + (x.direto / incMax) * 560} y="4" width={(x.indireto / incMax) * 560} height="17" fill="var(--s4)" rx="2">
+            <title>{x.decil}º décimo · tributos indiretos: {n1i(x.indireto)}% da renda</title></rect>
+          <text x={212 + (tot / incMax) * 560} y="17" font-size="12" font-family="IBM Plex Mono, monospace" fill="var(--ink)">{n1i(tot)}%</text>
+        </g>); })}
+    </svg>
+    <div class="legend" style="margin-top:6px">
+      <span><i style="background:var(--s3)"></i><Termo t="tributo_direto">Tributos diretos</Termo> (renda e patrimônio)</span>
+      <span><i style="background:var(--s4)"></i><Termo t="tributo_indireto">Tributos indiretos</Termo> (embutidos no preço)</span>
+    </div>
+    <p class="src" style="margin-top:10px">
+      Os diretos sobem com a renda ({n1i(DECIS[0].direto)}% no décimo mais pobre, {n1i(DECIS[9].direto)}% no mais rico) —
+      são <Termo t="progressivo">progressivos</Termo>. Os indiretos fazem o caminho contrário
+      ({n1i(DECIS[0].indireto)}% contra {n1i(DECIS[9].indireto)}%) — são <Termo t="regressivo">regressivos</Termo>.{" "}
+      <b>Mas a barra total não desce em degraus.</b> Quem está fora da faixa é o décimo mais pobre, com
+      {" "}{n1i(DECIS[0].direto + DECIS[0].indireto)}%. Do segundo décimo em diante o total varia pouco — entre
+      {" "}{n1i(restoMin)}% e {n1i(restoMax)}% — e o décimo mais rico paga a mesma proporção que o oitavo. O que muda
+      ao longo da escala é a <b>composição</b>: embaixo, {Math.round((DECIS[0].indireto / (DECIS[0].direto + DECIS[0].indireto)) * 100)}% do que se paga
+      está embutido no preço; em cima, mais da metade ({Math.round((DECIS[9].direto / (DECIS[9].direto + DECIS[9].indireto)) * 100)}%) é imposto direto.
+      Fonte: {FONTE_IPEA.nome}, {FONTE_IPEA.edicao}, gráfico 3 (lido em {FONTE_IPEA.lido}).
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 4px">Por que dá nisso: o que cada faixa compra, e quanto de imposto vem embutido</h3>
+    <p class="src" style="margin:0 0 10px">
+      Duas coisas ao mesmo tempo: as famílias de renda baixa gastam uma parte maior do orçamento em comida, moradia e
+      higiene; e cada grupo de produto carrega uma alíquota diferente no preço.
+    </p>
+    <table>
+      <thead><tr>
+        <th>Grupo de consumo</th><th class="num">Imposto embutido no preço</th>
+        <th class="num">{ESTRATOS.pobres}</th><th class="num">{ESTRATOS.meio}</th><th class="num">{ESTRATOS.ricos}</th>
+      </tr></thead>
+      <tbody>{COMPOSICAO.map((c) => { const r = RUBRICAS.find((x) => x.rubrica === c.rubrica); return (
+        <tr>
+          <td>{c.rubrica}</td>
+          <td class="num">{r ? `${n1i(r.aliquota)}%` : "—"}</td>
+          <td class="num">{c.pobres}%</td><td class="num">{c.meio}%</td><td class="num">{c.ricos}%</td>
+        </tr>); })}
+      </tbody>
+    </table>
+    <p class="src" style="margin-top:10px">
+      As três últimas colunas são a composição da despesa de consumo de cada estrato e somam 100% (com
+      arredondamento). <b>Higiene é o caso mais claro</b>: carrega a maior alíquota da tabela
+      ({n1i(RUBRICAS[RUBRICAS.length - 1].aliquota)}%) e pesa mais que o dobro no orçamento de quem tem menos.
+      <b> Educação vai no sentido oposto</b>: é o grupo menos tributado ({n1i(RUBRICAS[0].aliquota)}%) e os
+      {" "}{ESTRATOS.ricos.toLowerCase()} gastam nele quase o dobro da fatia dos {ESTRATOS.pobres.toLowerCase()}.{" "}
+      <b>E nem tudo puxa para o mesmo lado</b>: transporte tem a segunda maior alíquota da tabela e pesa <i>mais</i>
+      no orçamento de quem tem mais renda — é o que segura a diferença entre as pontas. Fonte: {FONTE_IPEA.nome},
+      gráficos 4 e 6.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 4px">O denominador muda a resposta — e o próprio estudo mostra isso</h3>
+    <table>
+      <thead><tr><th>Dividido por…</th><th class="num">10% mais pobres</th><th class="num">10% mais ricos</th><th>O que esse parâmetro supõe</th></tr></thead>
+      <tbody>{PARAMETROS.map((p) => (
+        <tr>
+          <td><b>{p.parametro}</b>{p.escolhido && <span style="color:var(--ink-2)"> · o adotado pelo estudo</span>}<br /><span class="desc">{p.oQue}</span></td>
+          <td class="num">{p.decimais === 1 ? n1i(p.primeiro) : n2i(p.primeiro)}%</td><td class="num">{p.decimais === 1 ? n1i(p.ultimo) : n2i(p.ultimo)}%</td>
+          <td class="desc">{p.nota}</td>
+        </tr>))}
+      </tbody>
+    </table>
+    <p class="src" style="margin-top:10px">
+      Só os tributos indiretos, para isolar o efeito do denominador. Trocar renda por despesa de consumo quase fecha a
+      distância entre as pontas: é a objeção central de quem contesta a tese, e está no próprio texto do Ipea,
+      seção 4. Esta página usa a renda total — o parâmetro que o estudo adotou — e mostra os três.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 4px">A contestação: um texto do Senado diz que a conta está errada</h3>
+    <p style="margin:0 0 10px">
+      Em abril de 2024, a Consultoria Legislativa do Senado publicou uma crítica direta a esse estudo, com o título
+      <b> "A hipertributação dos pobres no Brasil: um mito influente"</b>. Ela aponta cinco lacunas:
+    </p>
+    <table>
+      <thead><tr><th>A lacuna apontada</th><th>O argumento</th></tr></thead>
+      <tbody>{CRITICAS.map((c) => (<tr><td><b>{c.titulo}</b></td><td class="desc">{c.detalhe}</td></tr>))}</tbody>
+    </table>
+    <p class="src" style="margin-top:10px">
+      <b>O que esse texto não faz é refazer a conta.</b> Ele conclui que a matriz tributária é progressiva e, na mesma
+      frase, declara: "{LIMITE_CRITICA}" Não há, portanto, um segundo conjunto de números por faixa de renda para pôr
+      ao lado do primeiro — há um conjunto de números e uma lista de objeções a ele. Fonte: {FONTE_SENADO.nome},
+      {" "}{FONTE_SENADO.edicao} (lido em {FONTE_SENADO.lido}).
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 4px">O que esta página conclui</h3>
+    <p style="margin:0 0 10px">
+      Nada além do que está publicado. O estudo do Ipea mede e conclui que o sistema é regressivo; o texto do Senado
+      lista cinco razões para duvidar da medida e não apresenta outra. Sobre o efeito líquido, a frase do Ipea é:
+      "{EFEITO_DESIGUALDADE.texto}" {EFEITO_DESIGUALDADE.leitura}
+    </p>
+    <p style="margin:0 0 10px">
+      Fora de disputa está o <b>desenho</b> do sistema, que esta página mede em outra seção e com outra fonte:
+      {" "}{n1i(baseBens.pct * 100)}% da arrecadação vem de bens e serviços e {n1i(baseRenda.pct * 100)}% da renda
+      {ocdeBens && ocdeAno && <span>; em proporção do PIB são {n1i(ocdeBens[ocdeAno].brasil)}% em bens e serviços
+      contra {n1i(ocdeBens[ocdeAno].ocde)}% na média da OCDE, e {n1i(ocdeRenda && ocdeAno ? ocdeRenda[ocdeAno].brasil : 0)}%
+      em renda contra {n1i(ocdeRenda && ocdeAno ? ocdeRenda[ocdeAno].ocde : 0)}%</span>}.
+    </p>
+    <p style="margin:0">
+      E do lado do imposto sobre a renda, onde o dado é <b>medido e não estimado</b>, a própria Receita Federal publica
+      uma curva que cai no topo: a <Termo t="aliquota_efetiva">alíquota efetiva</Termo> do IRPF sobe até
+      {" "}{n1i(picoIrpf.aliquota_efetiva * 100)}% na faixa {picoIrpf.faixa.toLowerCase()} salários mínimos e cai para
+      {" "}{n1i(topoIrpf.aliquota_efetiva * 100)}% entre os declarantes de maior renda, porque
+      {" "}{n1i(topoIrpf.pct_isenta * 100)}% da renda deles é isenta. Está em <a href="/imposto-de-renda/">Imposto de Renda</a>.
+    </p>
+    <p class="src" style="margin-top:10px">
+      Ressalvas impressas nas duas publicações. Ipea: "{FONTE_IPEA.ressalva}" Senado: "{FONTE_SENADO.ressalva}"
+      {" "}Os dois PDFs estão ligados aqui: <a href={FONTE_IPEA.url}>TD 2.823 do Ipea</a> e
+      {" "}<a href={FONTE_SENADO.url}>TD 328 do Senado</a>.
+    </p>
+  </div>
+
   <h2 id="iva">O IVA que vem aí — e por que a alíquota seria a maior do mundo</h2>
   <div class="card">
     <p style="margin:0 0 10px">
@@ -325,7 +499,7 @@ const W = 920;
     <p class="src">É onde a empresa ou pessoa recolheu, não onde o imposto "nasceu": sedes de empresas e o DF (órgãos federais, royalties) concentram.</p>
   </div>
 
-  <Glossario termos={["arrecadacao", "base_incidencia", "quem_paga", "iva", "per_capita"]} />
+  <Glossario termos={["arrecadacao", "base_incidencia", "quem_paga", "tributo_direto", "tributo_indireto", "progressivo", "regressivo", "decimo_renda", "aliquota_efetiva", "iva", "per_capita"]} />
 </Base>
 <style>
   .iva-lista { margin: 0; padding-left: 18px; } .iva-lista li { margin: 6px 0; }
