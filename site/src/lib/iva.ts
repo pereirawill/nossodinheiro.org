@@ -7,12 +7,15 @@
  * arrecadem o mesmo que os cinco que substituem. Só será fixada por resolução do Senado, e a página diz isso.
  */
 export const ALIQUOTA = {
-  referencia: 27.91, ibs: 18.70, cbs: 9.21,
+  referencia: 27.91, ibs: 18.70,
+  // 27,91 e 18,70 estão no Quadro 2 da resolução. A fatia da CBS NÃO está: é a diferença entre os dois, conta
+  // nossa, e por isso vai declarada como tal em vez de aparecer como número do Comitê.
+  cbs: 9.21, cbs_e_conta_nossa: true,
   trava: 26.5,          // LC 214/2025: se a soma passar de 26,5% em 2031, o Executivo propõe corte de benefícios
-  fonte: "Comitê Gestor do IBS, estimativa de alíquota de referência (2026); trava de 26,5% na LC 214/2025",
-  url: "https://fenacon.org.br/reforma-tributaria/comite-gestor-estima-aliquota-do-iva-em-2791-acima-do-teto-previsto-na-reforma-tributaria/",
-  lido: "29/10/2026",
-  nota: "A estimativa anterior, do Ministério da Fazenda (2024), era de 26,5%; a diferença vem das exceções acrescentadas na lei complementar.",
+  fonte: "Comitê Gestor do IBS, Resolução CGIBS nº 14, de 29 de julho de 2026, Quadro 2 (Cálculo da Alíquota de Referência do IBS Adotada); trava de 26,5% na LC 214/2025",
+  url: "https://cgibs.gov.br/upload/arquivos/202607/31144942-resoluc-ao-cgibs-n-14-de-29-de-julho-de-2026-proposta-percentual-ibs-cgibs-2027.pdf",
+  lido: "30/10/2026",
+  nota: "A própria resolução diz que a estimativa tem caráter prospectivo e foi feita para a proposta orçamentária do Comitê de 2027 — a alíquota de referência definitiva é fixada pelo Senado. A estimativa anterior, do Ministério da Fazenda (2024), era de 26,5%.",
 };
 
 /** Maiores alíquotas-padrão de IVA em vigor. OCDE, Consumption Tax Trends 2024, com as mudanças de 2025. */

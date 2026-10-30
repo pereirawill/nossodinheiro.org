@@ -76,6 +76,15 @@ const W = 920, rotuloW = 240, barraW = 500;
 // carga tributária: o Banco Mundial mede só o governo central; a Receita mede os três níveis
 const cargaWB = idx("carga_governo_central");
 const cargaBR = (imp as any).carga;
+// A diferença para o indicador do Banco Mundial não é "estados e municípios": a União sozinha já passa dele.
+// GC.TAX.TOTL.GD.ZS é receita TRIBUTÁRIA do governo central, e deixa de fora a contribuição previdenciária.
+const uniaoPct = 100 * ((cargaBR?.por_ente ?? []).find((e: any) => e.ente === "União")?.pct_pib ?? 0);
+// carga.ano vem como texto ("2024") e `anual` traz número — comparar com Number, senão a conta zera em silêncio
+const anoCarga = ((imp as any).anual as any[]).find((a: any) => a.ano === Number(cargaBR?.ano) && a.meses === 12);
+const previdReais = anoCarga?.tributos?.["RECEITA PREVIDENCIÁRIA"] ?? 0;
+const totalArrecad = (cargaBR?.por_ente ?? []).find((e: any) => e.ente === "Total");
+const pibEstimado = totalArrecad ? (totalArrecad.arrecadacao_milhoes * 1e6) / (totalArrecad.pct_pib || 1) : 0;
+const previdPct = pibEstimado ? (100 * previdReais) / pibEstimado : 0;
 const cargaTotal = (cargaBR?.serie?.[cargaBR.ano]?.carga ?? 0) * 100;
 const bases = cargaBR?.bases?.linhas ?? [];
 // Brasil × média da OCDE por base, da tabela 07 do próprio estudo da Receita (que usa o Revenue Statistics da OCDE)
@@ -206,8 +215,9 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
       Cada área tem o seu gráfico abaixo, com <b>um país por linha</b> — a média aparece como linha tracejada, para dar
       referência sem esconder quem está onde. O Brasil fica acima da média em
       {" "}{porArea.filter((a) => a.acimaDaMedia).length} das {porArea.length} áreas. Conferimos também pela
-      <b> mediana</b>, o país do meio, que não se deixa puxar por um valor extremo: ela aparece ao lado de cada média e
-      fica a menos de um ponto dela em todas as áreas, de modo que nenhuma conclusão depende de qual das duas se usa.
+      <b> mediana</b>, o país do meio, que não se deixa puxar por um valor extremo: ela aparece ao lado de cada média.
+      Nas áreas em que o Brasil está perto do centro do grupo, a posição muda conforme se use média ou mediana — por
+      isso as duas ficam à vista, em vez de escolhermos uma.
     </p>
   </div>
 
@@ -424,7 +434,7 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
   <div class="card">
     <div class="hero" style="margin:0 0 14px">
       <div class="stat"><b>{n1(cargaTotal)}%</b><span>do PIB é o que <b class="inline">União, estados e municípios</b> arrecadam juntos, pela Receita Federal ({cargaBR?.ano})</span></div>
-      <div class="stat"><b>{n1(cargaWB?.brasil?.valor)}%</b><span>do PIB é o que o Banco Mundial registra para o Brasil, porque mede só o <b class="inline">governo central</b> ({cargaWB?.brasil?.ano})</span></div>
+      <div class="stat"><b>{n1(cargaWB?.brasil?.valor)}%</b><span>do PIB é o que o Banco Mundial registra para o Brasil: receita <b class="inline">tributária</b> do governo central, sem a contribuição previdenciária ({cargaWB?.brasil?.ano})</span></div>
     </div>
     <table>
       <thead><tr><th>Base de incidência</th><th class="num">% de tudo que se arrecada</th><th class="num">União</th><th class="num">Estados</th><th class="num">Municípios</th></tr></thead>
@@ -457,9 +467,12 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
       {" "}{ocde?.fonte}.
     </p>
     <p class="src">
-      Comparar carga tributária entre países é a armadilha mais comum. O indicador do Banco Mundial cobre o
-      <b> governo central</b>, e no Brasil estados e municípios arrecadam quase um terço do total — ICMS, ISS, IPVA e
-      IPTU ficam fora da conta internacional. O número comparável com a OCDE é o da Receita Federal, de
+      Comparar carga tributária entre países é a armadilha mais comum, e aqui a conta fecha: o indicador do Banco
+      Mundial é a receita <b>tributária</b> do governo central e deixa de fora a contribuição previdenciária. A União
+      sozinha arrecada {n1(uniaoPct)}% do PIB; tirando a receita previdenciária ({n1(previdPct)}% do PIB) sobram
+      {" "}{n1(uniaoPct - previdPct)}%, contra os {n1(cargaWB?.brasil?.valor)}% do Banco Mundial — a {n1(Math.abs(uniaoPct - previdPct - (cargaWB?.brasil?.valor ?? 0)))} ponto
+      de diferença, que não conseguimos fechar e fica declarada aqui. Estados e municípios — ICMS, ISS, IPVA, IPTU —
+      ficam fora dos dois lados dessa conta. O número comparável com a OCDE é o da Receita Federal, de
       {" "}{n1(cargaTotal)}% do PIB. Fontes: Banco Mundial (GC.TAX.TOTL.GD.ZS) e Receita Federal, Carga Tributária no
       Brasil {cargaBR?.edicao}, tabela INC 01-A. Detalhe por tributo em <a href="/impostos/">Impostos</a>.
     </p>
