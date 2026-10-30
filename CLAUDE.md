@@ -760,6 +760,28 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 - **Pendências**: duelos lado a lado (exige antes uma página de comparação entre dois parlamentares, que não existe);
   separar cidade de estado no agregado; amostrar quando passar de ~100 mil gravações/dia (limite do plano gratuito do D1).
 
+## Revisão editorial (29–30/10/2026) — o que ela ensinou
+- `make checar` (tools/checar_site.py) é a parte mecânica, custo zero, e roda antes de qualquer commit de site.
+  `docs/revisao-regras.md` é o prompt da parte editorial (12 regras, escala ALTA/MÉDIA/BAIXA); relatórios em
+  `docs/revisao-2026-10-30/` e consolidado em `docs/revisao-2026-10-30.md`. Fatias revisadas: Inflação, justiça-e-
+  estatais, economia, transversais (206 achados, 21 graves, todos corrigidos). Faltam: parlamento, social,
+  trabalho, federação (~280 mil tokens de Fable cada; rodar UMA por vez — três em paralelo estouraram o limite de
+  sessão e morreram antes de gravar).
+- **As duas fraquezas sistemáticas são R2 (fonte) e R5 (rótulo)**, 75 dos 206 achados. Três casos de "fonte de
+  terceiro assinada como oficial" (IVA/Fenacon, ex-presidentes/notícia, conta do Cosif/blog). Regra: constante
+  em `lib/*.ts` só com documento primário lido; se o número que circula não está no documento (o 9,21 da CBS não
+  está na Resolução CGIBS 14/2026), declarar como conta nossa.
+- **Erros que cometi em páginas novas no mesmo dia em que corrigia os antigos** — o checador não pega nenhum:
+  base de "cada R$ 100" com dupla contagem (numerador corrigido, denominador não; 4,6% de erro); número digitado
+  em `conferencias.ts` em vez de calculado; `viewBox="… {expr}"` com chaves dentro de aspas (Astro não interpola
+  — vira texto). **Antes de dar algo por pronto, reler como adversário**: foi isso que achou os três.
+- **Repasses da União estão dentro dos órgãos do Executivo.** `poderes_funcao_*.json` traz `pago_aplicacao_direta`
+  e `pago_transferido_entes` (modalidades 30/31/35/40/41/45); na saúde de 2025 são R$ 158 bi de R$ 216 bi. Qualquer
+  soma entre níveis usa a aplicação direta — `site/src/lib/cada100.ts` é a conta de referência (home e /conferir/).
+- Frase de régua trocada que apareceu em três páginas: juros NOMINAIS (R$ 891,9 bi, competência) comparados com
+  despesa PAGA. Com a mesma régua, juros pagos (R$ 362,7 bi) < saúde + educação. Nunca mais escrever "juros
+  passam saúde e educação".
+
 ## Convenções
 - Nunca persistir o CPF do parlamentar que vem no CSV da CEAP.
 - Todo número fixo em `config.py` com fonte e data; mudou lá → muda a metodologia na mesma PR.
