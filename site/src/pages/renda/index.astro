@@ -4,6 +4,7 @@ import Termo from "../../components/Termo.astro";
 import Glossario from "../../components/Glossario.astro";
 import MapaBrasil from "../../components/MapaBrasil.astro";
 import d from "../../../public/data/renda.json";
+import { LINHA_LEGAL, SEM_LINHA_DE_RIQUEZA } from "../../lib/pobreza";
 
 const brl0 = (v: number | null | undefined) => v == null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const pct1 = (v: number | null | undefined) => v == null ? "—" : `${v.toFixed(1).replace(".", ",")}%`;
@@ -75,6 +76,19 @@ const TOPO = [
   { k: "p99_mais", nome: "O 1% mais rico", de: lim.P99, ate: null, tam: "1%", destaque: true },
 ].map((g) => ({ ...porClasse[g.k], ...g }));
 const top = { p90: porClasse.p90_mais, p99: porClasse.p99_mais, p10: porClasse.ate_p10 };
+// "R$ X é muito ou pouco?" — a mesma renda cai em grupos diferentes conforme o número de moradores.
+// Os limites vêm de `dist.limites` (SIDRA 7438); nada aqui é digitado.
+const ESCADA = Object.entries(lim).map(([k, v]) => ({ p: Number(k.slice(1)), v })).sort((a, b) => a.v - b.v);
+const grupoDe = (porPessoa: number) => {
+  const abaixo = ESCADA.filter((e) => e.v <= porPessoa);
+  if (!abaixo.length) return { rotulo: `entre os ${ESCADA[0].p}% com menos renda`, destaque: false };
+  const e = abaixo[abaixo.length - 1];
+  if (e.p >= 99) return { rotulo: "no 1% mais rico", destaque: true };
+  if (e.p >= 90) return { rotulo: `nos ${100 - e.p}% mais ricos`, destaque: true };
+  return { rotulo: `acima de ${e.p}% dos brasileiros`, destaque: false };
+};
+const RENDAS = [2000, 3000, 5000, 10000, 20000];
+const MORADORES = [1, 2, 3, 4, 5];
 const massaMax = Math.max(...GRUPOS.map((c) => c.massa_pct ?? 0));
 const anosD = Object.keys(dist.massa_serie.p99_mais);
 const serieD = [
@@ -196,6 +210,61 @@ const ufMenosDesigual = [...d.por_uf].sort((a, b) => (a.gini ?? 9) - (b.gini ?? 
       </tbody>
     </table>
     <p class="src">Fonte: IBGE, PNAD Contínua, tabela 7535 (rendimento de todos os trabalhos das pessoas ocupadas, por classe de percentual dos próprios ocupados), a preços médios de {d.ano_distribuicao}. Como a fila é de trabalhadores e não de domicílios, estes valores não são comparáveis linha a linha com os da tabela acima.</p>
+  </div>
+
+  <h2 id="quem-e-rico">R$ 5 mil é muito ou pouco? E quem é rico no Brasil?</h2>
+  <div class="card">
+    <p class="explica">
+      A pergunta não tem resposta sem uma segunda informação: <b>quantas pessoas vivem dessa renda</b>. O corte dos
+      10% mais ricos é de {brl0(lim.P90)} <b>por morador</b> — não por salário. Quem recebe {brl0(5000)} e mora
+      sozinho está nesse grupo; quem recebe os mesmos {brl0(5000)} e sustenta mais três pessoas fica perto da
+      metade do país ({brl0(lim.P50)} por morador é a mediana).
+    </p>
+    <table>
+      <thead><tr><th>Renda que entra na casa</th>{MORADORES.map((m) => <th class="num">{m} {m === 1 ? "morador" : "moradores"}</th>)}</tr></thead>
+      <tbody>{RENDAS.map((r) => (
+        <tr>
+          <td><b>{brl0(r)}</b></td>
+          {MORADORES.map((m) => { const g = grupoDe(r / m); return (
+            <td class="num" style={g.destaque ? "font-weight:600" : ""}>
+              {brl0(r / m)}<br /><span style="font-size:11.5px;color:var(--ink-2)">{g.rotulo}</span>
+            </td>); })}
+        </tr>))}
+      </tbody>
+    </table>
+    <p class="src">
+      Cada célula divide a renda da casa pelo número de moradores e procura o grupo correspondente na tabela acima.
+      Os limites são os do IBGE (PNAD Contínua, tabela 7438, preços médios de {d.ano_distribuicao}); a divisão é
+      aritmética simples. <b>Não é a sua posição exata</b> — a pesquisa conta toda a renda do domicílio (salários,
+      aposentadoria, aluguel recebido, programa social), não só o salário de quem trabalha.
+    </p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin:0 0 6px">A lei diz quem é pobre. Não diz quem é rico.</h3>
+    <p class="explica">
+      Existe um valor de renda escrito em lei federal para dizer quem é pobre o bastante para receber transferência
+      do Estado: a {LINHA_LEGAL.norma}, {LINHA_LEGAL.artigo}, fala em famílias "{LINHA_LEGAL.texto}" —
+      {" "}<b>{brl0(LINHA_LEGAL.valor_per_capita)} por pessoa da casa</b>. {LINHA_LEGAL.nota}
+    </p>
+    <p class="explica" style="margin-top:8px">
+      <b>Do outro lado não há nada equivalente.</b> {SEM_LINHA_DE_RIQUEZA.afirmacao} {SEM_LINHA_DE_RIQUEZA.criterio_privado}
+    </p>
+    <table style="margin-top:4px">
+      <thead><tr><th>Marco</th><th class="num">Renda por morador</th><th>O que é, e quem definiu</th></tr></thead>
+      <tbody>
+        <tr><td>Limite do Bolsa Família</td><td class="num">{brl0(LINHA_LEGAL.valor_per_capita)}</td><td>Valor em lei. É o único corte de renda definido por norma.</td></tr>
+        <tr><td>Metade do país ganha menos</td><td class="num">{brl0(lim.P50)}</td><td>Mediana do IBGE. Corte estatístico, sem nome legal.</td></tr>
+        <tr class="destaque"><td>Entrada nos 10% mais ricos</td><td class="num"><b>{brl0(lim.P90)}</b></td><td>Percentil 90 do IBGE. O instituto não chama esse grupo de rico.</td></tr>
+        <tr class="destaque"><td>Entrada no 1% mais rico</td><td class="num"><b>{brl0(lim.P99)}</b></td><td>Percentil 99 do IBGE. Mesma observação.</td></tr>
+      </tbody>
+    </table>
+    <p class="src">
+      Valores por morador, a preços médios de {d.ano_distribuicao}, exceto o da lei, que é nominal e está no texto da
+      norma (<a href={LINHA_LEGAL.url} rel="noopener">lida em {LINHA_LEGAL.lido}</a>). Esta página não propõe uma linha
+      de riqueza: registra que o Estado definiu uma ponta e não a outra. Se existir norma que defina a outra, a
+      afirmação acima está errada e a corrigimos.
+    </p>
   </div>
 
   <h2>Desigualdade desde 2012: parcela da renda de cada grupo</h2>

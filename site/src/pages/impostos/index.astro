@@ -8,6 +8,7 @@ import { ALIQUOTA, MAIORES_IVA, FONTE_OCDE, EXCECOES, CALENDARIO, FONTE_LEI } fr
 import { CARGA_TESOURO } from "../../lib/carga";
 import { FONTE_IPEA, FONTE_SENADO, DECIS, PARAMETROS, RUBRICAS, COMPOSICAO, ESTRATOS, CRITICAS, LIMITE_CRITICA, EFEITO_DESIGUALDADE } from "../../lib/incidencia";
 import irpf from "../../../public/data/irpf.json";
+import renda from "../../../public/data/renda.json";
 import mundo from "../../../public/data/carga_mundo.json";
 
 const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -49,9 +50,13 @@ const restoMax = Math.max(...restoDecis);
 // a incidência de um grupo de décimos exigiria o peso de renda de cada um, que o estudo não publica.
 const DESTAQUES = [
   { ...DECIS[0], rotulo: "Os 10% mais pobres", nota: "1º décimo" },
-  { ...DECIS[4], rotulo: "O décimo do meio", nota: "5º décimo" },
+  { ...DECIS[4], rotulo: "O meio da distribuição", nota: "5º décimo" },
   { ...DECIS[9], rotulo: "Os 10% mais ricos", nota: "10º décimo" },
 ];
+// Ordem de grandeza em reais para os três décimos. NÃO é do estudo (que não publica a renda de cada décimo) nem da
+// mesma pesquisa: vem da PNAD Contínua, no renda.json. Entra como referência declarada, nunca como eixo do gráfico.
+const limRenda = (renda as any).distribuicao.limites as Record<string, number>;
+const anoRenda = (renda as any).ano_distribuicao;
 const picoIrpf = irpf.faixas.reduce((a, b) => (b.aliquota_efetiva > a.aliquota_efetiva ? b : a));
 const topoIrpf = irpf.faixas[irpf.faixas.length - 1];
 const n1i = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -352,9 +357,17 @@ const W = 920;
       </table>
     </details>
     <p class="src" style="margin-top:10px">
-      <b>Por que em décimos e não em salários mínimos.</b> Seria mais fácil de localizar — "quem ganha até um salário",
-      "até três" —, mas o estudo não publica a renda de cada décimo, e a palavra "salário" não aparece nele uma única
-      vez. Converter exigiria uma conta nossa em cima de uma suposição. Pelo mesmo motivo os dez décimos não viram
+      <b>Quanto é isso em reais?</b> O estudo não diz: ele ordena as famílias por renda por pessoa e não publica o
+      valor de cada décimo — a palavra "salário" não aparece nele uma única vez. Para dar ordem de grandeza, a
+      {" "}<b>PNAD Contínua de {anoRenda}</b> (outra pesquisa, outro ano, mesma ideia de renda da casa dividida pelos
+      moradores) põe o décimo mais pobre em até {brl0(limRenda.P10)} por morador, o meio da fila perto de
+      {" "}{brl0(limRenda.P50)} e a entrada nos 10% mais ricos em {brl0(limRenda.P90)}. São duas réguas diferentes e
+      não se misturam: servem só para o leitor se situar. A fila inteira, com os dez grupos em reais, está em
+      {" "}<a href="/renda/#quem-e-rico">Renda</a>.
+    </p>
+    <p class="src" style="margin-top:8px">
+      <b>Por que em décimos e não em salários mínimos.</b> Converter exigiria uma conta nossa em cima de uma
+      suposição. Pelo mesmo motivo os dez décimos não viram
       três grupos somados: a incidência de um grupo não é a média dos décimos, depende do peso da renda de cada um, que
       também não está publicado. As três barras acima são três décimos <b>publicados</b>, não três grupos calculados.
       Fonte: {FONTE_IPEA.nome}, {FONTE_IPEA.edicao}, gráfico 3 (lido em {FONTE_IPEA.lido}).
