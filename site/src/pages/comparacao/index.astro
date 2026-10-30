@@ -304,9 +304,9 @@ const conflitos = CONFLITOS.map((c) => ({ ...c, taxaAno: (c.mortes / c.anos / c.
       acima; por habitante, na média. As duas coisas convivem porque o PIB por habitante brasileiro é bem menor. O CNJ
       publica também a despesa <b>sem aposentados e pensionistas</b>, que são 15,3% do total: {n1(JUDICIARIO_BR.pct_pib_sem_inativos)}%
       do PIB. Não conseguimos confirmar se os orçamentos europeus incluem pensões, então a comparação vale nos dois
-      cenários e não afirmamos nada além disso. Duas diferenças estruturais: o Brasil tem Justiça Eleitoral e Justiça do
-      Trabalho como ramos do Judiciário, sem par orçamentário na Europa, e não tem ramo de tribunais administrativos, que
-      existe quase em toda a Europa. O Judiciário brasileiro também arrecada {compact(JUDICIARIO_BR.arrecadacao)} em custas
+      cenários e não afirmamos nada além disso. Uma diferença estrutural que o próprio CNJ
+      contabiliza: a <b>Justiça Eleitoral</b>, que no Brasil é ramo do Judiciário e também organiza as eleições. Outras
+      diferenças de desenho entre os Judiciários existem, mas esta página não as lista sem fonte que as compare. O Judiciário brasileiro também arrecada {compact(JUDICIARIO_BR.arrecadacao)} em custas
       e taxas, 41% da própria despesa. Fontes: {JUDICIARIO_BR.fonte}; {JUDICIARIO_EUROPA_META.fonte}.
     </p>
   </div>

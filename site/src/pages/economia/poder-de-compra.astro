@@ -309,8 +309,8 @@ const ocdeRenda = ocdeAno ? ocde.bases["Renda, Lucros e Ganhos de Capital"][ocde
       {" "}{n2(caros[0].relBR)}× contra {n2(caros[0].relMed)}× na mediana dos outros países, e
       {" "}<b>compra de veículo</b> a {n2(catLinhas.find((c) => c.nome === "Compra de veículo")?.relBR ?? 0)}× contra
       {" "}{n2(catLinhas.find((c) => c.nome === "Compra de veículo")?.relUS ?? 0)}× nos Estados Unidos.
-      No outro extremo estão restaurante, moradia e construção, bem abaixo de 1 — serviço feito por gente é barato
-      aqui, pela mesma razão que a renda é baixa.{" "}
+      No outro extremo estão restaurante, moradia e construção, bem abaixo de 1: o que é feito com trabalho local custa,
+      em relação ao resto da economia, menos aqui do que lá. O ICP mede esse preço relativo e não diz por quê.{" "}
       <b>Um resultado contra a intuição:</b> móvel e eletrodoméstico ({n2(catLinhas.find((c) => c.nome === "Móvel e eletrodoméstico")?.relBR ?? 0)}×)
       e eletrônicos de lazer, onde entram TV, celular e computador
       ({n2(catLinhas.find((c) => /Lazer/.test(c.nome))?.relBR ?? 0)}×), estão <b>na linha</b> do preço relativo dos

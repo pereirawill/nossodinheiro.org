@@ -181,8 +181,9 @@ const W = 920;
       </p>
       <div class="disclaimer" style="margin-top:4px"><span aria-hidden="true">ⓘ</span>
         <div><b>Isso não é o imposto que você paga.</b> É a soma de tudo que União, estados e municípios arrecadam dividida pelo
-        tamanho da economia — um retrato do país, não da sua renda. Quem ganha pouco costuma entregar uma fatia maior do que ganha,
-        porque a maior parte dos tributos está embutida em preços: veja a divisão por <Termo t="base_incidencia">base de incidência</Termo> no começo desta página.
+        tamanho da economia — um retrato do país, não da sua renda. Dos tributos arrecadados, a maior parte incide sobre bens e serviços, e não sobre renda ou patrimônio —
+        a divisão por <Termo t="base_incidencia">base de incidência</Termo> está no começo desta página. Quanto disso cada
+        faixa de renda paga é outra conta, que depende de pesquisa de orçamento familiar e que este site não publica.
         O cálculo em dias é aritmética simples: {CARGA_TESOURO.total_pct_pib.toFixed(2).replace(".", ",")}% de 365 dias.</div>
       </div>
       <svg viewBox={`0 0 ${W} ${entes.length * 34 + 10}`} width="100%" role="img" aria-label="Dias de trabalho por nível de governo">
@@ -273,18 +274,17 @@ const W = 920;
   </div>
 
   <div class="card" style="margin-top:14px">
-    <h3 style="margin:0 0 8px">Por que tão alta: três razões que estão nos dados desta página</h3>
+    <h3 style="margin:0 0 8px">O que está documentado sobre o tamanho dessa alíquota</h3>
     <ul class="iva-lista">
       <li><b>O Brasil já cobra muito sobre consumo.</b> {ocdeBens && ocdeAno && <span>Em {ocdeAno}, {n1i(ocdeBens[ocdeAno].brasil)}% do PIB
-        em tributos sobre bens e serviços, contra {n1i(ocdeBens[ocdeAno].ocde)}% na média da OCDE (tabela acima).</span>} A reforma
-        foi desenhada para <b>não mudar a arrecadação</b>: dois impostos no lugar de cinco, cobrando o mesmo. A alíquota nova tem
-        de reproduzir o que os cinco já tiram.</li>
-      <li><b>Cada exceção empurra a alíquota de quem não tem exceção.</b> Cesta básica a zero, saúde e educação com 60% de desconto,
-        profissionais liberais com 30%, Simples e Zona Franca fora — tudo isso sai da base, e a conta fecha subindo a alíquota
-        padrão. Foi assim que a estimativa foi de {n1i(ALIQUOTA.trava)}% para {n2i(ALIQUOTA.referencia)}%.</li>
-      <li><b>A alíquota de hoje já é alta, só que fatiada e escondida.</b> O ICMS "de 18%" é cobrado por dentro (18% sobre o preço
-        com o imposto, cerca de 22% sobre o preço sem ele); PIS e Cofins vêm embutidos; o IPI vai por cima. Ninguém vê 28% numa nota
-        hoje porque o número está dividido em cinco. O IVA junta e mostra.</li>
+        em tributos sobre bens e serviços, contra {n1i(ocdeBens[ocdeAno].ocde)}% na média da OCDE (tabela acima).</span>} A metodologia
+        da estimativa, segundo a própria resolução, usa como parâmetro <b>a arrecadação dos tributos substituídos</b> — ou seja, a
+        alíquota nova é calculada para reproduzir o que os cinco impostos atuais arrecadam.</li>
+      <li><b>A estimativa subiu de {n1i(ALIQUOTA.trava)}% para {n2i(ALIQUOTA.referencia)}%.</b> A resolução atribui a mudança à
+        "evolução da regulamentação da reforma" e não detalha o peso de cada fator. <b>Esta página não afirma qual foi</b>: a tabela
+        abaixo mostra os regimes que a lei complementar criou, que é o que está documentado.</li>
+      <li><b>Hoje a conta vem fatiada.</b> O que se paga sobre consumo está dividido entre cinco tributos de três níveis de governo,
+        e nenhum deles aparece sozinho como alíquota única na nota. O IVA junta os cinco em dois.</li>
     </ul>
     <table style="margin-top:10px">
       <thead><tr><th>Regime</th><th>Quem fica nele</th></tr></thead>
