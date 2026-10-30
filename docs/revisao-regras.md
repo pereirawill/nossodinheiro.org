@@ -18,11 +18,35 @@ Uma fatia por grupo de painéis, em paralelo. Cada agente recebe:
 Saída de cada agente, uma linha por achado:
 
 ```
-arquivo:linha | REGRA | o que está escrito | por que viola | correção sugerida (1 frase)
+GRAVIDADE | arquivo:linha | REGRA | o que está escrito | por que viola | correção sugerida (1 frase)
 ```
 
 Sem código, sem reescrever a página. Ordenar por gravidade. Quando não tiver certeza, dizer que não tem —
 "não consegui conferir" é um achado válido e melhor que um palpite.
+
+### Gravidade (escala fixa — não inventar outra)
+
+- **ALTA** — o leitor sai com informação errada: número que contradiz o próprio dado da página, rótulo que
+  inverte o sentido (real × teto, pago × empenhado), causa afirmada sem fonte, soma que não podia ser feita.
+- **MÉDIA** — a informação está certa mas a página promete mais do que entrega: ressalva que só existe na
+  metodologia, comparação sem pareamento declarado, documentação que não cobre um bloco da página.
+- **BAIXA** — precisão e acabamento: sigla sem verbete, data genérica, link que leva ao lugar certo mas com
+  texto impreciso, frase que envelhece mal ("em treze anos").
+
+### Quatro pontos que o piloto mostrou que não estavam claros
+
+1. **Decisão registrada do dono não é violação.** Se o CLAUDE.md registra que uma frase foi escolha dele,
+   anotar como MÉDIA e escrever "decisão registrada em CLAUDE.md" na linha — nunca propor desfazer.
+2. **Ressalva anexada não salva causa afirmada.** "X explica Y, mas esta página não separa o peso" continua
+   sendo R1; a diferença é a gravidade (MÉDIA em vez de ALTA).
+3. **Fato não numérico também precisa de fonte** (R2): "obrigatório desde 2014", "a lei é de 2007", "o IBGE
+   compara o mesmo produto". Se não tem fonte citada na página nem constante declarada, é achado.
+4. **Import de outro painel entra na fatia.** Se a página importa `renda.json` ou `cambio.json`, confira o uso
+   desses números também — o pareamento entre painéis é onde mais aparece rótulo trocado.
+5. **Frase que envelhece** ("em treze anos", "o maior nível desde que o BC mede", "hoje") é R11, gravidade
+   BAIXA, com a sugestão de derivar do JSON em vez de fixar no texto.
+6. **R12 em gráfico de linha com centenas de pontos**: `aria-label` descritivo + tabela ou texto equivalente
+   bastam; não exigir `<title>` por ponto. Código de série (SGS 3698, SIDRA 1737) não conta como sigla.
 
 ## As regras
 
