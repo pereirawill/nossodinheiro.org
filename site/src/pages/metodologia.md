@@ -138,9 +138,12 @@ fórmulas, limitações e pendências, está no repositório do projeto (código
 - **Por que não é um painel com ETL:** não existe medição. Ninguém declara o imposto embutido no preço, então qualquer
   número por faixa de renda vem de um **modelo** — estima-se o tributo contido no preço de cada produto (via matriz
   insumo-produto) e cruza-se com o que cada família comprou na POF. Não há API nem arquivo aberto com o resultado.
-- **Fontes:** Ipea, Texto para Discussão nº 2.823 (dezembro de 2022), microdados da POF 2017-2018 — gráficos 3, 4 e 6 e
-  seção 4; e Senado Federal/Consultoria Legislativa, Texto para Discussão nº 328 (abril de 2024), que o contesta.
+- **Fontes:** Ipea, Texto para Discussão nº 2.823 (dezembro de 2022), microdados da POF 2017-2018 — gráficos 3, 4 e 6,
+  seção 4 e a frase sobre desigualdade da seção 6; e Senado Federal/Consultoria Legislativa, Texto para Discussão nº 328 (abril de 2024), que o contesta.
   Números lidos dos dois PDFs e declarados em `site/src/lib/incidencia.ts`, com gráfico de origem e data da leitura.
+- **Limites que o próprio estudo do Ipea declara** (p. 23) e que a página resume no aviso: as alíquotas efetivas já
+  incorporam informalidade, evasão e elisão; e o tradutor entre a POF e as Contas Nacionais usado é o de 2009, porque
+  o IBGE não publicou o de 2017-2018.
 - **Os dois são "texto para discussão"**, que por regra das próprias casas não é posição oficial do órgão. As duas
   ressalvas estão impressas na página.
 - **O que ficou de fora, de propósito:**

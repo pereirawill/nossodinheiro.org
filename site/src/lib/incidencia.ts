@@ -61,7 +61,10 @@ export const DECIS: { decil: number; direto: number; indireto: number }[] = [
   { decil: 10, direto: 10.6, indireto: 8.6 },
 ];
 
-/** Média do conjunto (última coluna dos gráficos 2 e 3): é a razão do total, puxada pelo topo, não a média dos décimos. */
+/**
+ * Média do conjunto, última coluna dos gráficos 2 e 3. Não é a média simples dos dez décimos (que daria 5,6 e 14,3);
+ * o estudo não declara como a calcula. Não é usada na página.
+ */
 export const MEDIA = { direto: 8.0, indireto: 11.2 };
 
 /**
@@ -163,7 +166,8 @@ export const CRITICAS: { titulo: string; detalhe: string }[] = [
     titulo: "A POF não vê dois terços da carga",
     detalhe:
       "A renda captada na pesquisa responde por cerca de 12,3% do PIB em tributos, de uma carga de 33,6%. O resto " +
-      "incide fora do orçamento das famílias pesquisadas e não entra na conta.",
+      "não aparece no orçamento das famílias pesquisadas — e o texto sustenta que recai sobretudo sobre as famílias " +
+      "proprietárias de empresas, que estão nos décimos mais altos.",
   },
   {
     titulo: "Subsídios cruzados e subvenções ficam de fora",
@@ -187,7 +191,8 @@ export const CRITICAS: { titulo: string; detalhe: string }[] = [
     titulo: "O imposto das empresas não é atribuído aos donos",
     detalhe:
       "IRPJ e CSLL somam cerca de 2,85% do PIB e, economicamente, recaem sobre acionistas e proprietários — que " +
-      "estão nos décimos mais altos. O estudo não os imputa a ninguém.",
+      "estão nos décimos mais altos. O mesmo vale para o tributo indireto que sobra nas exportações. O estudo não " +
+      "os imputa a ninguém.",
   },
 ];
 
