@@ -83,7 +83,7 @@ export const PRESIDENTE: Beneficio[] = [
 ];
 
 export const EX_PRESIDENTES = {
-  texto: "Ex-presidente da República não recebe salário nem pensão vitalícia. A Lei 7.474/1986 (regulamentada pelo Decreto 6.381/2008) garante, pelo resto da vida, até 8 servidores para segurança, apoio pessoal, assessoria e motoristas, e 2 veículos oficiais, custeados pela Presidência. A Presidência publica o custo dessas equipes no seu portal de dados abertos (\"Custos das equipes de segurança e apoio aos ex-Presidentes, 2021 a 2026\"); no 1º semestre de 2025 foram R$ 3,65 milhões para seis ex-presidentes, e R$ 9,42 milhões em 2024 (valores do dataset, citados pela imprensa; o portal estava fora do ar em 26/10/2026, e a série entra no site quando a carga for possível).",
+  texto: "Ex-presidente da República não recebe salário nem pensão vitalícia. A Lei 7.474/1986 (regulamentada pelo Decreto 6.381/2008) garante, pelo resto da vida, até 8 servidores para segurança, apoio pessoal, assessoria e motoristas, e 2 veículos oficiais, custeados pela Presidência. A Presidência mantém um conjunto de dados abertos com o custo de cada ex-presidente (\"Custos das equipes de segurança e apoio aos ex-Presidentes\"), mas ele estava fora do ar nas tentativas de carga (26/10/2026 e 30/10/2026): por isso esta página publica a regra e não o valor — número que só existe em notícia não é fonte primária e não entra aqui.",
   fonte: "Lei 7.474/1986; Decreto 6.381/2008; Presidência da República, dados abertos",
   url: "https://dadosabertos.presidencia.gov.br/dataset/custo-de-ex-presidentes-da-republica-lei-7474-1986",
 };

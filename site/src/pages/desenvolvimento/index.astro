@@ -388,8 +388,9 @@ const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
       período os países de renda alta caíram de {nI(transf.agregados["Países de renda alta"]?.["2000"] ?? 0)}% (2000)
       para {nI(transf.agregados["Países de renda alta"]?.["2024"] ?? 0)}% (2024) e a média mundial, de
       {" "}{nI(transf.agregados["Mundo"]?.["2000"] ?? 0)}% para {nI(transf.agregados["Mundo"]?.["2024"] ?? 0)}%.
-      A queda brasileira nesse trecho foi <b>menor</b> que a deles — o grosso da perda de participação aconteceu
-      <b> antes</b> desta série.
+      A queda brasileira nesse trecho foi <b>menor</b> que a deles. O que aconteceu <b>antes</b> de {anoOk} este
+      indicador não mede, pelo motivo do parágrafo seguinte — e por isso esta página não diz em que época a
+      participação da indústria caiu.
       <b>Por que o gráfico começa em {anoOk} e não há 50 anos aqui:</b> a participação é medida a preços correntes,
       e sob inflação alta ela oscila com o preço relativo em vez da produção. A mesma fonte dá
       {" "}{nI(transf.brasil[transf.picoTudo])}% em {transf.picoTudo} e {nI(transf.brasil["1980"] ?? 0)}% no ano
