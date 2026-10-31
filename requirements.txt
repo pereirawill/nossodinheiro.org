@@ -3,6 +3,7 @@ httpx>=0.27
 pyarrow>=17
 matplotlib>=3.9
 pytest>=8
+playwright>=1.47   # tools/checar_celular.py; depois: python -m playwright install chromium
 xlrd>=2.0
 openpyxl>=3.1
 xlwt>=1.3        # só nos testes: gera planilhas .xls sintéticas no formato do BEPS

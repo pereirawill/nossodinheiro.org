@@ -97,6 +97,7 @@ if (dataset) {
       .nd-toast.mostrar { opacity: 1; transform: translate(-50%, 0); }
       @media print { .h2-link, .nd-compartilhar, .nd-toast { display: none !important; } }
       .lede { color: var(--ink-2); max-width: 70ch; margin: 0 0 20px; }
+      code { overflow-wrap: anywhere; }      /* URL longa em `code` da metodologia vazava da tela no celular */
       .meta { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
       .hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin: 20px 0 8px; }
       .stat { border-top: 4px solid var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 24px -18px rgba(0,0,0,.25); }

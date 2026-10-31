@@ -762,6 +762,15 @@ Comandos: `make test` (smoke test com fixtures sintéticas), `make etl ANO=2026`
 
 ## Revisão editorial (29–30/10/2026) — o que ela ensinou
 - `make checar` (tools/checar_site.py) é a parte mecânica, custo zero, e roda antes de qualquer commit de site.
+  **`make checar-celular`** (tools/checar_celular.py, Playwright + Chromium sem janela, ~13 s) abre as 45 páginas a 390 px
+  e MEDE o DOM: vazamento pela borda direita, página rolando na horizontal, SVG esticado além do próprio viewBox (a rosca
+  de 680 px), tabela excedendo o cartão, `.stat` alto demais. Nasceu em 31/10/2026 — o dono abriu a home no celular e
+  viu "gráfico enorme" e tabelas rolando; nenhum dos 4 defeitos aparecia no checador estático. Provado contra o CSS
+  antigo (19 erros nas mesmas páginas em que o novo dá 0). Precisa de `make site` antes; instalar com
+  `pip install playwright && python -m playwright install chromium`. **Rodar antes de qualquer commit que mexa em CSS,
+  tabela ou SVG.** Convenções de celular em `Base.astro`: coluna secundária leva `.oculta-m`; descrição some só com
+  `th.desc` + `td.desc` (opt-in); dica ⓘ vira faixa fixa no rodapé; roscas (viewBox 200) ficam em 240 px, barras largas
+  rolam a 600 px dentro do cartão.
   `docs/revisao-regras.md` é o prompt da parte editorial (12 regras, escala ALTA/MÉDIA/BAIXA); relatórios em
   `docs/revisao-2026-10-30/` e consolidado em `docs/revisao-2026-10-30.md`. Fatias revisadas: Inflação, justiça-e-
   estatais, economia, transversais (206 achados, 21 graves, todos corrigidos). Faltam: parlamento, social,

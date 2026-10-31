@@ -14,6 +14,10 @@ checar: ## checagem mecânica do site (glossário, links, datasets, JSONs, workf
 	python tools/checar_site.py
 .PHONY: checar
 
+checar-celular: ## abre cada página a 390px num Chromium sem janela e mede vazamento, gráfico esticado, tabela rolando (precisa de make site)
+	python tools/checar_celular.py
+.PHONY: checar-celular
+
 test:
 	python -m pytest tests/ -q
 
