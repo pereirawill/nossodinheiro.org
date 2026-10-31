@@ -142,12 +142,12 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
           })}
         </svg>
         <table style="margin-top:14px">
-          <thead><tr><th>Poder</th><th class="num"><Termo t="pessoal_ativo">Pessoal ativo</Termo></th><th class="num"><Termo t="aposentados">Aposentados e pensões</Termo></th><th class="num"><Termo t="custeio" /></th><th class="num"><Termo t="investimento" /></th><th class="num"><Termo t="maquina">Máquina</Termo></th><th class="num">% pessoal</th></tr></thead>
+          <thead><tr><th>Poder</th><th class="num"><Termo t="pessoal_ativo">Pessoal ativo</Termo></th><th class="num"><Termo t="aposentados">Aposentados e pensões</Termo></th><th class="oculta-m num"><Termo t="custeio" /></th><th class="oculta-m num"><Termo t="investimento" /></th><th class="num"><Termo t="maquina">Máquina</Termo></th><th class="oculta-m num">% pessoal</th></tr></thead>
           <tbody>
             {resumo.map((r) => (
               <tr><td>{r.poder}</td><td class="num">{compact(r.subs[0])}</td><td class="num">{compact(r.subs[1])}</td>
-                <td class="num">{compact(r.subs[2])}</td><td class="num">{compact(r.subs[3])}</td>
-                <td class="num"><strong>{compact(r.maquina)}</strong></td><td class="num">{pct(r.subs[0] + r.subs[1], r.maquina)}</td></tr>
+                <td class="oculta-m num">{compact(r.subs[2])}</td><td class="oculta-m num">{compact(r.subs[3])}</td>
+                <td class="num"><strong>{compact(r.maquina)}</strong></td><td class="oculta-m num">{pct(r.subs[0] + r.subs[1], r.maquina)}</td></tr>
             ))}
           </tbody>
         </table>
@@ -205,10 +205,10 @@ const maxO = Math.max(1, ...topOrgaos.map((o) => o.pago));
 
       <h2>Todos os órgãos</h2>
       <table>
-        <thead><tr><th>Poder</th><th><Termo t="orgao_superior" /></th><th><Termo t="unidade_orcamentaria">Órgão</Termo></th><th class="num"><Termo t="empenhado" /></th><th class="num"><Termo t="pago" /></th></tr></thead>
+        <thead><tr><th class="oculta-m">Poder</th><th><Termo t="orgao_superior" /></th><th><Termo t="unidade_orcamentaria">Órgão</Termo></th><th class="oculta-m num"><Termo t="empenhado" /></th><th class="num"><Termo t="pago" /></th></tr></thead>
         <tbody>
           {[...orgaos].sort((a, b) => b.pago - a.pago).map((o) => (
-            <tr><td>{o.poder}</td><td>{o.orgao_superior}</td><td>{o.orgao}</td><td class="num">{brl0(o.empenhado)}</td><td class="num">{brl0(o.pago)}</td></tr>
+            <tr><td class="oculta-m">{o.poder}</td><td>{o.orgao_superior}</td><td>{o.orgao}</td><td class="oculta-m num">{brl0(o.empenhado)}</td><td class="num">{brl0(o.pago)}</td></tr>
           ))}
         </tbody>
       </table>

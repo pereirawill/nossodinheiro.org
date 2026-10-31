@@ -100,11 +100,11 @@ const ufSerie = (uf: string, k: string) => anos.map((a) => serie[a]?.[uf]?.[k] ?
       </g>))}
     </svg>
     <div class="largo"><table style="margin-top:12px">
-      <thead><tr><th>Estado</th><th class="num">Mortes violentas /100 mil</th><th class="num">Total</th><th class="num">Homicídio doloso</th><th class="num">Intervenção policial</th><th class="num">Latrocínio</th><th class="num">Lesão seguida de morte</th><th class="num">Feminicídios (dentro do homicídio)</th><th class="num">Mortes a esclarecer</th><th class="num">Roubo de veículo /100 mil</th><th class="num">Estupros</th><th class="num">Meses informados</th></tr></thead>
+      <thead><tr><th>Estado</th><th class="num">Mortes violentas /100 mil</th><th class="num">Total</th><th class="num">Homicídio doloso</th><th class="oculta-m num">Intervenção policial</th><th class="oculta-m num">Latrocínio</th><th class="oculta-m num">Lesão seguida de morte</th><th class="oculta-m num">Feminicídios (dentro do homicídio)</th><th class="oculta-m num">Mortes a esclarecer</th><th class="oculta-m num">Roubo de veículo /100 mil</th><th class="oculta-m num">Estupros</th><th class="oculta-m num">Meses informados</th></tr></thead>
       <tbody>{estados.map((e) => (<tr><td>{e.nome}</td><td class="num"><b>{t1(e.taxa_mvi)}</b></td><td class="num">{num(e.mvi)}</td><td class="num">{num(e.homicidio_doloso)}</td>
-        <td class="num">{num(e.intervencao_estado)}</td><td class="num">{num(e.latrocinio)}</td><td class="num">{num(e.lesao_morte)}</td>
-        <td class="num">{num(e.feminicidio)}</td><td class="num">{num(e.mortes_a_esclarecer)}</td>
-        <td class="num">{t1(e.taxa_roubo_veiculo)}</td><td class="num">{num((e.estupro ?? 0) + (e.estupro_vulneravel ?? 0))}</td><td class="num">{e.meses}</td></tr>))}</tbody>
+        <td class="oculta-m num">{num(e.intervencao_estado)}</td><td class="oculta-m num">{num(e.latrocinio)}</td><td class="oculta-m num">{num(e.lesao_morte)}</td>
+        <td class="oculta-m num">{num(e.feminicidio)}</td><td class="oculta-m num">{num(e.mortes_a_esclarecer)}</td>
+        <td class="oculta-m num">{t1(e.taxa_roubo_veiculo)}</td><td class="oculta-m num">{num((e.estupro ?? 0) + (e.estupro_vulneravel ?? 0))}</td><td class="oculta-m num">{e.meses}</td></tr>))}</tbody>
     </table></div>
     <p class="src">Mortes contadas em vítimas; roubos e estupros em ocorrências. PF e PRF ficam fora para não misturar bases. Clique no cabeçalho para ordenar.</p>
   </div>
@@ -112,9 +112,9 @@ const ufSerie = (uf: string, k: string) => anos.map((a) => serie[a]?.[uf]?.[k] ?
   <h2>Capitais ({d.ano})</h2>
   <div class="card">
     <table class="capitais">
-      <thead><tr><th>Capital</th><th class="num">População</th><th class="num">Mortes violentas<br />por 100 mil</th><th class="num">Total</th><th class="num">Homicídio<br />doloso</th><th class="num">Latrocínio</th><th class="num">Feminicídios</th><th class="num">Mortes no<br />trânsito</th></tr></thead>
-      <tbody>{capitais.map((m) => (<tr><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="num">{num(m.populacao)}</td><td class="num"><b>{t1(m.taxa_mvi)}</b></td><td class="num">{num(m.mvi)}</td>
-        <td class="num">{num(m.homicidio_doloso)}</td><td class="num">{num(m.latrocinio)}</td><td class="num">{num(m.feminicidio)}</td><td class="num">{num(m.transito)}</td></tr>))}</tbody>
+      <thead><tr><th>Capital</th><th class="oculta-m num">População</th><th class="num">Mortes violentas<br />por 100 mil</th><th class="num">Total</th><th class="oculta-m num">Homicídio<br />doloso</th><th class="oculta-m num">Latrocínio</th><th class="num">Feminicídios</th><th class="oculta-m num">Mortes no<br />trânsito</th></tr></thead>
+      <tbody>{capitais.map((m) => (<tr><td>{m.nome} <span class="uf">{m.uf}</span></td><td class="oculta-m num">{num(m.populacao)}</td><td class="num"><b>{t1(m.taxa_mvi)}</b></td><td class="num">{num(m.mvi)}</td>
+        <td class="oculta-m num">{num(m.homicidio_doloso)}</td><td class="oculta-m num">{num(m.latrocinio)}</td><td class="num">{num(m.feminicidio)}</td><td class="oculta-m num">{num(m.transito)}</td></tr>))}</tbody>
     </table>
     <p class="src">No recorte por cidade o total <b>não inclui as mortes por intervenção policial</b>: os estados só informam essa categoria por UF. Capitais sem linha: o estado não informou o dado por município.</p>
   </div>
@@ -123,13 +123,13 @@ const ufSerie = (uf: string, k: string) => anos.map((a) => serie[a]?.[uf]?.[k] ?
   <div class="card duas">
     <div>
       <h3>Menores taxas de morte violenta</h3>
-      <table><thead><tr><th>#</th><th>Município</th><th class="num">População</th><th class="num">/100 mil</th><th class="num">Mortes</th></tr></thead>
-        <tbody>{maisSeguros.map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}{m.capital ? " ★" : ""}</span></td><td class="num">{num(m.populacao)}</td><td class="num">{t1(m.taxa_mvi)}</td><td class="num">{num(m.mvi)}</td></tr>))}</tbody></table>
+      <table><thead><tr><th>#</th><th>Município</th><th class="oculta-m num">População</th><th class="num">/100 mil</th><th class="num">Mortes</th></tr></thead>
+        <tbody>{maisSeguros.map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}{m.capital ? " ★" : ""}</span></td><td class="oculta-m num">{num(m.populacao)}</td><td class="num">{t1(m.taxa_mvi)}</td><td class="num">{num(m.mvi)}</td></tr>))}</tbody></table>
     </div>
     <div>
       <h3>Maiores taxas de morte violenta</h3>
-      <table><thead><tr><th>#</th><th>Município</th><th class="num">População</th><th class="num">/100 mil</th><th class="num">Mortes</th></tr></thead>
-        <tbody>{menosSeguros.map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}{m.capital ? " ★" : ""}</span></td><td class="num">{num(m.populacao)}</td><td class="num">{t1(m.taxa_mvi)}</td><td class="num">{num(m.mvi)}</td></tr>))}</tbody></table>
+      <table><thead><tr><th>#</th><th>Município</th><th class="oculta-m num">População</th><th class="num">/100 mil</th><th class="num">Mortes</th></tr></thead>
+        <tbody>{menosSeguros.map((m, i) => (<tr><td class="rank">{i + 1}</td><td>{m.nome} <span class="uf">{m.uf}{m.capital ? " ★" : ""}</span></td><td class="oculta-m num">{num(m.populacao)}</td><td class="num">{t1(m.taxa_mvi)}</td><td class="num">{num(m.mvi)}</td></tr>))}</tbody></table>
     </div>
     <p class="src" style="grid-column:1/-1">{num(muns.length)} municípios com {num(d.pop_min_municipio)}+ habitantes ou capitais com dado municipal em {d.ano}, somando homicídio doloso, latrocínio e lesão seguida de morte. Uma taxa baixa pode significar poucas mortes ou pouco registro: veja a coluna "meses informados" do estado.</p>
   </div>

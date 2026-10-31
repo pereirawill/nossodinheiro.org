@@ -93,9 +93,9 @@ const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
   <h2>As conferências que já fizemos</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Painel</th><th>O que foi comparado</th><th>Resultado</th><th>Situação</th></tr></thead>
+      <thead><tr><th class="oculta-m">Painel</th><th>O que foi comparado</th><th>Resultado</th><th>Situação</th></tr></thead>
       <tbody>{linhas.map((l) => (<tr>
-        <td><a href={l.slug}>{l.painel}</a></td>
+        <td class="oculta-m"><a href={l.slug}>{l.painel}</a></td>
         <td class="desc">{l.oQue}</td>
         <td class="desc">
           {l.vivo ? <><b>{l.vivo.nosso}</b>{(l.vivo.outro ?? l.outro) ? <> contra <b>{l.vivo.outro ?? l.outro}</b></> : null} — diferença de {l.vivo.diferenca}</>
@@ -185,9 +185,9 @@ const semExplicacao = linhas.filter((l) => l.status === "nao_explicada").length;
   <h2>Correções que já fizemos</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Quando</th><th>Painel</th><th>O que mudou</th><th>Como apareceu</th></tr></thead>
+      <thead><tr><th>Quando</th><th class="oculta-m">Painel</th><th>O que mudou</th><th>Como apareceu</th></tr></thead>
       <tbody>{CORRECOES.map((c) => (<tr>
-        <td class="num">{c.data}</td><td>{c.painel}</td><td class="desc">{c.oQue}</td><td class="desc">{c.como}</td></tr>))}
+        <td class="num">{c.data}</td><td class="oculta-m">{c.painel}</td><td class="desc">{c.oQue}</td><td class="desc">{c.como}</td></tr>))}
       </tbody>
     </table>
     <p class="src">

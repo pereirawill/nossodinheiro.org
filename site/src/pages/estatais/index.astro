@@ -145,11 +145,11 @@ const FONTES_ATE = [
 
   <div class="card">
     <table>
-      <thead><tr><th>De quem veio o dividendo</th><th class="num">{divUlt.ano}</th><th class="num">{divSerie[divSerie.length - 2].ano}</th><th class="num">Soma {divSerie[0].ano}–{divUlt.ano} (reais de {base})</th></tr></thead>
+      <thead><tr><th>De quem veio o dividendo</th><th class="num">{divUlt.ano}</th><th class="oculta-m num">{divSerie[divSerie.length - 2].ano}</th><th class="num">Soma {divSerie[0].ano}–{divUlt.ano} (reais de {base})</th></tr></thead>
       <tbody>{divEmpresas.map((e) => (<tr>
         <td>{e.nome}</td>
         <td class="num">{e.serie[divUlt.ano] !== undefined ? compact(e.serie[divUlt.ano]) : "—"}</td>
-        <td class="num">{e.serie[divSerie[divSerie.length - 2].ano] !== undefined ? compact(e.serie[divSerie[divSerie.length - 2].ano]) : "—"}</td>
+        <td class="oculta-m num">{e.serie[divSerie[divSerie.length - 2].ano] !== undefined ? compact(e.serie[divSerie[divSerie.length - 2].ano]) : "—"}</td>
         <td class="num">{compact(e.somaReal)}</td></tr>))}
       </tbody>
     </table>
@@ -197,13 +197,13 @@ const FONTES_ATE = [
       {" "}{bi(divUlt.nominal)} e saíram {bi(postoUlt.subvencao + postoUlt.aporte + postoUlt.afac)}.
     </p>
     <table>
-      <thead><tr><th>Ano</th><th class="num">Dividendos que a União recebeu</th><th class="num">Subvenção do Tesouro</th><th class="num">Aporte de capital</th><th class="num">AFAC</th><th class="num">Diferença</th></tr></thead>
+      <thead><tr><th>Ano</th><th class="num">Dividendos que a União recebeu</th><th class="num">Subvenção do Tesouro</th><th class="oculta-m num">Aporte de capital</th><th class="oculta-m num">AFAC</th><th class="num">Diferença</th></tr></thead>
       <tbody>{[...posto].reverse().map((x) => { const sai = x.subvencao + x.aporte + x.afac; const entra = x.dividendoRtn ?? 0; return (<tr>
         <td>{x.ano}</td>
         <td class="num">{x.dividendoRtn !== null ? compact(x.dividendoRtn) : "—"}</td>
         <td class="num">{compact(x.subvencao)}</td>
-        <td class="num">{compact(x.aporte)}</td>
-        <td class="num">{compact(x.afac)}</td>
+        <td class="oculta-m num">{compact(x.aporte)}</td>
+        <td class="oculta-m num">{compact(x.afac)}</td>
         <td class={`num${entra - sai < 0 ? " neg" : ""}`}>{x.dividendoRtn !== null ? compact(entra - sai) : "—"}</td></tr>); })}
       </tbody>
     </table>
@@ -219,15 +219,15 @@ const FONTES_ATE = [
   <h2>Uma por uma: as estatais federais em {sestUlt.ano}</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Empresa</th><th>Setor</th><th>Depende do Tesouro</th><th class="num">Lucro/prejuízo {sestUlt.ano}</th><th class="num">Subvenção do Tesouro</th><th class="num">Sem a subvenção</th><th class="num">{sestSerie[sestSerie.length - 2].ano}</th></tr></thead>
+      <thead><tr><th>Empresa</th><th class="oculta-m">Setor</th><th class="oculta-m">Depende do Tesouro</th><th class="num">Lucro/prejuízo {sestUlt.ano}</th><th class="oculta-m num">Subvenção do Tesouro</th><th class="num">Sem a subvenção</th><th class="oculta-m num">{sestSerie[sestSerie.length - 2].ano}</th></tr></thead>
       <tbody>{sestNoUltimo.map((e) => (<tr>
         <td>{e.sigla}{e.ativa ? "" : ` (saiu em ${e.saiu_em})`}<br /><span class="sub">{e.nome.length > 58 ? e.nome.slice(0, 56) + "…" : e.nome}</span></td>
-        <td>{e.segmento || e.setor}</td>
-        <td>{e.dependente ? "Sim" : "Não"}</td>
+        <td class="oculta-m">{e.segmento || e.setor}</td>
+        <td class="oculta-m">{e.dependente ? "Sim" : "Não"}</td>
         <td class={`num${e.serie[sestUlt.ano] < 0 ? " neg" : ""}`}>{compact(e.serie[sestUlt.ano])}</td>
-        <td class="num">{e.subvencao?.[sestUlt.ano] ? compact(e.subvencao[sestUlt.ano]) : "—"}</td>
+        <td class="oculta-m num">{e.subvencao?.[sestUlt.ano] ? compact(e.subvencao[sestUlt.ano]) : "—"}</td>
         <td class={`num${(e.sem_subvencao?.[sestUlt.ano] ?? 0) < 0 ? " neg" : ""}`}>{e.subvencao?.[sestUlt.ano] ? compact(e.sem_subvencao[sestUlt.ano]) : "—"}</td>
-        <td class={`num${(e.serie[sestSerie[sestSerie.length - 2].ano] ?? 0) < 0 ? " neg" : ""}`}>{e.serie[sestSerie[sestSerie.length - 2].ano] !== undefined ? compact(e.serie[sestSerie[sestSerie.length - 2].ano]) : "—"}</td></tr>))}
+        <td class={`num oculta-m${(e.serie[sestSerie[sestSerie.length - 2].ano] ?? 0) < 0 ? " neg" : ""}`}>{e.serie[sestSerie[sestSerie.length - 2].ano] !== undefined ? compact(e.serie[sestSerie[sestSerie.length - 2].ano]) : "—"}</td></tr>))}
       </tbody>
     </table>
     <p class="src">
@@ -249,10 +249,10 @@ const FONTES_ATE = [
       por isso a terceira coluna, que é o resultado antes de o Orçamento entrar, é a que mostra o tamanho da conta.
     </p>
     <table>
-      <thead><tr><th>Empresa</th><th>Setor</th><th class="num">Resultado publicado</th><th class="num">Subvenção do Tesouro</th><th class="num">Resultado antes dela</th></tr></thead>
+      <thead><tr><th>Empresa</th><th class="oculta-m">Setor</th><th class="num">Resultado publicado</th><th class="num">Subvenção do Tesouro</th><th class="num">Resultado antes dela</th></tr></thead>
       <tbody>{dependentes.map((e) => (<tr>
         <td>{e.sigla}<br /><span class="sub">{e.nome.length > 58 ? e.nome.slice(0, 56) + "…" : e.nome}</span></td>
-        <td>{e.segmento || e.setor}</td>
+        <td class="oculta-m">{e.segmento || e.setor}</td>
         <td class={`num${e.serie[sestUlt.ano] < 0 ? " neg" : ""}`}>{compact(e.serie[sestUlt.ano])}</td>
         <td class="num">{e.subvencao?.[sestUlt.ano] ? compact(e.subvencao[sestUlt.ano]) : "—"}</td>
         <td class={`num${(e.sem_subvencao?.[sestUlt.ano] ?? 0) < 0 ? " neg" : ""}`}>{e.sem_subvencao?.[sestUlt.ano] !== undefined ? compact(e.sem_subvencao[sestUlt.ano]) : "—"}</td></tr>))}</tbody>
@@ -287,11 +287,11 @@ const FONTES_ATE = [
 
   <div class="card">
     <table>
-      <thead><tr><th>Empresa</th><th>De quem é</th><th>Setor</th><th class="num">{cvmUlt}</th><th class="num">{anosCvm[anosCvm.length - 3]}</th><th>Quem controla, pelo formulário</th></tr></thead>
+      <thead><tr><th>Empresa</th><th>De quem é</th><th class="oculta-m">Setor</th><th class="num">{cvmUlt}</th><th class="num">{anosCvm[anosCvm.length - 3]}</th><th>Quem controla, pelo formulário</th></tr></thead>
       <tbody>{cvmEmpresas.map((e) => { const c = e.controle[e.ultimo_ano_estatal ?? ""] as any; return (<tr>
         <td>{e.nome}{e.dentro_de ? <><br /><span class="sub">resultado já incluído no da {e.dentro_de}</span></> : null}</td>
         <td>{e.estatal[cvmUlt] ? esferaDe(e) : <span class="sub">privatizada — era {deQuemEra(e)} até {e.ultimo_ano_estatal}</span>}</td>
-        <td>{e.setor}</td>
+        <td class="oculta-m">{e.setor}</td>
         <td class={`num${(e.serie[cvmUlt] ?? 0) < 0 ? " neg" : ""}`}>{e.serie[cvmUlt] !== undefined ? compact(e.serie[cvmUlt]) : "—"}</td>
         <td class={`num${(e.serie[anosCvm[anosCvm.length - 3]] ?? 0) < 0 ? " neg" : ""}`}>{e.serie[anosCvm[anosCvm.length - 3]] !== undefined ? compact(e.serie[anosCvm[anosCvm.length - 3]]) : "—"}</td>
         <td class="desc">{c ? `${c.ente}${c.tipo === "indireto" && !c.ente.toLowerCase().includes(String(c.via).toLowerCase()) ? ` (via ${c.via})` : ""} — ${c.on.toFixed(1).replace(".", ",")}% das ações ordinárias` : "sem controle público no período"}</td></tr>); })}
@@ -309,8 +309,8 @@ const FONTES_ATE = [
     <h2>Deixaram de ser estatais no período</h2>
     <div class="card">
       <table>
-        <thead><tr><th>Empresa</th><th class="num">Último ano com controle público</th><th class="num">Lucro naquele ano</th><th class="num">Lucro em {cvmUlt}, já privada</th></tr></thead>
-        <tbody>{saiuDaMao.map((e) => (<tr><td>{e.nome}</td><td class="num">{e.ultimo_ano_estatal}</td><td class="num">{e.serie[e.ultimo_ano_estatal] !== undefined ? compact(e.serie[e.ultimo_ano_estatal]) : "—"}</td><td class="num">{e.serie[cvmUlt] !== undefined ? compact(e.serie[cvmUlt]) : "—"}</td></tr>))}</tbody>
+        <thead><tr><th>Empresa</th><th class="oculta-m num">Último ano com controle público</th><th class="num">Lucro naquele ano</th><th class="num">Lucro em {cvmUlt}, já privada</th></tr></thead>
+        <tbody>{saiuDaMao.map((e) => (<tr><td>{e.nome}</td><td class="oculta-m num">{e.ultimo_ano_estatal}</td><td class="num">{e.serie[e.ultimo_ano_estatal] !== undefined ? compact(e.serie[e.ultimo_ano_estatal]) : "—"}</td><td class="num">{e.serie[cvmUlt] !== undefined ? compact(e.serie[cvmUlt]) : "—"}</td></tr>))}</tbody>
       </table>
       <p class="src">Comparar as duas últimas colunas não diz se a venda foi boa ou ruim: entre um ano e outro mudaram tarifa, dívida, investimento e o próprio setor. A coluna existe para mostrar que a empresa continua publicando, e que ela saiu da conta das estatais a partir daquele ano.</p>
     </div>
@@ -332,7 +332,7 @@ const FONTES_ATE = [
 </Base>
 <style>
   .sub { font-size: 12px; color: var(--ink-2); }
-  td.num, th.num { white-space: nowrap; }
+  td.num { white-space: nowrap; }       /* th quebra linha no celular (Base.astro) */
   td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 320px; }
   td.neg { color: #a3302a; }
 </style>

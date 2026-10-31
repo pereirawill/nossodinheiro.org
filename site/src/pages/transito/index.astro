@@ -100,9 +100,9 @@ const y = (v: number) => T + (1 - v / maxO) * (H - T - B);
   </div>
   <div class="card" style="margin-top:14px">
     <table>
-      <thead><tr><th>Estado</th><th class="num">Mortes ({ult})</th><th class="num">Por 100 mil</th><th class="num">Vezes o estado com menor taxa</th></tr></thead>
+      <thead><tr><th>Estado</th><th class="num">Mortes ({ult})</th><th class="num">Por 100 mil</th><th class="oculta-m num">Vezes o estado com menor taxa</th></tr></thead>
       <tbody>{estados.map((e) => (<tr><td>{e.nome}</td><td class="num">{num(e.obitos)}</td><td class="num">{n1(e.taxa)}</td>
-        <td class="num">{n1(e.taxa / estados[estados.length - 1].taxa)}×</td></tr>))}</tbody>
+        <td class="oculta-m num">{n1(e.taxa / estados[estados.length - 1].taxa)}×</td></tr>))}</tbody>
     </table>
     <p class="src">
       {estados[0].nome} tem {n1(estados[0].taxa / estados[estados.length - 1].taxa)} vezes a taxa de
@@ -176,6 +176,6 @@ const y = (v: number) => T + (1 - v / maxO) * (H - T - B);
 </Base>
 <style>
   td.desc { white-space: normal; font-size: 13px; color: var(--ink-2); max-width: 420px; }
-  td.num, th.num { white-space: nowrap; }
+  td.num { white-space: nowrap; }       /* th quebra linha no celular (Base.astro) */
   tr.destaque td { background: color-mix(in srgb, var(--s2) 12%, var(--card)); }
 </style>

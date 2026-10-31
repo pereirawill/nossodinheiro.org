@@ -175,15 +175,15 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
   <h2>Os {maiores.length} maiores desde 2000</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Grupo</th><th class="num">Lucro somado 2000–{base}</th><th class="num">{ultimo.ano}</th><th class="num">Patrimônio em {ultimo.ano}</th><th class="num">Retorno sobre o patrimônio</th><th>Período com dado</th></tr></thead>
+      <thead><tr><th>Grupo</th><th class="num">Lucro somado 2000–{base}</th><th class="num">{ultimo.ano}</th><th class="oculta-m num">Patrimônio em {ultimo.ano}</th><th class="oculta-m num">Retorno sobre o patrimônio</th><th class="oculta-m">Período com dado</th></tr></thead>
       <tbody>
         {maiores.map((m) => { const s = m.serie[String(ultimo.ano)]; return (<tr>
           <td>{m.nome}<small>{m.tipo}</small></td>
           <td class="num">R$ {grande(m.lucro_real_acumulado)}</td>
           <td class="num">{s ? `R$ ${bi(s.lucro)}` : "—"}</td>
-          <td class="num">{s && s.pl > 0 ? `R$ ${bi(s.pl)}` : "—"}</td>
-          <td class="num">{s && s.pl > 0 ? `${n1(roe(s.lucro, s.pl))}%` : "—"}</td>
-          <td class="per">{m.anos[0]}–{m.anos[m.anos.length - 1]}{m.anos[m.anos.length - 1] < base ? " (saiu)" : ""}</td>
+          <td class="oculta-m num">{s && s.pl > 0 ? `R$ ${bi(s.pl)}` : "—"}</td>
+          <td class="oculta-m num">{s && s.pl > 0 ? `${n1(roe(s.lucro, s.pl))}%` : "—"}</td>
+          <td class="oculta-m per">{m.anos[0]}–{m.anos[m.anos.length - 1]}{m.anos[m.anos.length - 1] < base ? " (saiu)" : ""}</td>
         </tr>); })}
       </tbody>
     </table>
@@ -236,7 +236,7 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
   <h2>Banco, cooperativa e instituição de pagamento</h2>
   <div class="card">
     <table>
-      <thead><tr><th>Segmento</th><th class="num">Lucro em {ultimo.ano}</th><th class="num">Grupos</th><th class="num">Retorno sobre o patrimônio</th></tr></thead>
+      <thead><tr><th>Segmento</th><th class="num">Lucro em {ultimo.ano}</th><th class="num">Grupos</th><th class="oculta-m num">Retorno sobre o patrimônio</th></tr></thead>
       <tbody>
         {[["bancos", "Bancos (comerciais, múltiplos, de investimento e de desenvolvimento)"],
           ["cooperativas", "Cooperativas de crédito"],
@@ -244,7 +244,7 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
           ["sem_classificacao", "Sem tipo publicado pelo Banco Central"]]
           .filter(([k]) => seg(ultimo, k as string).n > 0).map(([k, rot]) => { const s = seg(ultimo, k as string); return (<tr>
           <td>{rot}</td><td class="num">R$ {bi(s.lucro)}</td><td class="num">{num(s.n)}</td>
-          <td class="num">{s.pl > 0 ? `${n1(roe(s.lucro, s.pl))}%` : "—"}</td></tr>); })}
+          <td class="oculta-m num">{s.pl > 0 ? `${n1(roe(s.lucro, s.pl))}%` : "—"}</td></tr>); })}
         <tr class="destaque"><td><b>Todo o sistema financeiro</b></td><td class="num"><b>R$ {bi(ultimo.total.lucro)}</b></td>
           <td class="num">{num(ultimo.total.n)}</td><td class="num">—</td></tr>
       </tbody>
@@ -283,10 +283,10 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
   <h2>Duas fontes oficiais para o mesmo lucro</h2>
   <div class="card">
     {cvm.length > 0 ? <><table>
-      <thead><tr><th>Grupo</th><th class="num">Banco Central (IF.data)</th><th class="num">CVM (balanço da holding)</th><th class="num">Diferença</th></tr></thead>
+      <thead><tr><th>Grupo</th><th class="num">Banco Central (IF.data)</th><th class="num">CVM (balanço da holding)</th><th class="oculta-m num">Diferença</th></tr></thead>
       <tbody>{cvm.map((b: any) => (<tr>
         <td>{b.nome}</td><td class="num">{bi(b.ifdata)}</td><td class="num">{bi(b.cvm)}</td>
-        <td class="num">{n1(b.dif_pct)}%</td></tr>))}</tbody>
+        <td class="oculta-m num">{n1(b.dif_pct)}%</td></tr>))}</tbody>
     </table>
     <p class="src">
       Em {anoCvm}, as duas fontes dão números diferentes para os mesmos bancos, e <b>é assim que tem de ser</b>: o
@@ -388,7 +388,7 @@ const sumiram = maiores.filter((m) => m.anos[m.anos.length - 1] < base);
 </Base>
 <style>
   td small { display: block; font-size: 11px; color: var(--ink-2); font-weight: 400; }
-  td.num, th.num { white-space: nowrap; }
+  td.num { white-space: nowrap; }       /* th quebra linha no celular (Base.astro) */
   td.per { white-space: nowrap; font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-2); }
   td.sub { padding-left: 18px; color: var(--ink-2); font-size: 13px; }
   tr.destaque td { background: color-mix(in srgb, var(--s3) 12%, var(--card)); }

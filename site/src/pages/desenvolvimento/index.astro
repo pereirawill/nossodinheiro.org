@@ -243,13 +243,13 @@ const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
   <div class="card">
     <table>
       <thead><tr><th>Indicador</th><th class="num">Começo</th><th class="num">Hoje</th><th class="num">Brasil</th>
-        {GRUPOS_MOSTRA.map((g) => <th class="num">{agr.grupos[g]}</th>)}</tr></thead>
+        {GRUPOS_MOSTRA.map((g) => <th class={g === "WLD" ? "num" : "num oculta-m"}>{agr.grupos[g]}</th>)}</tr></thead>
       <tbody>{melhoraram.map((l) => (<tr>
         <td>{l.titulo}<br /><span class="sub">{l.unidade}</span></td>
         <td class="num">{n1(l.a.valor)}<br /><span class="sub">{l.a.ano}</span></td>
         <td class="num">{n1(l.b.valor)}<br /><span class="sub">{l.b.ano}</span></td>
         <td class="num"><b>{sinal(l.variacao)}{l.sufixo}</b><br /><span class="sub" title={`últimos 10 anos: ${sinal(l.var10)}${l.sufixo}`}>10 anos: {sinal(l.var10)}{l.sufixo}</span></td>
-        {GRUPOS_MOSTRA.map((g) => (<td class="num">{l.mundo[g]
+        {GRUPOS_MOSTRA.map((g) => (<td class={g === "WLD" ? "num" : "num oculta-m"}>{l.mundo[g]
           ? <span title={`${agr.grupos[g]}: de ${n1(l.mundo[g].vDe)} (${l.mundo[g].de}) para ${n1(l.mundo[g].vAte)} (${l.mundo[g].ate})`}>{sinal(l.sufixo === " pontos" ? l.mundo[g].pontos : l.mundo[g].pct)}{l.sufixo}</span>
           : "—"}</td>))}</tr>))}
       </tbody>
@@ -269,13 +269,13 @@ const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
   <div class="card">
     <table>
       <thead><tr><th>Indicador</th><th class="num">Começo</th><th class="num">Hoje</th><th class="num">Brasil</th>
-        {GRUPOS_MOSTRA.map((g) => <th class="num">{agr.grupos[g]}</th>)}</tr></thead>
+        {GRUPOS_MOSTRA.map((g) => <th class={g === "WLD" ? "num" : "num oculta-m"}>{agr.grupos[g]}</th>)}</tr></thead>
       <tbody>{pioraram.map((l) => (<tr>
         <td>{l.titulo}<br /><span class="sub">{l.unidade}</span></td>
         <td class="num">{n1(l.a.valor)}<br /><span class="sub">{l.a.ano}</span></td>
         <td class="num">{n1(l.b.valor)}<br /><span class="sub">{l.b.ano}</span></td>
         <td class="num neg"><b>{sinal(l.variacao)}{l.sufixo}</b><br /><span class="sub">10 anos: {sinal(l.var10)}{l.sufixo}</span></td>
-        {GRUPOS_MOSTRA.map((g) => (<td class="num">{l.mundo[g]
+        {GRUPOS_MOSTRA.map((g) => (<td class={g === "WLD" ? "num" : "num oculta-m"}>{l.mundo[g]
           ? <span title={`${agr.grupos[g]}: de ${n1(l.mundo[g].vDe)} (${l.mundo[g].de}) para ${n1(l.mundo[g].vAte)} (${l.mundo[g].ate})`}>{sinal(l.sufixo === " pontos" ? l.mundo[g].pontos : l.mundo[g].pct)}{l.sufixo}</span>
           : "—"}</td>))}</tr>))}
       </tbody>
@@ -500,11 +500,11 @@ const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
     <h3 style="margin:0 0 2px">Saúde: o que o governo gasta e quanto se vive</h3>
     <p class="sub" style="margin:0 0 10px">gasto público em saúde como % do PIB · expectativa de vida e mortalidade infantil</p>
     <table>
-      <thead><tr><th>País</th><th class="num">Gasto público (% do PIB)</th><th class="num">Expectativa de vida</th><th class="num">Mortalidade infantil</th></tr></thead>
+      <thead><tr><th>País</th><th class="num">Gasto público (% do PIB)</th><th class="num">Expectativa de vida</th><th class="oculta-m num">Mortalidade infantil</th></tr></thead>
       <tbody>{paresSaude.map((p) => (<tr class={p.iso === "BRA" ? "destaque" : undefined}>
         <td>{p.iso === "BRA" ? <b>{p.pais}</b> : p.pais}</td>
         <td class="num">{n1(p.gasto)}%</td><td class="num">{n1(p.vida)} anos</td>
-        <td class="num">{p.mort != null ? `${n1(p.mort)} por mil` : "—"}</td></tr>))}
+        <td class="oculta-m num">{p.mort != null ? `${n1(p.mort)} por mil` : "—"}</td></tr>))}
       </tbody>
     </table>
     <p class="src">
@@ -606,15 +606,15 @@ const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
   <div class="card" style="margin-top:14px">
     <table>
       <thead><tr><th>Estado</th>
-        <th class="num">Médio completo {eduDe}</th><th class="num">{eduPara}</th><th class="num">Variação</th>
-        <th class="num">Esgoto {sanDe}</th><th class="num">{sanPara}</th><th class="num">Variação</th>
-        <th class="num">Homicídios {homDe}</th><th class="num">{homPara}</th><th class="num">Variação</th></tr></thead>
+        <th class="oculta-m num">Médio completo {eduDe}</th><th class="oculta-m num">{eduPara}</th><th class="num">Variação</th>
+        <th class="oculta-m num">Esgoto {sanDe}</th><th class="oculta-m num">{sanPara}</th><th class="num">Variação</th>
+        <th class="oculta-m num">Homicídios {homDe}</th><th class="oculta-m num">{homPara}</th><th class="num">Variação</th></tr></thead>
       <tbody>{[...porEstado].sort((a, b) => b.eduVar - a.eduVar).map((e) => (<tr>
         <td>{nomeUf[e.uf] ?? e.uf}</td>
-        <td class="num">{n1(e.eduDe)}%</td><td class="num">{n1(e.eduPara)}%</td><td class="num">+{n1(e.eduVar)}</td>
-        <td class="num">{e.sanDe != null ? `${n1(e.sanDe)}%` : "—"}</td><td class="num">{e.sanPara != null ? `${n1(e.sanPara)}%` : "—"}</td>
+        <td class="oculta-m num">{n1(e.eduDe)}%</td><td class="oculta-m num">{n1(e.eduPara)}%</td><td class="num">+{n1(e.eduVar)}</td>
+        <td class="oculta-m num">{e.sanDe != null ? `${n1(e.sanDe)}%` : "—"}</td><td class="oculta-m num">{e.sanPara != null ? `${n1(e.sanPara)}%` : "—"}</td>
         <td class="num">{e.sanVar != null ? `+${n1(e.sanVar)}` : "—"}</td>
-        <td class="num">{e.homDe != null ? n1(e.homDe) : "—"}</td><td class="num">{e.homPara != null ? n1(e.homPara) : "—"}</td>
+        <td class="oculta-m num">{e.homDe != null ? n1(e.homDe) : "—"}</td><td class="oculta-m num">{e.homPara != null ? n1(e.homPara) : "—"}</td>
         <td class={`num${(e.homVar ?? 0) > 0 ? " neg" : ""}`}>{e.homVar != null ? `${e.homVar > 0 ? "+" : "−"}${n1(Math.abs(e.homVar))}` : "—"}</td></tr>))}
       </tbody>
     </table>
@@ -641,7 +641,7 @@ const pyy = (v: number) => 10 + (PH2 - 24 - 10) * (1 - v / pimMax);
 </Base>
 <style>
   td.desc { white-space: normal; font-size: 12.5px; color: var(--ink-2); max-width: 260px; }
-  td.num, th.num { white-space: nowrap; }
+  td.num { white-space: nowrap; }       /* th quebra linha no celular (Base.astro) */
   td.neg { color: #a3302a; }
   .sub { font-size: 11.5px; color: var(--ink-2); }
   .limites { margin: 0; padding-left: 20px; } .limites li { margin: 7px 0; color: var(--ink-2); }

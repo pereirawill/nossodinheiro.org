@@ -115,16 +115,16 @@ const x = (v: number) => (v / max) * plotW;
 
   <h2>Todos os {cargos} em exercício</h2>
   <table>
-    <thead><tr><th>#</th><th>{Cargo}</th><th>Gabinete</th><th class="num">Meses</th><th class="num"><Termo t="remuneracao_bruta">Bruto</Termo> em {mesUltimo}</th>{meta.detalha_verbas ? <th class="num"><Termo t="indenizacoes">Indenizações</Termo> / mês</th> : null}<th class="num">Gabinete em {mesUltimo}</th><th class="num"><Termo t="pessoas_gabinete">Pessoas</Termo></th><th class="num">Custo no mês</th><th class="num">Média do ano</th></tr></thead>
+    <thead><tr><th class="oculta-m">#</th><th>{Cargo}</th><th class="oculta-m">Gabinete</th><th class="oculta-m num">Meses</th><th class="num"><Termo t="remuneracao_bruta">Bruto</Termo> em {mesUltimo}</th>{meta.detalha_verbas ? <th class="oculta-m num"><Termo t="indenizacoes">Indenizações</Termo> / mês</th> : null}<th class="num">Gabinete em {mesUltimo}</th><th class="oculta-m num"><Termo t="pessoas_gabinete">Pessoas</Termo></th><th class="num">Custo no mês</th><th class="oculta-m num">Média do ano</th></tr></thead>
     <tbody>
       {ordenados.map((r, i) => (
-        <tr><td class="rank">{i + 1}</td><td>{r.nome_curto}</td>
-            <td>{r.unidade.replace(/^Gabinete d[oa] (Ministr[oa]|Desembargador[a]?|Conselheir[oa]) /i, "").replace(/^Gabinete d[ae] /i, "")}</td>
-            <td class="num">{r.meses_com_folha}</td>
+        <tr><td class="oculta-m rank">{i + 1}</td><td>{r.nome_curto}</td>
+            <td class="oculta-m">{r.unidade.replace(/^Gabinete d[oa] (Ministr[oa]|Desembargador[a]?|Conselheir[oa]) /i, "").replace(/^Gabinete d[ae] /i, "")}</td>
+            <td class="oculta-m num">{r.meses_com_folha}</td>
             <td class="num">{brl0(r.remuneracao_ultimo_mes)}</td>
-            {meta.detalha_verbas ? <td class="num">{brl0(r.indenizacoes / Math.max(r.meses_com_folha, 1))}</td> : null}
-            <td class="num">{brl0(r.gabinete_ultimo_mes)}</td><td class="num">{r.gabinete_pessoas_ultimo_mes}</td>
-            <td class="num"><b>{brl0(r.custo_ultimo_mes)}</b></td><td class="num">{brl0(r.custo_mensal_medio)}</td></tr>
+            {meta.detalha_verbas ? <td class="oculta-m num">{brl0(r.indenizacoes / Math.max(r.meses_com_folha, 1))}</td> : null}
+            <td class="num">{brl0(r.gabinete_ultimo_mes)}</td><td class="oculta-m num">{r.gabinete_pessoas_ultimo_mes}</td>
+            <td class="num"><b>{brl0(r.custo_ultimo_mes)}</b></td><td class="oculta-m num">{brl0(r.custo_mensal_medio)}</td></tr>
       ))}
     </tbody>
   </table>

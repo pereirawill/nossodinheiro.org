@@ -250,7 +250,7 @@ const rotulo = (m: string) => `${MESES[+m.slice(5) - 1]}/${m.slice(2, 4)}`;
   ul.citacoes { margin: 0; padding-left: 18px; list-style: none; }
   ul.citacoes li { margin: 8px 0; padding-left: 10px; border-left: 3px solid var(--line); color: var(--ink-2); }
   ul.citacoes .pg { font-family: IBM Plex Mono, monospace; font-size: 11.5px; white-space: nowrap; }
-  td.num, th.num { white-space: nowrap; }
+  td.num { white-space: nowrap; }       /* th quebra linha no celular (Base.astro) */
   .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; } .duas h3 { margin: 0 0 8px; font-size: 15px; }
   @media (max-width: 720px) { .duas { grid-template-columns: 1fr; } }
 </style>

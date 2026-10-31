@@ -137,7 +137,8 @@ if (dataset) {
       @media (max-width: 720px) {
         table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: 13px; }
         th, td { padding: 7px 6px; }
-        th, th.ord { white-space: normal; font-size: 11px; letter-spacing: .02em; }           /* vem depois da regra de ordenação, que é nowrap */
+        th, th.ord { white-space: normal; font-size: 11px; letter-spacing: .02em; }
+        th .termo { white-space: normal; }           /* a dica ⓘ no cabeçalho também pode quebrar */           /* vem depois da regra de ordenação, que é nowrap */
         td.num, td.rank { white-space: nowrap; }      /* cabeçalho pode quebrar ("POR / HABITANTE"); número não */
         td.num { font-size: 12.5px; }
         /* opt-in: só some onde o cabeçalho também tem a classe, senão a coluna do título ficaria sem a célula */

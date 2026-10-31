@@ -41,10 +41,10 @@ const totLeg = rows.reduce((s, m) => s + m.pago_legislativo, 0), totPop = rows.r
 
   <h2>Todos os municípios de {uf}</h2>
   <table>
-    <thead><tr><th>#</th><th>Município</th><th class="num">População</th><th class="num">Vereadores</th><th class="num">Câmara (pago)</th><th class="num">Por habitante</th><th class="num">Por vereador</th><th class="num">% do orçamento</th><th class="num">Orçamento pago</th></tr></thead>
+    <thead><tr><th class="oculta-m">#</th><th>Município</th><th class="oculta-m num">População</th><th class="oculta-m num">Vereadores</th><th class="num">Câmara (pago)</th><th class="num">Por habitante</th><th class="num">Por vereador</th><th class="oculta-m num">% do orçamento</th><th class="oculta-m num">Orçamento pago</th></tr></thead>
     <tbody>{rows.map((m, i) => (
-      <tr><td class="rank">{i + 1}</td><td><a href={`/municipios/${uf.toLowerCase()}/${slug(m.nome)}/`}>{m.nome}</a>{m.capital ? " ★" : ""}</td><td class="num">{num(m.populacao)}</td><td class="num">{num(m.vereadores)}</td>
-        <td class="num">{brl0(m.pago_legislativo)}</td><td class="num">{brl0(m.por_hab_legislativo)}</td><td class="num">{brl0(m.por_vereador_legislativo)}</td><td class="num">{pct(m.pct_legislativo)}</td><td class="num">{brl0(m.pago_total)}</td></tr>
+      <tr><td class="oculta-m rank">{i + 1}</td><td><a href={`/municipios/${uf.toLowerCase()}/${slug(m.nome)}/`}>{m.nome}</a>{m.capital ? " ★" : ""}</td><td class="oculta-m num">{num(m.populacao)}</td><td class="oculta-m num">{num(m.vereadores)}</td>
+        <td class="num">{brl0(m.pago_legislativo)}</td><td class="num">{brl0(m.por_hab_legislativo)}</td><td class="num">{brl0(m.por_vereador_legislativo)}</td><td class="oculta-m num">{pct(m.pct_legislativo)}</td><td class="oculta-m num">{brl0(m.pago_total)}</td></tr>
     ))}</tbody>
   </table>
   <p class="src">★ capital. Município ausente = não entregou a Declaração de Contas Anuais de {meta.ano} ao Tesouro até a data da carga.</p>

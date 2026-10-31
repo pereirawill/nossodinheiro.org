@@ -27,6 +27,8 @@ O que mede, e o nível de cada achado:
 - **cartão alto demais** (AVISO): `.stat` mais alto que a largura da tela — é o `<b>` dentro do `<span>` do cartão
   herdando a fonte-herói e virando texto gigante (armadilha já registrada no CLAUDE.md).
 - **gráfico rolando** (NOTA): só a contagem de cartões que rolam por causa de um SVG largo, para acompanhar.
+- **coluna desalinhada** (ERRO): número de cabeçalhos visíveis diferente do número de células da primeira linha —
+  é o erro que `.oculta-m` cria quando vai no `th` e não no `td` (ou o contrário).
 
 Sai com código 1 se houver ERRO. Formato de saída igual ao do `checar_site.py`.
 """
@@ -74,8 +76,10 @@ MEDIR_JS = r"""
     const vbw = parseFloat(((s.getAttribute('viewBox') || '').split(/\s+/)[2]) || '0');
     return { w: Math.round(r.width), h: Math.round(r.height), vbw, vb: (s.getAttribute('viewBox') || '').slice(0, 14),
              t: (s.getAttribute('aria-label') || '').slice(0, 50) }; });
-  const tabelas = [...document.querySelectorAll('table')].map((t) => ({ over: t.scrollWidth - t.clientWidth,
-    cab: ((t.querySelector('th') || {}).textContent || '').trim().slice(0, 24), cols: t.querySelectorAll('thead th').length }));
+  const vis = (els) => [...els].filter((e) => getComputedStyle(e).display !== 'none').reduce((n, e) => n + (e.colSpan || 1), 0);
+  const tabelas = [...document.querySelectorAll('table')].map((t) => { const tr = t.querySelector('tbody tr');
+    return { over: t.scrollWidth - t.clientWidth, cab: ((t.querySelector('th') || {}).textContent || '').trim().slice(0, 24),
+      cols: vis(t.querySelectorAll('thead th')), tds: tr ? vis(tr.querySelectorAll(':scope > td')) : null }; });
   const stats = [...document.querySelectorAll('.stat')].map((s) => ({ h: Math.round(s.getBoundingClientRect().height),
     t: ((s.querySelector('b') || {}).textContent || '').trim().slice(0, 24) }));
   const cartoesRolando = [...document.querySelectorAll('.card')].filter((c) => c.scrollWidth > c.clientWidth + 4 && c.querySelector(':scope > svg')).length;
@@ -145,6 +149,10 @@ def avaliar(a: Achados, rota: str, m: dict) -> None:
                   f"{s['w'] / s['vbw']:.1f}× o desenho; {s['t']!r})" if s["vbw"] else f"SVG de {s['w']}×{s['h']} px",
                   "rosca ou gráfico pequeno pegou a regra de min-width dos gráficos largos; ver .card > svg em Base.astro")
     for t in m["tabelas"]:
+        if t["tds"] is not None and t["cols"] and t["tds"] != t["cols"]:
+            a.add(ERRO, "coluna desalinhada", rota,
+                  f"tabela '{t['cab']}': {t['cols']} cabeçalhos visíveis e {t['tds']} células na primeira linha",
+                  "um .oculta-m (ou .desc) está no th sem o td correspondente, ou vice-versa")
         if (t["cols"] <= 4 and t["over"] > W / 4) or t["over"] > W:
             a.add(AVISO, "tabela rolando", rota,
                   f"tabela '{t['cab']}' ({t['cols']} colunas) excede o cartão em {t['over']} px",

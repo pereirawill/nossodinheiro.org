@@ -137,10 +137,10 @@ const semPlano = +(100 - d.planos.brasil.taxa).toFixed(1);
   <h2>Cada estado: dinheiro e resultado</h2>
   <div class="card largo">
     <table>
-      <thead><tr><th>Estado</th><th class="num">Governo estadual</th><th class="num">por habitante</th><th class="num">Prefeituras</th><th class="num">por habitante</th><th class="num">Com plano</th>
-        <th class="num">Vive até</th><th class="num">Até 1 ano</th><th class="num">Até 5 anos</th><th class="num">Neonatal</th><th class="num">Materna</th></tr></thead>
-      <tbody>{porNome.map((l) => (<tr><td>{l.nome}</td><td class="num">{compact(l.gastoEstado)}</td><td class="num"><b>{brl0(l.habEstado)}</b></td><td class="num">{l.gastoMun > 0 ? compact(l.gastoMun) : "—"}</td><td class="num"><b>{l.gastoMun > 0 ? brl0(l.habMun) : "—"}</b></td>
-        <td class="num">{n1(l.taxaPlano)}%</td><td class="num">{n1(l.ev)}</td><td class="num">{n1(l.mi)}</td><td class="num">{n1(l.m5)}</td><td class="num">{n1(l.neo)}</td><td class="num">{num(l.mat)}</td></tr>))}</tbody>
+      <thead><tr><th>Estado</th><th class="oculta-m num">Governo estadual</th><th class="num">por habitante</th><th class="oculta-m num">Prefeituras</th><th class="num">por habitante</th><th class="num">Com plano</th>
+        <th class="num">Vive até</th><th class="oculta-m num">Até 1 ano</th><th class="oculta-m num">Até 5 anos</th><th class="oculta-m num">Neonatal</th><th class="oculta-m num">Materna</th></tr></thead>
+      <tbody>{porNome.map((l) => (<tr><td>{l.nome}</td><td class="oculta-m num">{compact(l.gastoEstado)}</td><td class="num"><b>{brl0(l.habEstado)}</b></td><td class="oculta-m num">{l.gastoMun > 0 ? compact(l.gastoMun) : "—"}</td><td class="num"><b>{l.gastoMun > 0 ? brl0(l.habMun) : "—"}</b></td>
+        <td class="num">{n1(l.taxaPlano)}%</td><td class="num">{n1(l.ev)}</td><td class="oculta-m num">{n1(l.mi)}</td><td class="oculta-m num">{n1(l.m5)}</td><td class="oculta-m num">{n1(l.neo)}</td><td class="oculta-m num">{num(l.mat)}</td></tr>))}</tbody>
     </table>
     <p class="src">
       <b>Governo estadual</b> e <b>prefeituras</b>: despesa paga na função Saúde em {ANO} (SIOP/SICONFI), cada uma dividida pela população do estado.

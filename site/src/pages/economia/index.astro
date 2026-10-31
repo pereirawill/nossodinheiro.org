@@ -113,12 +113,12 @@ const lucroEstatais = (estatais as any).sest.agregado[(estatais as any).sest.ano
   <div class="card" style="margin-top:14px">
     <h3 style="margin:0 0 8px">Os últimos trimestres</h3>
     <table>
-      <thead><tr><th>Trimestre</th><th class="num">Contra o mesmo trimestre do ano anterior</th><th class="num">Acumulado em quatro trimestres</th><th class="num">Acumulado no ano</th></tr></thead>
+      <thead><tr><th>Trimestre</th><th class="num">Contra o mesmo trimestre do ano anterior</th><th class="num">Acumulado em quatro trimestres</th><th class="oculta-m num">Acumulado no ano</th></tr></thead>
       <tbody>{trimestral.slice(-8).reverse().map((t) => (<tr>
         <td>{trimRotulo(t.periodo)}</td>
         <td class={`num${(t.trimestral ?? 0) < 0 ? " neg" : ""}`}>{sinal(t.trimestral ?? 0)}%</td>
         <td class={`num${(t.quatro_trimestres ?? 0) < 0 ? " neg" : ""}`}>{sinal(t.quatro_trimestres ?? 0)}%</td>
-        <td class={`num${(t.no_ano ?? 0) < 0 ? " neg" : ""}`}>{sinal(t.no_ano ?? 0)}%</td></tr>))}
+        <td class={`num oculta-m${(t.no_ano ?? 0) < 0 ? " neg" : ""}`}>{sinal(t.no_ano ?? 0)}%</td></tr>))}
       </tbody>
     </table>
     <p class="src">PIB a preços de mercado, Contas Nacionais Trimestrais do IBGE. A série começa em {trimRotulo(trimestral[0].periodo)}.</p>
@@ -185,7 +185,7 @@ const lucroEstatais = (estatais as any).sest.agregado[(estatais as any).sest.ano
   <Glossario termos={["pib", "selic", "resultado_primario", "resultado_nominal", "juros_nominais"]} />
 </Base>
 <style>
-  td.num, th.num { white-space: nowrap; }
+  td.num { white-space: nowrap; }       /* th quebra linha no celular (Base.astro) */
   td.neg { color: #a3302a; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
   .tile { display: block; text-decoration: none; }

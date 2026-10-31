@@ -366,7 +366,7 @@ const ocdeRenda = ocdeAno ? ocde.bases["Renda, Lucros e Ganhos de Capital"][ocde
   <Glossario termos={["minutos_de_trabalho", "hora_salario_minimo", "nivel_de_precos", "preco_relativo", "rendimento_habitual", "poder_de_compra", "base_incidencia", "carga_tributaria"]} />
 </Base>
 <style>
-  td.num, th.num { white-space: nowrap; }
+  td.num { white-space: nowrap; }       /* th quebra linha no celular (Base.astro) */
   .un { color: var(--ink-2); font-size: 11.5px; }
   ul.dois { margin: 0; padding-left: 18px; }
   ul.dois li { margin: 6px 0; }

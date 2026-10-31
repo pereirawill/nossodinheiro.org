@@ -125,12 +125,12 @@ const porProporcao = ufs.filter((u) => u.n >= MIN_OBRAS).sort((a, b) => b.parada
   <h2>As {maiores.length} obras paradas de maior valor previsto</h2>
   <div class="card largo">
     <table>
-      <thead><tr><th>#</th><th>Obra</th><th>UF</th><th>Situação</th><th class="num">Previsto</th><th class="num">Já empenhado</th><th class="num">Sem atualizar a situação</th><th class="num">Atraso do prazo</th><th>Executor</th></tr></thead>
-      <tbody>{maiores.map((o, i) => (<tr><td class="rank">{i + 1}</td><td class="nome">{o.nome}</td><td class="mono">{o.uf || "—"}</td><td>{o.situacao}</td>
-        <td class="num">{bi(o.previsto)}</td><td class="num">{bi(o.empenhado)}</td>
-        <td class="num">{o.anos_sem_atualizacao != null ? `${n1(o.anos_sem_atualizacao)} anos` : "—"}</td>
-        <td class="num">{(o.anos_de_atraso ?? 0) > 0 ? `${n1(o.anos_de_atraso)} anos` : "no prazo"}</td>
-        <td class="exec">{o.executor}</td></tr>))}</tbody>
+      <thead><tr><th class="oculta-m">#</th><th>Obra</th><th>UF</th><th>Situação</th><th class="num">Previsto</th><th class="oculta-m num">Já empenhado</th><th class="oculta-m num">Sem atualizar a situação</th><th class="oculta-m num">Atraso do prazo</th><th class="oculta-m">Executor</th></tr></thead>
+      <tbody>{maiores.map((o, i) => (<tr><td class="oculta-m rank">{i + 1}</td><td class="nome">{o.nome}</td><td class="mono">{o.uf || "—"}</td><td>{o.situacao}</td>
+        <td class="num">{bi(o.previsto)}</td><td class="oculta-m num">{bi(o.empenhado)}</td>
+        <td class="oculta-m num">{o.anos_sem_atualizacao != null ? `${n1(o.anos_sem_atualizacao)} anos` : "—"}</td>
+        <td class="oculta-m num">{(o.anos_de_atraso ?? 0) > 0 ? `${n1(o.anos_de_atraso)} anos` : "no prazo"}</td>
+        <td class="oculta-m exec">{o.executor}</td></tr>))}</tbody>
     </table>
     <p class="src">
       "Sem atualizar a situação" conta desde a última vez que o órgão mexeu no status — pode ser bem depois de a obra ter parado.

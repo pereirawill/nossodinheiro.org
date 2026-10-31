@@ -218,17 +218,17 @@ const melhorUF = (k: string) => [...estados].sort((a, b) => (val(b[k], "total") 
   <div class="card" style="margin-top:14px">
     <table>
       <thead><tr><th>Estado</th>
-        <th class="num">Anos iniciais</th><th class="num">pública</th><th class="num">privada</th><th class="num">Δ vs. edição anterior</th>
-        <th class="num">Anos finais</th><th class="num">pública</th><th class="num">privada</th>
-        <th class="num">Ensino médio</th><th class="num">estadual</th><th class="num">privada</th></tr></thead>
+        <th class="num">Anos iniciais</th><th class="oculta-m num">pública</th><th class="oculta-m num">privada</th><th class="oculta-m num">Δ vs. edição anterior</th>
+        <th class="num">Anos finais</th><th class="oculta-m num">pública</th><th class="oculta-m num">privada</th>
+        <th class="num">Ensino médio</th><th class="oculta-m num">estadual</th><th class="oculta-m num">privada</th></tr></thead>
       <tbody>{estados.map((e) => (<tr><td>{e.nome}</td>
-        <td class="num"><b>{n1(val(e.ai, "total"))}</b></td><td class="num">{n1(val(e.ai, "publica"))}</td><td class="num">{n1(val(e.ai, "privada"))}</td><td class="num">{fmtDelta(delta(e.ai, "total"))}</td>
-        <td class="num"><b>{n1(val(e.af, "total"))}</b></td><td class="num">{n1(val(e.af, "publica"))}</td><td class="num">{n1(val(e.af, "privada"))}</td>
-        <td class="num"><b>{n1(val(e.em, "total"))}</b></td><td class="num">{n1(val(e.em, "estadual"))}</td><td class="num">{n1(val(e.em, "privada"))}</td></tr>))}
+        <td class="num"><b>{n1(val(e.ai, "total"))}</b></td><td class="oculta-m num">{n1(val(e.ai, "publica"))}</td><td class="oculta-m num">{n1(val(e.ai, "privada"))}</td><td class="oculta-m num">{fmtDelta(delta(e.ai, "total"))}</td>
+        <td class="num"><b>{n1(val(e.af, "total"))}</b></td><td class="oculta-m num">{n1(val(e.af, "publica"))}</td><td class="oculta-m num">{n1(val(e.af, "privada"))}</td>
+        <td class="num"><b>{n1(val(e.em, "total"))}</b></td><td class="oculta-m num">{n1(val(e.em, "estadual"))}</td><td class="oculta-m num">{n1(val(e.em, "privada"))}</td></tr>))}
         {regioes.map((r) => (<tr class="regiao"><td>{r.nome}</td>
-        <td class="num">{n1(val(r.ai, "total"))}</td><td class="num">{n1(val(r.ai, "publica"))}</td><td class="num">{n1(val(r.ai, "privada"))}</td><td class="num">{fmtDelta(delta(r.ai, "total"))}</td>
-        <td class="num">{n1(val(r.af, "total"))}</td><td class="num">{n1(val(r.af, "publica"))}</td><td class="num">{n1(val(r.af, "privada"))}</td>
-        <td class="num">{n1(val(r.em, "total"))}</td><td class="num">{n1(val(r.em, "estadual"))}</td><td class="num">{n1(val(r.em, "privada"))}</td></tr>))}
+        <td class="num">{n1(val(r.ai, "total"))}</td><td class="oculta-m num">{n1(val(r.ai, "publica"))}</td><td class="oculta-m num">{n1(val(r.ai, "privada"))}</td><td class="oculta-m num">{fmtDelta(delta(r.ai, "total"))}</td>
+        <td class="num">{n1(val(r.af, "total"))}</td><td class="oculta-m num">{n1(val(r.af, "publica"))}</td><td class="oculta-m num">{n1(val(r.af, "privada"))}</td>
+        <td class="num">{n1(val(r.em, "total"))}</td><td class="oculta-m num">{n1(val(r.em, "estadual"))}</td><td class="oculta-m num">{n1(val(r.em, "privada"))}</td></tr>))}
       </tbody>
     </table>
     <p class="src">Fonte: INEP, IDEB {ano}, planilha "regiões e UFs". Ordenado pelos anos iniciais; clique no cabeçalho para reordenar. Δ = diferença para a edição anterior ({Object.keys(br.ai.total).filter((a) => a < ano).pop()}). No ensino médio o INEP não publica "pública" por UF, só estadual.</p>
