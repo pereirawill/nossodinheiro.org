@@ -199,8 +199,8 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
       <text x={C} y={C + 12} text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{compact(uniaoSemEncargos)}</text>
     </svg>
     <table>
-      <thead><tr><th>Função</th><th class="num"><Termo t="pago">Pago</Termo></th><th class="num">% do total</th><th class="num"><Termo t="per_capita">Por habitante</Termo></th></tr></thead>
-      <tbody>{todasFuncoes.map((f) => (<tr><td><i class="sw" style={`background:${f.cor}`}></i>{f.nome}</td><td class="num">{compact(f.v)}</td><td class="num">{pct(f.v, uniaoSemEncargos)}</td><td class="num">{brl0(f.v / POP)}</td></tr>))}</tbody>
+      <thead><tr><th>Função</th><th class="num"><Termo t="pago">Pago</Termo></th><th class="num oculta-m">% do total</th><th class="num"><Termo t="per_capita">Por habitante</Termo></th></tr></thead>
+      <tbody>{todasFuncoes.map((f) => (<tr><td><i class="sw" style={`background:${f.cor}`}></i>{f.nome}</td><td class="num">{compact(f.v)}</td><td class="num oculta-m">{pct(f.v, uniaoSemEncargos)}</td><td class="num">{brl0(f.v / POP)}</td></tr>))}</tbody>
     </table>
     <p class="src" style="grid-column:1/-1"><b>Pago</b> = dinheiro que saiu do caixa no ano (não o orçado). <b>Por habitante</b> = pago ÷ 212,6 milhões de brasileiros (IBGE): só dá escala, não é quanto cada um recebeu.
       Função é a classificação oficial da Lei Orçamentária. "Encargos especiais" ({compact(encargos)}: juros, amortização e refinanciamento da dívida, transferências constitucionais a estados e municípios) ficam fora da pizza porque não são um serviço prestado; estão no total da União acima.
@@ -218,8 +218,8 @@ const obrasPrevisto = `R$ ${(obras.paradas.previsto / 1e9).toFixed(1).replace(".
       <text x={C} y={C + 12} text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">{compact(uniaoTotal)}</text>
     </svg>
     <table>
-      <thead><tr><th>Função</th><th class="num"><Termo t="pago">Pago</Termo></th><th class="num">% do total</th><th class="num"><Termo t="per_capita">Por habitante</Termo></th></tr></thead>
-      <tbody>{arcosCom.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{compact(a.v)}</td><td class="num">{pct(a.v, uniaoTotal)}</td><td class="num">{brl0(a.v / POP)}</td></tr>))}</tbody>
+      <thead><tr><th>Função</th><th class="num"><Termo t="pago">Pago</Termo></th><th class="num oculta-m">% do total</th><th class="num"><Termo t="per_capita">Por habitante</Termo></th></tr></thead>
+      <tbody>{arcosCom.map((a) => (<tr><td><i class="sw" style={`background:${a.cor}`}></i>{a.nome}</td><td class="num">{compact(a.v)}</td><td class="num oculta-m">{pct(a.v, uniaoTotal)}</td><td class="num">{brl0(a.v / POP)}</td></tr>))}</tbody>
     </table>
     <p class="src" style="grid-column:1/-1">
       É a despesa inteira da União, {compact(uniaoTotal)}, com os <Termo t="encargos_especiais">encargos especiais</Termo>

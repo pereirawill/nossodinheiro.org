@@ -167,7 +167,7 @@ const W = 920;
         return <rect x={x0} y="4" width={Math.max(0, w - 1)} height="34" fill={CORES[b]} rx="3"><title>{rot[b]}: {compact(v)} ({pct(v, atual.total)})</title></rect>; }); })()}
     </svg>
     <table style="margin-top:12px">
-      <thead><tr><th>Base de incidência</th><th class="num">{u.ano} (jan–{MESES[u.mes - 1]})</th><th class="num">% do total</th><th class="num">{anterior.ano}</th><th>O que é</th></tr></thead>
+      <thead><tr><th>Base de incidência</th><th class="num">{u.ano} (jan–{MESES[u.mes - 1]})</th><th class="num">% do total</th><th class="num">{anterior.ano}</th><th class="desc">O que é</th></tr></thead>
       <tbody>{ORDEM.map((b) => (
         <tr><td><i class="sw" style={`background:${CORES[b]}`}></i>{rot[b]}</td><td class="num">{compact((atual.bases as any)[b] ?? 0)}</td><td class="num">{pct((atual.bases as any)[b] ?? 0, atual.total)}</td><td class="num">{compact((anterior.bases as any)[b] ?? 0)}</td><td class="desc">{DICA[b]}</td></tr>
       ))}</tbody>
@@ -516,7 +516,7 @@ const W = 920;
     <table>
       <thead><tr>
         <th>Base de incidência</th><th class="num">{anoIni}</th><th class="num">{anoFim}</th>
-        <th class="num">Em 30 anos</th><th class="num">Em 20 anos</th><th class="barra-cab"></th>
+        <th class="num">Em 30 anos</th><th class="num">Em 20 anos</th><th class="barra-cab oculta-m"></th>
       </tr></thead>
       <tbody>{baseLinhas.map((b: any) => (
         <tr>
@@ -524,7 +524,7 @@ const W = 920;
           <td class="num">{n2i(b.ini)}%</td><td class="num">{n2i(b.fim)}%</td>
           <td class="num"><b>{b.delta >= 0 ? "+" : "−"}{n2i(Math.abs(b.delta))} p.p.</b></td>
           <td class="num">{b.delta20 == null ? "—" : `${b.delta20 >= 0 ? "+" : "−"}${n2i(Math.abs(b.delta20))} p.p.`}</td>
-          <td style="width:180px">
+          <td class="oculta-m" style="width:180px">
             <svg viewBox="0 0 180 16" width="180" height="16" role="img" aria-label={`${b.nome}: ${n2i(b.ini)}% em ${anoIni}, ${n2i(b.fim)}% em ${anoFim}`}>
               <rect x="0" y="9" width={(b.ini / maxBase) * 176} height="5" fill="var(--line)" rx="2"><title>{anoIni}: {n2i(b.ini)}% do PIB</title></rect>
               <rect x="0" y="2" width={(b.fim / maxBase) * 176} height="5" fill={CORES_BASE[b.codigo] ?? "#999"} rx="2"><title>{anoFim}: {n2i(b.fim)}% do PIB</title></rect>
@@ -532,7 +532,7 @@ const W = 920;
           </td>
         </tr>))}
         <tr><td><b>Carga total</b></td><td class="num"><b>{n2i(totalIni)}%</b></td><td class="num"><b>{n2i(totalFim)}%</b></td>
-          <td class="num"><b>+{n2i(totalFim - totalIni)} p.p.</b></td><td class="num">+{n2i(totalFim - totalIni20)} p.p.</td><td></td></tr>
+          <td class="num"><b>+{n2i(totalFim - totalIni)} p.p.</b></td><td class="num">+{n2i(totalFim - totalIni20)} p.p.</td><td class="oculta-m"></td></tr>
       </tbody>
     </table>
     <p class="src" style="margin-top:10px">
