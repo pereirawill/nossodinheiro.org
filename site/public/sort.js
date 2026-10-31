@@ -5,7 +5,7 @@
           var m = t.replace(/\s/g, "").replace(/[R$%]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", ".");
           return /^-?\d+(\.\d+)?$/.test(m) ? parseFloat(m) : null;
         };
-        var cell = function (tr, i) { var td = tr.children[i]; return td ? td.textContent.trim() : ""; };
+        var cell = function (tr, i) { var td = tr.children[i]; return td ? (td.dataset.v != null ? td.dataset.v : td.textContent.trim()) : ""; };
         document.querySelectorAll("table").forEach(function (table) {
           var thead = table.tHead, tbody = table.tBodies[0];
           if (!thead || !tbody || tbody.rows.length < 2) return;

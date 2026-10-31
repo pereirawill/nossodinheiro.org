@@ -15,6 +15,10 @@ const fotoDe = (r: any) => (comFoto.has(String(r.matricula)) ? `/fotos/stf/${r.m
 const temFoto = rows.some((r: any) => fotoDe(r));
 const compact = (v: number) =>
   v >= 1e9 ? `R$ ${(v / 1e9).toFixed(2).replace(".", ",")} bi` : v >= 1e6 ? `R$ ${(v / 1e6).toFixed(1).replace(".", ",")} mi` : brl0(v);
+// Celular: "1,00 mi", "954 mil", "49,6 mil" — a célula leva os dois textos e a CSS mostra um por tela;
+// o `data-v` guarda o número bruto para o sort.js, que senão leria os dois textos juntos.
+const mil = (v: number) =>        // sem o "R$ ": são 22 px por coluna que decidem se a tabela cabe; a nota embaixo diz que é em reais
+  v >= 1e6 ? `${(v / 1e6).toFixed(2).replace(".", ",")} mi` : v >= 1e5 ? `${Math.round(v / 1e3)} mil` : `${(v / 1e3).toFixed(1).replace(".", ",")} mil`;
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const n = rows.length;
 const nMeses = meta.meses_com_folha.length;
@@ -87,10 +91,11 @@ const x = (v: number) => (v / max) * plotW;
     <tbody>
       {rows.map((r, i) => (
         <tr><td class="oculta-m rank">{i + 1}</td>{temFoto ? <td class="oculta-m cel-foto">{fotoDe(r) ? <img src={fotoDe(r)} alt="" width="36" height="36" loading="lazy" decoding="async" /> : null}</td> : null}<td>{r.nome_curto}</td><td class="oculta-m">{r.observacao ? <Termo t="gabinete_presidencia">{r.unidade.replace("GABINETE ", "").toLowerCase()}</Termo> : r.unidade.replace("GABINETE ", "").toLowerCase()}</td>
-            <td class="num">{brl0(r.remuneracao_mensal_media)}</td><td class="oculta-m num">{brl0(r.remuneracao_liquida / r.meses_com_folha)}</td><td class="num">{brl0(r.gabinete_mensal_medio)}</td><td class="oculta-m num">{r.gabinete_pessoas_ultimo_mes}</td>
-            <td class="num">{brl0(r.custo_mensal_medio)}</td><td class="oculta-m num">{brl0(r.custo_anual_projetado)}</td></tr>
+            <td class="num" data-v={r.remuneracao_mensal_media}><span class="so-pc">{brl0(r.remuneracao_mensal_media)}</span><span class="so-m">{mil(r.remuneracao_mensal_media)}</span></td><td class="oculta-m num">{brl0(r.remuneracao_liquida / r.meses_com_folha)}</td><td class="num" data-v={r.gabinete_mensal_medio}><span class="so-pc">{brl0(r.gabinete_mensal_medio)}</span><span class="so-m">{mil(r.gabinete_mensal_medio)}</span></td><td class="oculta-m num">{r.gabinete_pessoas_ultimo_mes}</td>
+            <td class="num" data-v={r.custo_mensal_medio}><span class="so-pc">{brl0(r.custo_mensal_medio)}</span><span class="so-m">{mil(r.custo_mensal_medio)}</span></td><td class="oculta-m num">{brl0(r.custo_anual_projetado)}</td></tr>
       ))}
     </tbody>
   </table>
+  <p class="src">Clique no cabeçalho para ordenar.<span class="so-m"> No celular os valores aparecem abreviados e em reais: 954 mil = R$ 954.000; 1,00 mi = R$ 1.000.000.</span></p>
   <Glossario termos={["remuneracao_bruta", "teto_constitucional", "gabinete_stf", "pessoas_gabinete", "gabinete_presidencia", "ministro_aposentado", "projecao"]} />
 </Base>
