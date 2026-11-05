@@ -2,8 +2,8 @@
  "ano": 2026,
  "meses_considerados": 11,
  "senadores": 81,
- "gerado_em": "2026-11-04",
- "gerado_em_utc": "2026-11-04T17:32+00:00",
+ "gerado_em": "2026-11-05",
+ "gerado_em_utc": "2026-11-05T17:39+00:00",
  "anual_e_projecao": true,
  "fonte": "Senado Federal — Transparência, Recursos utilizados por senador (adm.senado.gov.br/adm-dadosabertos)",
  "premissas": {
@@ -13,8 +13,8 @@
   "inclui_auxilio_moradia": false
  },
  "totais": {
-  "ceaps": 24375461.97,
-  "nao_inclusos": 8189401.2,
-  "custo_total_estimado": 78467391.45
+  "ceaps": 24936627.06,
+  "nao_inclusos": 8230133.44,
+  "custo_total_estimado": 79069288.78
  }
 }
